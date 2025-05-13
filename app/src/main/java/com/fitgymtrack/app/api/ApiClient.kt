@@ -11,6 +11,8 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import com.google.gson.GsonBuilder
+
 
 object ApiClient {
 
@@ -56,9 +58,13 @@ object ApiClient {
     }
 
     private val okHttpClient by lazy {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY  // Log completo di richieste e risposte
+        }
+
         OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
-            .addInterceptor(authInterceptor)  // Aggiungi l'interceptor di autenticazione
+            .addInterceptor(authInterceptor)
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
@@ -66,10 +72,15 @@ object ApiClient {
     }
 
     private val retrofit by lazy {
+        // Crea un Gson più permissivo
+        val gson = GsonBuilder()
+            .setLenient()  // Aggiunta questa riga
+            .create()
+
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))  // Usa il gson modificato
             .build()
     }
 

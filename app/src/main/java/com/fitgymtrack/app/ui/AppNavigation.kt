@@ -11,10 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.components.ImprovedTopBar
 import com.fitgymtrack.app.utils.SessionManager
@@ -47,7 +49,9 @@ fun AppNavigation(
     val showTopBar = currentRoute != null &&
             currentRoute != "login" &&
             currentRoute != "register" &&
-            currentRoute != "profile" // Nascondi la TopBar anche nella schermata profilo
+            currentRoute != "profile" &&
+            currentRoute != "forgot_password" &&
+            !currentRoute.toString().startsWith("reset_password")
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -79,6 +83,9 @@ fun AppNavigation(
                 },
                 navigateToRegister = {
                     navController.navigate("register")
+                },
+                navigateToForgotPassword = {
+                    navController.navigate("forgot_password")
                 }
             )
         }
@@ -113,6 +120,32 @@ fun AppNavigation(
             UserProfileScreen(
                 navigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable("forgot_password") {
+            ForgotPasswordScreen(
+                navigateBack = {
+                    navController.popBackStack()
+                },
+                navigateToResetPassword = { token ->
+                    navController.navigate("reset_password/$token")
+                }
+            )
+        }
+
+        composable(
+            route = "reset_password/{token}",
+            arguments = listOf(navArgument("token") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            ResetPasswordScreen(
+                token = token,
+                navigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("reset_password/$token") { inclusive = true }
+                    }
                 }
             )
         }

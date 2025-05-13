@@ -1,10 +1,7 @@
 package com.fitgymtrack.app.repository
 
 import com.fitgymtrack.app.api.ApiClient
-import com.fitgymtrack.app.models.LoginRequest
-import com.fitgymtrack.app.models.LoginResponse
-import com.fitgymtrack.app.models.RegisterRequest
-import com.fitgymtrack.app.models.RegisterResponse
+import com.fitgymtrack.app.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import android.util.Log
@@ -53,6 +50,38 @@ class AuthRepository {
                     Log.e("AuthRepository", "Errore registrazione: ${e.message}", e)
                     Result.failure(e)
                 }
+            }
+        }
+    }
+
+    suspend fun requestPasswordReset(email: String): Result<PasswordResetResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val resetRequest = PasswordResetRequest(email)
+                val response = apiService.requestPasswordReset(
+                    action = "request",
+                    resetRequest = resetRequest
+                )
+                Result.success(response)
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Errore richiesta reset password: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    suspend fun confirmPasswordReset(token: String, code: String, newPassword: String): Result<PasswordResetConfirmResponse> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val resetConfirmRequest = PasswordResetConfirmRequest(token, code, newPassword)
+                val response = apiService.confirmPasswordReset(
+                    action = "reset",
+                    resetConfirmRequest = resetConfirmRequest
+                )
+                Result.success(response)
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Errore conferma reset password: ${e.message}", e)
+                Result.failure(e)
             }
         }
     }

@@ -1,10 +1,6 @@
 package com.fitgymtrack.app.api
 
-import com.fitgymtrack.app.models.LoginRequest
-import com.fitgymtrack.app.models.LoginResponse
-import com.fitgymtrack.app.models.RegisterRequest
-import com.fitgymtrack.app.models.RegisterResponse
-import com.fitgymtrack.app.models.UserProfile
+import com.fitgymtrack.app.models.*
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -35,4 +31,16 @@ interface ApiService {
     suspend fun getCurrentSubscription(
         @Query("action") action: String = "current_subscription"
     ): Map<String, Any>
+
+    @POST("password_reset.php")
+    suspend fun requestPasswordReset(
+        @Query("action") action: String = "request",
+        @Body resetRequest: PasswordResetRequest
+    ): PasswordResetResponse
+
+    @POST("password_reset.php")
+    suspend fun confirmPasswordReset(
+        @Query("action") action: String = "reset",
+        @Body resetConfirmRequest: PasswordResetConfirmRequest
+    ): PasswordResetConfirmResponse
 }
