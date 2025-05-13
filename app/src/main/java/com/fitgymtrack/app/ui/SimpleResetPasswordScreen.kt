@@ -2,6 +2,9 @@ package com.fitgymtrack.app.ui
 
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -17,10 +20,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fitgymtrack.app.models.PasswordResetConfirmRequest
+import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.theme.Indigo600
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,90 +45,309 @@ fun SimpleResetPasswordScreen(
     var resetCode by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var showConfirmPassword by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
+
+    // Stati per la validazione
+    var codeError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
+    // Snackbar message
+    var snackbarMessage by remember { mutableStateOf("") }
+    var isSuccess by remember { mutableStateOf(true) }
+
+    // Funzioni di validazione semplificate (più simili all'originale)
+    fun validateCode(code: String): Boolean {
+        if (code.isBlank()) {
+            codeError = "Inserisci il codice di verifica"
+            return false
+        }
+        codeError = null
+        return true
+    }
+
+    fun validatePassword(password: String): Boolean {
+        if (password.isBlank()) {
+            passwordError = "Inserisci una nuova password"
+            return false
+        }
+        passwordError = null
+        return true
+    }
+
+    fun validateConfirmPassword(password: String, confirmPassword: String): Boolean {
+        if (confirmPassword.isBlank()) {
+            confirmPasswordError = "Conferma la password"
+            return false
+        }
+
+        if (password != confirmPassword) {
+            confirmPasswordError = "Le password non coincidono"
+            return false
+        }
+
+        confirmPasswordError = null
+        return true
+    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Header
-            Text(
-                text = "Reimposta Password",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier.padding(vertical = 32.dp)
-            )
-
-            // Campi input
-            OutlinedTextField(
-                value = resetCode,
-                onValueChange = { resetCode = it },
-                label = { Text("Codice di verifica") },
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-            )
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Header con titolo e pulsante indietro
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = navigateToLogin) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Indietro",
+                            tint = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
 
-            OutlinedTextField(
-                value = newPassword,
-                onValueChange = { newPassword = it },
-                label = { Text("Nuova password") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
+                    Text(
+                        text = "Reimposta Password",
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
 
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = { confirmPassword = it },
-                label = { Text("Conferma password") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
-            )
+                    // Spazio vuoto per bilanciare il layout
+                    Box(modifier = Modifier.size(48.dp))
+                }
 
-            // Messaggio errore
-            if (errorMessage.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Icona chiave stilizzata
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .padding(bottom = 16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier.size(80.dp),
+                        shape = RoundedCornerShape(40.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Indigo600.copy(alpha = 0.1f)
+                        )
+                    ) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Key,
+                                contentDescription = "Key",
+                                tint = Indigo600,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
                 Text(
-                    text = errorMessage,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(bottom = 16.dp)
+                    text = "Imposta una nuova password",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onBackground
                 )
-            }
 
-            // Pulsante reset
-            Button(
-                onClick = {
-                    // Validazione
-                    when {
-                        resetCode.isBlank() -> {
-                            errorMessage = "Inserisci il codice di verifica"
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Inserisci il codice di verifica ricevuto via email e crea una nuova password sicura",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // Reset Code Field
+                OutlinedTextField(
+                    value = resetCode,
+                    onValueChange = {
+                        resetCode = it
+                        codeError = null  // Resetta l'errore quando l'utente digita
+                    },
+                    label = { Text("Codice di verifica") },
+                    placeholder = { Text("Inserisci il codice ricevuto via email") },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = if (codeError != null) 4.dp else 16.dp),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Text,  // Cambiato da Number a Text per permettere codici alfanumerici
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (codeError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (codeError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = codeError != null
+                )
+
+                // Messaggio errore codice
+                if (codeError != null) {
+                    Text(
+                        text = codeError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
+
+                // New Password Field
+                OutlinedTextField(
+                    value = newPassword,
+                    onValueChange = {
+                        newPassword = it
+                        passwordError = null  // Resetta l'errore quando l'utente digita
+                    },
+                    label = { Text("Nuova password") },
+                    placeholder = { Text("Inserisci la nuova password") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Password",
+                            tint = Indigo600
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showPassword) "Nascondi password" else "Mostra password",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        newPassword.isBlank() -> {
-                            errorMessage = "Inserisci una nuova password"
+                    },
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = if (passwordError != null) 4.dp else 16.dp),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Next
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (passwordError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (passwordError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = passwordError != null
+                )
+
+                // Messaggio errore password
+                if (passwordError != null) {
+                    Text(
+                        text = passwordError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
+
+                // Confirm Password Field
+                OutlinedTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it
+                        confirmPasswordError = null  // Resetta l'errore quando l'utente digita
+                    },
+                    label = { Text("Conferma password") },
+                    placeholder = { Text("Conferma la nuova password") },
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = "Conferma Password",
+                            tint = Indigo600
+                        )
+                    },
+                    trailingIcon = {
+                        IconButton(onClick = { showConfirmPassword = !showConfirmPassword }) {
+                            Icon(
+                                imageVector = if (showConfirmPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                contentDescription = if (showConfirmPassword) "Nascondi password" else "Mostra password",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
-                        newPassword != confirmPassword -> {
-                            errorMessage = "Le password non coincidono"
-                        }
-                        else -> {
-                            errorMessage = ""
+                    },
+                    visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = if (confirmPasswordError != null) 4.dp else 24.dp),
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done
+                    ),
+                    singleLine = true,
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = if (confirmPasswordError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (confirmPasswordError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = confirmPasswordError != null
+                )
+
+                // Messaggio errore conferma password
+                if (confirmPasswordError != null) {
+                    Text(
+                        text = confirmPasswordError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
+
+                // Submit Button
+                Button(
+                    onClick = {
+                        // Validazione molto semplificata, come nell'originale
+                        if (resetCode.isBlank()) {
+                            codeError = "Inserisci il codice di verifica"
+                        } else if (newPassword.isBlank()) {
+                            passwordError = "Inserisci una nuova password"
+                        } else if (newPassword != confirmPassword) {
+                            confirmPasswordError = "Le password non coincidono"
+                        } else {
+                            // Resetta tutti gli errori
+                            codeError = null
+                            passwordError = null
+                            confirmPasswordError = null
+
                             isLoading = true
 
                             coroutineScope.launch {
                                 try {
-                                    // Chiamata diretta all'API senza passare per Retrofit
+                                    // Chiamata diretta all'API senza passare per Retrofit (esattamente come l'originale)
                                     val result = sendDirectResetRequest(token, resetCode, newPassword)
                                     isLoading = false
 
@@ -133,44 +357,73 @@ fun SimpleResetPasswordScreen(
                                         navigateToLogin()
                                     } else {
                                         // Errore
-                                        errorMessage = result.second
+                                        snackbarMessage = result.second
+                                        isSuccess = false
                                     }
                                 } catch (e: Exception) {
                                     isLoading = false
-                                    errorMessage = "Errore: ${e.message}"
+                                    snackbarMessage = "Errore: ${e.message}"
+                                    isSuccess = false
                                     Log.e("ResetPasswordScreen", "Errore: ${e.message}", e)
                                 }
                             }
                         }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Indigo600
+                    ),
+                    enabled = resetCode.isNotBlank() &&
+                            newPassword.isNotBlank() &&
+                            confirmPassword.isNotBlank() &&
+                            !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.onPrimary,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Text(
+                            text = "Reimposta Password",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                enabled = !isLoading,
-                colors = ButtonDefaults.buttonColors(containerColor = Indigo600)
-            ) {
-                if (isLoading) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        modifier = Modifier.size(24.dp)
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Back to Login Button
+                TextButton(
+                    onClick = navigateToLogin,
+                    modifier = Modifier.padding(8.dp)
+                ) {
+                    Text(
+                        text = "Torna al login",
+                        color = Indigo600,
+                        fontWeight = FontWeight.Medium
                     )
-                } else {
-                    Text("REIMPOSTA PASSWORD")
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Link per tornare al login
-            TextButton(onClick = navigateToLogin) {
-                Text("Torna al login")
+            // Snackbar message
+            if (snackbarMessage.isNotEmpty()) {
+                SnackbarMessage(
+                    message = snackbarMessage,
+                    isSuccess = isSuccess,
+                    onDismiss = { snackbarMessage = "" }
+                )
             }
         }
     }
 }
 
-// Funzione per inviare direttamente la richiesta HTTP senza passare per Retrofit
+// Funzione per inviare direttamente la richiesta HTTP senza passare per Retrofit (mantenuta dalla versione originale)
 suspend fun sendDirectResetRequest(token: String, code: String, newPassword: String): Pair<Boolean, String> {
     return withContext(Dispatchers.IO) {
         try {

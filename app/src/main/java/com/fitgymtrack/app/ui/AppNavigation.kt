@@ -135,21 +135,6 @@ fun AppNavigation(
             )
         }
 
-        composable(
-            route = "reset_password/{token}",
-            arguments = listOf(navArgument("token") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val token = backStackEntry.arguments?.getString("token") ?: ""
-            ResetPasswordScreen(
-                token = token,
-                navigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo("reset_password/$token") { inclusive = true }
-                    }
-                }
-            )
-        }
-
         composable("notifications") {
             // Implementare la schermata delle notifiche
             Box(modifier = Modifier) {
