@@ -1,15 +1,24 @@
-// LoginScreen.kt
 package com.fitgymtrack.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -22,20 +31,8 @@ import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.AuthViewModel
 import kotlinx.coroutines.launch
-import androidx.compose.foundation.clickable
-import androidx.compose.material3.Icon
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowForward
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.OutlinedTextFieldDefaults
 
-
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -48,6 +45,7 @@ fun LoginScreen(
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
 
     val loginState by viewModel.loginState.collectAsState()
 
@@ -66,14 +64,13 @@ fun LoginScreen(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
-        // Main Container
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Top Logo Section - 30% of screen height
+            // App Logo e Titolo (30% dell'altezza schermo)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -83,13 +80,30 @@ fun LoginScreen(
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(
-                        text = "FitGymTrack",
-                        style = MaterialTheme.typography.headlineLarge,
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Indigo600
-                    )
+                    // Logo dell'app (design simile alla web app)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Text(
+                            text = "FitGymTrack",
+                            style = MaterialTheme.typography.headlineLarge,
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier,
+                            color = Indigo600
+                        )
+
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Pallino simile alla web app
+                        Box(
+                            modifier = Modifier
+                                .size(10.dp)
+                                .clip(CircleShape)
+                                .background(Indigo600)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -101,14 +115,14 @@ fun LoginScreen(
                 }
             }
 
-            // Form Section - 70% of screen height
+            // Form sezione (70% dell'altezza schermo)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.7f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Username Field with Icon
+                // Campo Username con Icona
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
@@ -135,13 +149,13 @@ fun LoginScreen(
                     )
                 )
 
-                // Password Field with Icon
+                // Campo Password con Icona
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
                     label = { Text("Password") },
                     singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
+                    visualTransformation = if (showPassword) PasswordVisualTransformation() else PasswordVisualTransformation(),
                     shape = RoundedCornerShape(12.dp),
                     modifier = Modifier
                         .fillMaxWidth()
@@ -153,6 +167,15 @@ fun LoginScreen(
                             tint = MaterialTheme.colorScheme.primary
                         )
                     },
+                    trailingIcon = {
+                        IconButton(onClick = { showPassword = !showPassword }) {
+                            Icon(
+                                imageVector = if (showPassword) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                contentDescription = if (showPassword) "Nascondi password" else "Mostra password",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
@@ -163,18 +186,24 @@ fun LoginScreen(
                     )
                 )
 
-                // Error Message
-                if (loginState is AuthViewModel.LoginState.Error) {
-                    Text(
-                        text = (loginState as AuthViewModel.LoginState.Error).message,
-                        color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 16.dp)
-                    )
+                // Messaggio di errore
+                AnimatedVisibility(
+                    visible = loginState is AuthViewModel.LoginState.Error,
+                    enter = fadeIn(),
+                    exit = fadeOut()
+                ) {
+                    if (loginState is AuthViewModel.LoginState.Error) {
+                        Text(
+                            text = (loginState as AuthViewModel.LoginState.Error).message,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 16.dp)
+                        )
+                    }
                 }
 
-                // Gradient Login Button
+                // Pulsante di Login con gradiente
                 Button(
                     onClick = {
                         viewModel.login(username, password)
@@ -214,7 +243,7 @@ fun LoginScreen(
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                // Registration Options Section
+                // Sezione opzioni di registrazione
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -233,7 +262,7 @@ fun LoginScreen(
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
 
-                    // Personal Account Option
+                    // Opzione Account Personale
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()

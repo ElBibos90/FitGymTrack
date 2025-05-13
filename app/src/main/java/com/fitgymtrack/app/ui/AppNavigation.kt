@@ -1,29 +1,70 @@
 package com.fitgymtrack.app.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.fitgymtrack.app.models.User
+import com.fitgymtrack.app.ui.components.ImprovedTopBar
+import com.fitgymtrack.app.utils.SessionManager
+import com.fitgymtrack.app.utils.ThemeManager
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlin.coroutines.CoroutineContext
+import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun AppNavigation(
     navController: NavHostController = rememberNavController(),
-    startDestination: String = "login"
+    startDestination: String = "login",
+    themeManager: ThemeManager? = null
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
+    // Osserva l'utente dalla sessione
+    var currentUser by remember { mutableStateOf<User?>(null) }
+
+    LaunchedEffect(key1 = Unit) {
+        sessionManager.getUserData().collect { user ->
+            currentUser = user
+        }
+    }
+
+    // Mostra la TopBar solo quando non siamo nella schermata di login o registrazione
+    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+    val showTopBar = currentRoute != null && currentRoute != "login" && currentRoute != "register"
+
+    // Ottieni il tema corrente
+    val themeMode = if (themeManager != null) {
+        themeManager.themeFlow.collectAsState(initial = ThemeManager.ThemeMode.SYSTEM).value
+    } else {
+        ThemeManager.ThemeMode.SYSTEM
+    }
+
+    val isDarkTheme = when (themeMode) {
+        ThemeManager.ThemeMode.LIGHT -> false
+        ThemeManager.ThemeMode.DARK -> true
+        ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        else -> isSystemInDarkTheme()
+    }
+
+    // Stato per lo scrolling
+    var isScrolled by remember { mutableStateOf(false) }
+
     NavHost(
         navController = navController,
         startDestination = startDestination
@@ -57,38 +98,24 @@ fun AppNavigation(
                     navController.navigate("login") {
                         popUpTo("dashboard") { inclusive = true }
                     }
+                },
+                onNavigateToProfile = {
+                    // Implementa la navigazione al profilo
                 }
             )
         }
-    }
-}
 
-@Composable
-fun DashboardPlaceholder(onLogout: () -> Unit) {
-    // Semplice placeholder per la dashboard
-    // Implementeremo la vera dashboard in seguito
-    Surface(
-        modifier = Modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "Benvenuto nella Dashboard",
-                style = MaterialTheme.typography.headlineMedium
-            )
+        composable("profile") {
+            // Implementare la schermata del profilo utente
+            Box(modifier = Modifier) {
+                // Placeholder per la schermata di profilo
+            }
+        }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(
-                onClick = onLogout
-            ) {
-                Text("Logout")
+        composable("notifications") {
+            // Implementare la schermata delle notifiche
+            Box(modifier = Modifier) {
+                // Placeholder per la schermata di notifiche
             }
         }
     }

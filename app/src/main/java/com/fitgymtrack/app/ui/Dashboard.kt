@@ -1,11 +1,13 @@
-// Dashboard.kt
 package com.fitgymtrack.app.ui
 
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,31 +25,28 @@ import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.DashboardViewModel
 import androidx.compose.foundation.clickable
-import androidx.compose.material3.Icon
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import kotlinx.coroutines.launch
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Description
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.ArrowForward
-
 
 @Composable
 fun Dashboard(
     onLogout: () -> Unit,
-    viewModel: DashboardViewModel = viewModel()
+    viewModel: DashboardViewModel = viewModel(),
+    onNavigateToProfile: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+
+    // Calcola se la schermata è stata scrollata
+    val isScrolled = scrollState.value > 10
+
+    // Invia l'evento di scroll all'esterno se necessario
+    val density = LocalDensity.current
+    LaunchedEffect(scrollState.value) {
+        // Qui potresti voler comunicare lo stato di scroll al parent se necessario
+    }
 
     val dashboardState by viewModel.dashboardState.collectAsState()
     val user by viewModel.user.collectAsState()
@@ -73,48 +72,8 @@ fun Dashboard(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
                 .verticalScroll(scrollState)
         ) {
-            // Header
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "FitGymTrack",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Indigo600
-                    )
-
-                    Text(
-                        text = "Benvenuto, ${user?.name ?: user?.username ?: "Utente"}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-                }
-
-                // Profile icon or initials
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(Indigo600),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = (user?.name?.firstOrNull() ?: user?.username?.firstOrNull() ?: "U").toString().uppercase(),
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-
             // Stato del caricamento
             when (dashboardState) {
                 is DashboardViewModel.DashboardState.Loading -> {
@@ -144,41 +103,56 @@ fun Dashboard(
                 }
 
                 is DashboardViewModel.DashboardState.Success -> {
-                    // Subscription Card
-                    SubscriptionCard(subscription = subscription)
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Main Feature Cards
-                    MainFeatureCards()
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Custom Exercises Card
-                    CustomExercisesCard()
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // Support Banner
-                    SupportBanner()
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    // Logout Button
-                    Button(
-                        onClick = logoutAction,
+                    Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
+                            .padding(16.dp)
                     ) {
+                        // Header Welcome - è già gestito nella TopBar, ma potresti volerne uno secondario qui
                         Text(
-                            text = "Logout",
-                            fontWeight = FontWeight.Bold
+                            text = "Benvenuto nella tua Dashboard",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
+
+                        // Subscription Card
+                        SubscriptionCard(subscription = subscription)
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Main Feature Cards
+                        MainFeatureCards()
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Custom Exercises Card
+                        CustomExercisesCard()
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // Support Banner
+                        SupportBanner()
+
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // Logout Button
+                        Button(
+                            onClick = logoutAction,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(50.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.error
+                            )
+                        ) {
+                            Text(
+                                text = "Logout",
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
             }
@@ -191,7 +165,8 @@ fun SubscriptionCard(subscription: Subscription?) {
     if (subscription != null) {
         Card(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .animateContentSize(),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (subscription.price > 0)
@@ -213,7 +188,6 @@ fun SubscriptionCard(subscription: Subscription?) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Icon/Badge - Qui è il fix corretto
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
@@ -222,7 +196,6 @@ fun SubscriptionCard(subscription: Subscription?) {
                                     brush = if (subscription.price > 0)
                                         GradientUtils.purpleGradient
                                     else
-                                    // Creazione di un brush con un colore solido
                                         Brush.verticalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
                                 ),
                             contentAlignment = Alignment.Center
@@ -257,21 +230,25 @@ fun SubscriptionCard(subscription: Subscription?) {
                         }
                     }
 
-                    Button(
+                    // Manage Subscription Button
+                    FilledTonalButton(
                         onClick = { /* Naviga alla gestione abbonamento */ },
                         shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = if (subscription.price > 0)
-                                Indigo600
+                                Indigo600.copy(alpha = 0.15f)
                             else
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                         )
                     ) {
-                        Text("Gestisci")
+                        Text(
+                            "Gestisci",
+                            color = if (subscription.price > 0) Indigo600 else MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
 
-                // Il resto del codice è uguale
+                // Limiti Piano Free
                 if (subscription.price == 0.0) {
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -342,7 +319,7 @@ fun SubscriptionCard(subscription: Subscription?) {
                         }
                     }
 
-                    // Call to action for free plan
+                    // Call to action for premium plan
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
@@ -353,7 +330,7 @@ fun SubscriptionCard(subscription: Subscription?) {
                             containerColor = Indigo600
                         )
                     ) {
-                        Text("Passa al piano Premium")
+                        Text("Passa al piano Premium", fontWeight = FontWeight.Medium)
                     }
                 }
             }
@@ -369,26 +346,21 @@ fun MainFeatureCards() {
             .height(180.dp),
         horizontalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Workout Plans Card
+        // Workout Plans Card con sfumatura blu
         Card(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(16.dp))
+                .background(GradientUtils.blueGradient),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
-            )
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        brush = GradientUtils.blueGradient,
-                        shape = RoundedCornerShape(16.dp)
-                    )
+                    .background(GradientUtils.blueGradient)
                     .padding(16.dp)
             ) {
                 Column {
@@ -418,9 +390,9 @@ fun MainFeatureCards() {
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    Button(
+                    FilledTonalButton(
                         onClick = { /* Naviga alle schede */ },
-                        colors = ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = Color.White.copy(alpha = 0.2f)
                         ),
                         shape = RoundedCornerShape(8.dp)
@@ -434,18 +406,16 @@ fun MainFeatureCards() {
             }
         }
 
-        // Workouts Card
+        // Workouts Card con sfumatura verde
         Card(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight(),
+                .fillMaxHeight()
+                .clip(RoundedCornerShape(16.dp))
+                .background(GradientUtils.greenGradient),
             shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color.Transparent
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 4.dp
-            )
+            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
         ) {
             Box(
                 modifier = Modifier
@@ -480,9 +450,9 @@ fun MainFeatureCards() {
 
                     Spacer(modifier = Modifier.weight(1f))
 
-                    Button(
+                    FilledTonalButton(
                         onClick = { /* Naviga agli allenamenti */ },
-                        colors = ButtonDefaults.buttonColors(
+                        colors = ButtonDefaults.filledTonalButtonColors(
                             containerColor = Color.White.copy(alpha = 0.2f)
                         ),
                         shape = RoundedCornerShape(8.dp)
@@ -503,14 +473,12 @@ fun CustomExercisesCard() {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp),
+            .height(120.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(GradientUtils.purpleGradient),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        ),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Box(
             modifier = Modifier
@@ -547,9 +515,9 @@ fun CustomExercisesCard() {
                     )
                 }
 
-                Button(
+                FilledTonalButton(
                     onClick = { /* Naviga agli esercizi personalizzati */ },
-                    colors = ButtonDefaults.buttonColors(
+                    colors = ButtonDefaults.filledTonalButtonColors(
                         containerColor = Color.White.copy(alpha = 0.2f)
                     ),
                     shape = RoundedCornerShape(8.dp)
@@ -567,11 +535,16 @@ fun CustomExercisesCard() {
 @Composable
 fun SupportBanner() {
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(
+                Brush.horizontalGradient(
+                    colors = listOf(Color(0xFFEC4899), Color(0xFF8B5CF6))
+                )
+            ),
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent)
     ) {
         Box(
             modifier = Modifier
