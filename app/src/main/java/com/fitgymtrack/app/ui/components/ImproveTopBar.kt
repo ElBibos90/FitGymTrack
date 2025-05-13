@@ -16,17 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavController
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.theme.Indigo600
-import com.fitgymtrack.app.ui.theme.GradientUtils
-import com.fitgymtrack.app.viewmodel.DashboardViewModel
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -112,7 +106,7 @@ fun ImprovedTopBar(
                     )
                 }
 
-                // User profile
+                // User profile - with clickable navigation to profile
                 if (user != null) {
                     Spacer(modifier = Modifier.width(8.dp))
 

@@ -7,6 +7,7 @@ import com.fitgymtrack.app.models.RegisterResponse
 import com.fitgymtrack.app.models.UserProfile
 import retrofit2.http.Body
 import retrofit2.http.POST
+import retrofit2.http.PUT
 import retrofit2.http.GET
 import retrofit2.http.Query
 
@@ -24,6 +25,11 @@ interface ApiService {
 
     @GET("utente_profilo.php")
     suspend fun getUserProfile(): UserProfile
+
+    @PUT("utente_profilo.php")
+    suspend fun updateUserProfile(
+        @Body userProfile: UserProfile
+    ): Map<String, Any>
 
     @GET("subscription_api.php")
     suspend fun getCurrentSubscription(

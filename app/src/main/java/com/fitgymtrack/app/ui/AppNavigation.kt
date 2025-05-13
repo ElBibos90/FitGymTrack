@@ -22,8 +22,6 @@ import com.fitgymtrack.app.utils.ThemeManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import kotlin.coroutines.CoroutineContext
-import kotlinx.coroutines.Dispatchers
 
 @Composable
 fun AppNavigation(
@@ -46,7 +44,10 @@ fun AppNavigation(
 
     // Mostra la TopBar solo quando non siamo nella schermata di login o registrazione
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val showTopBar = currentRoute != null && currentRoute != "login" && currentRoute != "register"
+    val showTopBar = currentRoute != null &&
+            currentRoute != "login" &&
+            currentRoute != "register" &&
+            currentRoute != "profile" // Nascondi la TopBar anche nella schermata profilo
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -95,21 +96,25 @@ fun AppNavigation(
         composable("dashboard") {
             Dashboard(
                 onLogout = {
-                    navController.navigate("login") {
-                        popUpTo("dashboard") { inclusive = true }
+                    coroutineScope.launch {
+                        sessionManager.clearSession()
+                        navController.navigate("login") {
+                            popUpTo("dashboard") { inclusive = true }
+                        }
                     }
                 },
                 onNavigateToProfile = {
-                    // Implementa la navigazione al profilo
+                    navController.navigate("profile")
                 }
             )
         }
 
         composable("profile") {
-            // Implementare la schermata del profilo utente
-            Box(modifier = Modifier) {
-                // Placeholder per la schermata di profilo
-            }
+            UserProfileScreen(
+                navigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable("notifications") {

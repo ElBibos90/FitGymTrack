@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.AppNavigation
@@ -38,6 +39,7 @@ class MainActivity : ComponentActivity() {
             val context = LocalContext.current
             val sessionManager = remember { SessionManager(context) }
             val coroutineScope = rememberCoroutineScope()
+            val navController = rememberNavController()
 
             // Osserva l'utente dalla sessione
             var currentUser by remember { mutableStateOf<User?>(null) }
@@ -64,24 +66,33 @@ class MainActivity : ComponentActivity() {
             }
 
             FitGymTrackTheme(themeManager = themeManager) {
+                // Osserva lo stato della navigazione per decidere se mostrare la TopBar
+                val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+                val showTopBar = currentRoute != null &&
+                        currentRoute != "login" &&
+                        currentRoute != "register" &&
+                        currentRoute != "profile"
+
                 Scaffold(
                     topBar = {
-                        ImprovedTopBar(
-                            user = currentUser,
-                            isDarkTheme = isDarkTheme,
-                            onThemeToggle = {
-                                coroutineScope.launch {
-                                    themeManager.toggleTheme()
-                                }
-                            },
-                            onNavigateToProfile = {
-                                // Implementare la navigazione al profilo
-                            },
-                            onNavigateToNotifications = {
-                                // Implementare la navigazione alle notifiche
-                            },
-                            isScrolled = isScrolled
-                        )
+                        if (showTopBar) {
+                            ImprovedTopBar(
+                                user = currentUser,
+                                isDarkTheme = isDarkTheme,
+                                onThemeToggle = {
+                                    coroutineScope.launch {
+                                        themeManager.toggleTheme()
+                                    }
+                                },
+                                onNavigateToProfile = {
+                                    navController.navigate("profile")
+                                },
+                                onNavigateToNotifications = {
+                                    navController.navigate("notifications")
+                                },
+                                isScrolled = isScrolled
+                            )
+                        }
                     }
                 ) { paddingValues ->
                     Box(
@@ -90,7 +101,10 @@ class MainActivity : ComponentActivity() {
                             .padding(paddingValues)
                             .background(MaterialTheme.colorScheme.background)
                     ) {
-                        AppNavigation()
+                        AppNavigation(
+                            navController = navController,
+                            themeManager = themeManager
+                        )
                     }
                 }
             }

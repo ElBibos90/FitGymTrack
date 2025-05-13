@@ -20,6 +20,41 @@ class UserRepository {
         }
     }
 
+    suspend fun updateUserProfile(userProfile: UserProfile): Result<UserProfile> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.updateUserProfile(userProfile)
+
+                // Il backend restituisce una mappa con una chiave "profile" che contiene il profilo aggiornato
+                @Suppress("UNCHECKED_CAST")
+                val updatedProfile = if (response.containsKey("profile")) {
+                    val profileMap = response["profile"] as? Map<String, Any>
+                    if (profileMap != null) {
+                        UserProfile(
+                            height = (profileMap["height"] as? Number)?.toInt(),
+                            weight = (profileMap["weight"] as? Number)?.toDouble(),
+                            age = (profileMap["age"] as? Number)?.toInt(),
+                            gender = profileMap["gender"] as? String,
+                            experienceLevel = profileMap["experienceLevel"] as? String,
+                            fitnessGoals = profileMap["fitnessGoals"] as? String,
+                            injuries = profileMap["injuries"] as? String,
+                            preferences = profileMap["preferences"] as? String,
+                            notes = profileMap["notes"] as? String
+                        )
+                    } else {
+                        userProfile
+                    }
+                } else {
+                    userProfile
+                }
+
+                Result.success(updatedProfile)
+            } catch (e: Exception) {
+                Result.failure(e)
+            }
+        }
+    }
+
     suspend fun getCurrentSubscription(): Result<Subscription> {
         return withContext(Dispatchers.IO) {
             try {
