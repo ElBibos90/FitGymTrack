@@ -38,6 +38,25 @@ fun ForgotPasswordScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(true) }
 
+    // Stato per rendere possibile una validazione lato client
+    var emailError by remember { mutableStateOf<String?>(null) }
+
+    // Funzione di validazione per l'email
+    fun validateEmail(email: String): Boolean {
+        if (email.isBlank()) {
+            emailError = "L'email non può essere vuota"
+            return false
+        }
+
+        if (!email.contains("@") || !email.contains(".") || email.length < 6) {
+            emailError = "Inserisci un indirizzo email valido"
+            return false
+        }
+
+        emailError = null
+        return true
+    }
+
     LaunchedEffect(resetRequestState) {
         when (resetRequestState) {
             is PasswordResetViewModel.ResetRequestState.Success -> {
@@ -45,7 +64,7 @@ fun ForgotPasswordScreen(
                 snackbarMessage = "Ti abbiamo inviato un'email con le istruzioni"
                 isSuccess = true
                 // Delay briefly before navigation to allow snackbar to be seen
-                delay(1000)
+                delay(1500)
                 navigateToResetPassword(token)
             }
             is PasswordResetViewModel.ResetRequestState.Error -> {
@@ -150,7 +169,13 @@ fun ForgotPasswordScreen(
                 // Email Field
                 OutlinedTextField(
                     value = email,
-                    onValueChange = { email = it },
+                    onValueChange = {
+                        email = it
+                        // Rimuovi l'errore quando l'utente inizia a digitare
+                        if (emailError != null) {
+                            validateEmail(it)
+                        }
+                    },
                     label = { Text("Email") },
                     placeholder = { Text("Inserisci la tua email") },
                     leadingIcon = {
@@ -162,7 +187,7 @@ fun ForgotPasswordScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = if (emailError != null) 4.dp else 16.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Done
@@ -170,16 +195,33 @@ fun ForgotPasswordScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        focusedBorderColor = if (emailError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (emailError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = emailError != null
                 )
+
+                // Messaggio d'errore per la validazione dell'email
+                if (emailError != null) {
+                    Text(
+                        text = emailError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 // Submit Button
                 Button(
-                    onClick = { viewModel.requestPasswordReset(email) },
+                    onClick = {
+                        if (validateEmail(email)) {
+                            viewModel.requestPasswordReset(email)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),

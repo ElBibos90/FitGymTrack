@@ -5,20 +5,25 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.Response
+import okhttp3.ResponseBody
 import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Converter
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
+import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonSyntaxException
+import com.google.gson.Gson
+import okhttp3.Headers
 
 
 object ApiClient {
 
-    private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
+    //private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
     // oppure
-    //private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
+    private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -71,6 +76,32 @@ object ApiClient {
             .build()
     }
 
+    // Converter Factory personalizzato per gestire meglio gli errori di parsing
+    class SafeConverterFactory(private val gson: Gson) : Converter.Factory() {
+        override fun responseBodyConverter(
+            type: Type,
+            annotations: Array<Annotation>,
+            retrofit: Retrofit
+        ): Converter<ResponseBody, *>? {
+            val delegate = GsonConverterFactory.create(gson).responseBodyConverter(type, annotations, retrofit)
+            return if (delegate != null) {
+                Converter<ResponseBody, Any> { body ->
+                    try {
+                        delegate.convert(body)
+                    } catch (e: JsonSyntaxException) {
+                        // Log dell'errore
+                        android.util.Log.e("ApiClient", "Errore parsing JSON: ${e.message}")
+
+                        // In caso di errore, restituisce un valore di default in base al tipo
+                        null
+                    }
+                }
+            } else {
+                null
+            }
+        }
+    }
+
     private val retrofit by lazy {
         // Crea un Gson più permissivo
         val gson = GsonBuilder()
@@ -81,6 +112,8 @@ object ApiClient {
             .baseUrl(BASE_URL)
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create(gson))  // Usa il gson modificato
+            // La SafeConverterFactory è già implementata sopra ma non la utilizziamo
+            // perché potrebbe causare problemi di compatibilità
             .build()
     }
 

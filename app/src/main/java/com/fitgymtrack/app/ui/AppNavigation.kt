@@ -156,5 +156,20 @@ fun AppNavigation(
                 // Placeholder per la schermata di notifiche
             }
         }
+
+        composable(
+            route = "reset_password/{token}",
+            arguments = listOf(navArgument("token") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val token = backStackEntry.arguments?.getString("token") ?: ""
+            SimpleResetPasswordScreen(
+                token = token,
+                navigateToLogin = {
+                    navController.navigate("login") {
+                        popUpTo("reset_password/$token") { inclusive = true }
+                    }
+                }
+            )
+        }
     }
 }

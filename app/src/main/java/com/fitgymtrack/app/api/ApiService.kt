@@ -6,6 +6,8 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.GET
 import retrofit2.http.Query
+import okhttp3.ResponseBody
+import retrofit2.Response
 
 interface ApiService {
     @POST("auth.php")
@@ -32,15 +34,17 @@ interface ApiService {
         @Query("action") action: String = "current_subscription"
     ): Map<String, Any>
 
+    // Modificato per ricevere ResponseBody invece di un oggetto tipizzato
     @POST("password_reset.php")
     suspend fun requestPasswordReset(
         @Query("action") action: String = "request",
         @Body resetRequest: PasswordResetRequest
-    ): PasswordResetResponse
+    ): Response<ResponseBody>
 
-    @POST("password_reset.php")
+    // Modificato per ricevere ResponseBody invece di un oggetto tipizzato
+    @POST("reset_simple.php")
     suspend fun confirmPasswordReset(
         @Query("action") action: String = "reset",
         @Body resetConfirmRequest: PasswordResetConfirmRequest
-    ): PasswordResetConfirmResponse
+    ): Response<ResponseBody>
 }

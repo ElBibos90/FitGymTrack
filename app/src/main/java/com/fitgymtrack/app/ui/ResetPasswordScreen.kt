@@ -46,7 +46,67 @@ fun ResetPasswordScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(true) }
 
+    // Stati per la validazione
+    var codeError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmPasswordError by remember { mutableStateOf<String?>(null) }
+
     val resetState by viewModel.resetState.collectAsState()
+
+    // Funzioni di validazione
+    fun validateCode(code: String): Boolean {
+        if (code.isBlank()) {
+            codeError = "Il codice di verifica non può essere vuoto"
+            return false
+        }
+
+        if (code.length < 4 || !code.all { it.isDigit() }) {
+            codeError = "Inserisci un codice di verifica valido"
+            return false
+        }
+
+        codeError = null
+        return true
+    }
+
+    fun validatePassword(password: String): Boolean {
+        if (password.isBlank()) {
+            passwordError = "La password non può essere vuota"
+            return false
+        }
+
+        if (password.length < 8) {
+            passwordError = "La password deve essere di almeno 8 caratteri"
+            return false
+        }
+
+        // Verifica che la password abbia almeno un numero e una lettera maiuscola
+        val hasNumber = password.any { it.isDigit() }
+        val hasUpperCase = password.any { it.isUpperCase() }
+
+        if (!hasNumber || !hasUpperCase) {
+            passwordError = "La password deve contenere almeno un numero e una lettera maiuscola"
+            return false
+        }
+
+        passwordError = null
+        return true
+    }
+
+    fun validateConfirmPassword(password: String, confirmPassword: String): Boolean {
+        if (confirmPassword.isBlank()) {
+            confirmPasswordError = "La conferma password non può essere vuota"
+            return false
+        }
+
+        if (password != confirmPassword) {
+            confirmPasswordError = "Le password non coincidono"
+            return false
+        }
+
+        confirmPasswordError = null
+        return true
+    }
 
     LaunchedEffect(resetState) {
         when (resetState) {
@@ -159,12 +219,17 @@ fun ResetPasswordScreen(
                 // Reset Code Field
                 OutlinedTextField(
                     value = resetCode,
-                    onValueChange = { resetCode = it },
+                    onValueChange = {
+                        resetCode = it
+                        if (codeError != null) {
+                            validateCode(it)
+                        }
+                    },
                     label = { Text("Codice di verifica") },
                     placeholder = { Text("Inserisci il codice ricevuto via email") },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = if (codeError != null) 4.dp else 16.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Number,
                         imeAction = ImeAction.Next
@@ -172,15 +237,37 @@ fun ResetPasswordScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        focusedBorderColor = if (codeError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (codeError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = codeError != null
                 )
+
+                // Messaggio errore codice
+                if (codeError != null) {
+                    Text(
+                        text = codeError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
 
                 // New Password Field
                 OutlinedTextField(
                     value = newPassword,
-                    onValueChange = { newPassword = it },
+                    onValueChange = {
+                        newPassword = it
+                        if (passwordError != null) {
+                            validatePassword(it)
+                        }
+                        // Ricontrolla anche la conferma password se cambiamo la password
+                        if (confirmPassword.isNotEmpty()) {
+                            validateConfirmPassword(it, confirmPassword)
+                        }
+                    },
                     label = { Text("Nuova password") },
                     placeholder = { Text("Inserisci la nuova password") },
                     leadingIcon = {
@@ -202,7 +289,7 @@ fun ResetPasswordScreen(
                     visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                        .padding(bottom = if (passwordError != null) 4.dp else 16.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
@@ -210,15 +297,33 @@ fun ResetPasswordScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        focusedBorderColor = if (passwordError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (passwordError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = passwordError != null
                 )
+
+                // Messaggio errore password
+                if (passwordError != null) {
+                    Text(
+                        text = passwordError!!,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
+                    )
+                }
 
                 // Confirm Password Field
                 OutlinedTextField(
                     value = confirmPassword,
-                    onValueChange = { confirmPassword = it },
+                    onValueChange = {
+                        confirmPassword = it
+                        if (confirmPasswordError != null) {
+                            validateConfirmPassword(newPassword, it)
+                        }
+                    },
                     label = { Text("Conferma password") },
                     placeholder = { Text("Conferma la nuova password") },
                     leadingIcon = {
@@ -240,7 +345,7 @@ fun ResetPasswordScreen(
                     visualTransformation = if (showConfirmPassword) VisualTransformation.None else PasswordVisualTransformation(),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = if (confirmPasswordError != null) 4.dp else 24.dp),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
@@ -248,23 +353,35 @@ fun ResetPasswordScreen(
                     singleLine = true,
                     shape = RoundedCornerShape(12.dp),
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        focusedBorderColor = if (confirmPasswordError != null) MaterialTheme.colorScheme.error else Indigo600,
+                        unfocusedBorderColor = if (confirmPasswordError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
+                    ),
+                    isError = confirmPasswordError != null
                 )
 
-                // Error message if passwords don't match
-                if (newPassword.isNotEmpty() && confirmPassword.isNotEmpty() && newPassword != confirmPassword) {
+                // Messaggio errore conferma password
+                if (confirmPasswordError != null) {
                     Text(
-                        text = "Le password non coincidono",
+                        text = confirmPasswordError!!,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 16.dp, bottom = 16.dp)
                     )
                 }
 
                 // Submit Button
                 Button(
-                    onClick = { viewModel.resetPassword(token, resetCode, newPassword) },
+                    onClick = {
+                        val isCodeValid = validateCode(resetCode)
+                        val isPasswordValid = validatePassword(newPassword)
+                        val isConfirmPasswordValid = validateConfirmPassword(newPassword, confirmPassword)
+
+                        if (isCodeValid && isPasswordValid && isConfirmPasswordValid) {
+                            viewModel.resetPassword(token, resetCode, newPassword)
+                        }
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -275,7 +392,6 @@ fun ResetPasswordScreen(
                     enabled = resetCode.isNotBlank() &&
                             newPassword.isNotBlank() &&
                             confirmPassword.isNotBlank() &&
-                            newPassword == confirmPassword &&
                             resetState !is PasswordResetViewModel.ResetState.Loading
                 ) {
                     if (resetState is PasswordResetViewModel.ResetState.Loading) {
