@@ -2,11 +2,10 @@ package com.fitgymtrack.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -18,12 +17,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.api.ExerciseItem
 import com.fitgymtrack.app.ui.components.ExerciseSelectionDialog
 import com.fitgymtrack.app.ui.components.SnackbarMessage
+import com.fitgymtrack.app.ui.components.WorkoutExerciseEditor
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.CreateWorkoutViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-// Aggiunta a livello di file per risolvere l'avviso dell'API sperimentale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateWorkoutScreen(
@@ -80,15 +79,14 @@ fun CreateWorkoutScreen(
     // Estrai gli ID degli esercizi già selezionati per passarli al dialogo
     val selectedExerciseIds = selectedExercises.map { it.id }
 
-    // Dialog per la selezione degli esercizi (versione migliorata)
+    // Dialog per la selezione degli esercizi
     if (showExerciseDialog) {
         ExerciseSelectionDialog(
             exercises = availableExercises,
-            selectedExerciseIds = selectedExerciseIds, // Passa gli ID degli esercizi già selezionati
+            selectedExerciseIds = selectedExerciseIds,
             isLoading = exercisesLoadingState is CreateWorkoutViewModel.LoadingState.Loading,
             onExerciseSelected = { exercise ->
                 viewModel.addExercise(exercise)
-                // Mostro un feedback per confermare l'aggiunta
                 snackbarMessage = "Aggiunto: ${exercise.nome}"
                 isSnackbarSuccess = true
                 showSnackbar = true
@@ -239,22 +237,32 @@ fun CreateWorkoutScreen(
                                     )
                                 }
                             } else {
+                                // Elenco esercizi con editor
                                 Column(
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     selectedExercises.forEachIndexed { index, exercise ->
-                                        WorkoutExerciseItem(
+                                        WorkoutExerciseEditor(
                                             exercise = exercise,
-                                            onDelete = { viewModel.removeExercise(index) }
+                                            onUpdate = { updatedExercise ->
+                                                viewModel.updateExerciseDetails(index, updatedExercise)
+                                            },
+                                            onDelete = {
+                                                viewModel.removeExercise(index)
+                                                snackbarMessage = "Rimosso: ${exercise.nome}"
+                                                isSnackbarSuccess = true
+                                                showSnackbar = true
+                                            },
+                                            onMoveUp = {
+                                                viewModel.moveExerciseUp(index)
+                                            },
+                                            onMoveDown = {
+                                                viewModel.moveExerciseDown(index)
+                                            },
+                                            isFirst = index == 0,
+                                            isLast = index == selectedExercises.size - 1
                                         )
-
-                                        if (index < selectedExercises.size - 1) {
-                                            Divider(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(vertical = 8.dp)
-                                            )
-                                        }
                                     }
                                 }
                             }
@@ -325,55 +333,6 @@ fun CreateWorkoutScreen(
                     onDismiss = { showSnackbar = false }
                 )
             }
-        }
-    }
-}
-
-@Composable
-fun WorkoutExerciseItem(
-    exercise: com.fitgymtrack.app.models.WorkoutExercise,
-    onDelete: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Column(
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = exercise.nome,
-                style = MaterialTheme.typography.bodyLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            if (exercise.gruppoMuscolare != null) {
-                Text(
-                    text = exercise.gruppoMuscolare,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = "${exercise.serie} serie × ${exercise.ripetizioni} " +
-                        (if (exercise.isIsometric) "sec" else "rep") +
-                        (if (exercise.peso > 0) " @ ${exercise.peso} kg" else ""),
-                style = MaterialTheme.typography.bodyMedium
-            )
-        }
-
-        // Pulsanti di azione
-        IconButton(onClick = onDelete) {
-            Icon(
-                imageVector = Icons.Default.Delete,
-                contentDescription = "Rimuovi",
-                tint = MaterialTheme.colorScheme.error
-            )
         }
     }
 }
