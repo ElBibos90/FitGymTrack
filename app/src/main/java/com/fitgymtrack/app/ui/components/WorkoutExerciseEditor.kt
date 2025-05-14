@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fitgymtrack.app.models.WorkoutExercise
+import com.fitgymtrack.app.models.safeCopy
 
 /**
  * Componente per modificare i dettagli di un esercizio all'interno di una scheda
@@ -34,7 +35,7 @@ fun WorkoutExerciseEditor(
     // Garantiamo che l'esercizio abbia sempre un setType valido
     val safeExercise = remember(exercise) {
         if (exercise.setType.isNullOrEmpty()) {
-            exercise.copy(setType = "normal")
+            exercise.safeCopy(setType = "normal") // MODIFICATO: usa safeCopy
         } else {
             exercise
         }
@@ -218,9 +219,9 @@ fun WorkoutExerciseEditor(
                                 value = series,
                                 onValueChange = {
                                     series = it
-                                    // SICUREZZA NULL: Non includiamo setType nel copy se non stiamo modificando quel campo
+                                    // MODIFICATO: usa safeCopy
                                     onUpdate(
-                                        safeExercise.copy(
+                                        safeExercise.safeCopy(
                                             serie = it.toIntOrNull() ?: safeExercise.serie
                                         )
                                     )
@@ -245,9 +246,9 @@ fun WorkoutExerciseEditor(
                                 value = reps,
                                 onValueChange = {
                                     reps = it
-                                    // SICUREZZA NULL: Non includiamo setType nel copy se non stiamo modificando quel campo
+                                    // MODIFICATO: usa safeCopy
                                     onUpdate(
-                                        safeExercise.copy(
+                                        safeExercise.safeCopy(
                                             ripetizioni = it.toIntOrNull() ?: safeExercise.ripetizioni
                                         )
                                     )
@@ -280,9 +281,9 @@ fun WorkoutExerciseEditor(
                                 value = weight,
                                 onValueChange = {
                                     weight = it
-                                    // SICUREZZA NULL: Non includiamo setType nel copy se non stiamo modificando quel campo
+                                    // MODIFICATO: usa safeCopy
                                     onUpdate(
-                                        safeExercise.copy(
+                                        safeExercise.safeCopy(
                                             peso = it.toDoubleOrNull() ?: safeExercise.peso
                                         )
                                     )
@@ -307,9 +308,9 @@ fun WorkoutExerciseEditor(
                                 value = restTime,
                                 onValueChange = {
                                     restTime = it
-                                    // SICUREZZA NULL: Non includiamo setType nel copy se non stiamo modificando quel campo
+                                    // MODIFICATO: usa safeCopy
                                     onUpdate(
-                                        safeExercise.copy(
+                                        safeExercise.safeCopy(
                                             tempoRecupero = it.toIntOrNull() ?: safeExercise.tempoRecupero
                                         )
                                     )
@@ -370,9 +371,9 @@ fun WorkoutExerciseEditor(
                                             setType = safeValue
                                             showDropdown = false
 
-                                            // SICUREZZA NULL: Utilizziamo sempre un valore non-null
+                                            // MODIFICATO: usa safeCopy
                                             onUpdate(
-                                                safeExercise.copy(
+                                                safeExercise.safeCopy(
                                                     setType = safeValue,
                                                     // Se il tipo è normale, rimuovi il collegamento
                                                     linkedToPrevious = if (safeValue == "normal") false else linkedToPrevious
@@ -395,9 +396,9 @@ fun WorkoutExerciseEditor(
                                 checked = linkedToPrevious,
                                 onCheckedChange = { isChecked ->
                                     linkedToPrevious = isChecked
-                                    // SICUREZZA NULL: Garantiamo che setType non sia mai null, mantenendo il valore attuale
+                                    // MODIFICATO: usa safeCopy
                                     onUpdate(
-                                        safeExercise.copy(
+                                        safeExercise.safeCopy(
                                             linkedToPrevious = isChecked
                                         )
                                     )
@@ -424,9 +425,9 @@ fun WorkoutExerciseEditor(
                             value = notes,
                             onValueChange = {
                                 notes = it
-                                // SICUREZZA NULL: Non includiamo setType nel copy se non stiamo modificando quel campo
+                                // MODIFICATO: usa safeCopy
                                 onUpdate(
-                                    safeExercise.copy(
+                                    safeExercise.safeCopy(
                                         note = it.ifEmpty { null }
                                     )
                                 )

@@ -72,9 +72,9 @@ class CreateWorkoutViewModel(
         }
     }
 
-    // Aggiunge un esercizio alla scheda
+    // Aggiunge un esercizio alla scheda - MODIFICATO per usare la factory function
     fun addExercise(exercise: ExerciseItem) {
-        val newExercise = WorkoutExercise(
+        val newExercise = createWorkoutExercise(
             id = exercise.id,
             nome = exercise.nome,
             gruppoMuscolare = exercise.gruppo_muscolare,
@@ -90,25 +90,25 @@ class CreateWorkoutViewModel(
         _selectedExercises.value = _selectedExercises.value + newExercise
     }
 
-    // Rimuove un esercizio dalla scheda
+    // Rimuove un esercizio dalla scheda - MODIFICATO per usare safeCopy
     fun removeExercise(index: Int) {
         val updatedList = _selectedExercises.value.toMutableList()
         updatedList.removeAt(index)
 
         // Aggiorna l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, exercise ->
-            exercise.copy(ordine = i + 1)
+            exercise.safeCopy(ordine = i + 1)
         }
     }
 
-    // Aggiorna i dettagli di un esercizio
+    // Aggiorna i dettagli di un esercizio - MODIFICATO per usare safeCopy
     fun updateExerciseDetails(index: Int, updatedExercise: WorkoutExercise) {
         val updatedList = _selectedExercises.value.toMutableList()
         updatedList[index] = updatedExercise
         _selectedExercises.value = updatedList
     }
 
-    // Sposta un esercizio su
+    // Sposta un esercizio su - MODIFICATO per usare safeCopy
     fun moveExerciseUp(index: Int) {
         if (index <= 0 || index >= _selectedExercises.value.size) return
 
@@ -119,11 +119,11 @@ class CreateWorkoutViewModel(
 
         // Aggiorna l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, exercise ->
-            exercise.copy(ordine = i + 1)
+            exercise.safeCopy(ordine = i + 1)
         }
     }
 
-    // Sposta un esercizio giù
+    // Sposta un esercizio giù - MODIFICATO per usare safeCopy
     fun moveExerciseDown(index: Int) {
         if (index < 0 || index >= _selectedExercises.value.size - 1) return
 
@@ -134,7 +134,7 @@ class CreateWorkoutViewModel(
 
         // Aggiorna l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, exercise ->
-            exercise.copy(ordine = i + 1)
+            exercise.safeCopy(ordine = i + 1)
         }
     }
 

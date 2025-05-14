@@ -30,6 +30,7 @@ import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
+import androidx.activity.compose.BackHandler
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -42,6 +43,11 @@ fun WorkoutPlansScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
+
+    // Gestisce il pulsante "back" del sistema
+    BackHandler {
+        onBack()
+    }
 
     val workoutPlansState by viewModel.workoutPlansState.collectAsState()
     val workoutPlans by viewModel.workoutPlans.collectAsState()

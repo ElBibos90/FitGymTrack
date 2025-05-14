@@ -80,7 +80,7 @@ class EditWorkoutViewModel(
                                     // Assicuriamo che setType non sia mai null
                                     val safeExercises = exercises.map { exercise ->
                                         if (exercise.setType.isNullOrEmpty()) {
-                                            exercise.copy(setType = "normal")
+                                            exercise.safeCopy(setType = "normal") // MODIFICATO: usa safeCopy
                                         } else {
                                             exercise
                                         }
@@ -146,10 +146,10 @@ class EditWorkoutViewModel(
     }
 
     /**
-     * Aggiunge un esercizio alla scheda
+     * Aggiunge un esercizio alla scheda - MODIFICATO per usare createWorkoutExercise
      */
     fun addExercise(exercise: ExerciseItem) {
-        val newExercise = WorkoutExercise(
+        val newExercise = createWorkoutExercise(
             id = exercise.id,
             nome = exercise.nome,
             gruppoMuscolare = exercise.gruppo_muscolare,
@@ -168,6 +168,7 @@ class EditWorkoutViewModel(
     /**
      * Rimuove un esercizio dalla scheda
      * Se l'esercizio ha un ID scheda_esercizio_id, lo aggiunge agli esercizi da rimuovere
+     * MODIFICATO per usare safeCopy
      */
     fun removeExercise(index: Int) {
         if (index < 0 || index >= _selectedExercises.value.size) return
@@ -185,7 +186,7 @@ class EditWorkoutViewModel(
 
         // Aggiorniamo l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, ex ->
-            ex.copy(ordine = i + 1)
+            ex.safeCopy(ordine = i + 1)
         }
     }
 
@@ -201,7 +202,7 @@ class EditWorkoutViewModel(
     }
 
     /**
-     * Sposta un esercizio su
+     * Sposta un esercizio su - MODIFICATO per usare safeCopy
      */
     fun moveExerciseUp(index: Int) {
         if (index <= 0 || index >= _selectedExercises.value.size) return
@@ -213,7 +214,7 @@ class EditWorkoutViewModel(
 
         // Se l'esercizio è collegato al precedente, rimuoviamo il collegamento
         if (currentEx.linkedToPrevious) {
-            updatedList[index] = currentEx.copy(linkedToPrevious = false)
+            updatedList[index] = currentEx.safeCopy(linkedToPrevious = false)
         }
 
         // Scambiamo gli esercizi
@@ -223,12 +224,12 @@ class EditWorkoutViewModel(
 
         // Aggiorniamo l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, ex ->
-            ex.copy(ordine = i + 1)
+            ex.safeCopy(ordine = i + 1)
         }
     }
 
     /**
-     * Sposta un esercizio giù
+     * Sposta un esercizio giù - MODIFICATO per usare safeCopy
      */
     fun moveExerciseDown(index: Int) {
         if (index < 0 || index >= _selectedExercises.value.size - 1) return
@@ -240,7 +241,7 @@ class EditWorkoutViewModel(
 
         // Se è collegato, rimuoviamo il collegamento
         if (nextEx.linkedToPrevious) {
-            updatedList[index + 1] = nextEx.copy(linkedToPrevious = false)
+            updatedList[index + 1] = nextEx.safeCopy(linkedToPrevious = false)
         }
 
         // Scambiamo gli esercizi
@@ -250,7 +251,7 @@ class EditWorkoutViewModel(
 
         // Aggiorniamo l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, ex ->
-            ex.copy(ordine = i + 1)
+            ex.safeCopy(ordine = i + 1)
         }
     }
 

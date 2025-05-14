@@ -54,45 +54,86 @@ data class WorkoutExercise(
     val isIsometric: Boolean
         get() = isIsometricInt > 0
 
-    /**
-     * Override sicuro del metodo copy che garantisce che setType non sia mai null e gestisce correttamente
-     * le conversioni Boolean <-> Int
-     */
-    fun copy(
-        id: Int = this.id,
-        schedaEsercizioId: Int? = this.schedaEsercizioId,
-        nome: String = this.nome,
-        gruppoMuscolare: String? = this.gruppoMuscolare,
-        attrezzatura: String? = this.attrezzatura,
-        descrizione: String? = this.descrizione,
-        serie: Int = this.serie,
-        ripetizioni: Int = this.ripetizioni,
-        peso: Double = this.peso,
-        ordine: Int = this.ordine,
-        tempoRecupero: Int = this.tempoRecupero,
-        note: String? = this.note,
-        setType: String = this.setType,
-        linkedToPrevious: Boolean = this.linkedToPrevious,
-        isIsometric: Boolean = this.isIsometric
-    ): WorkoutExercise {
-        return WorkoutExercise(
-            id = id,
-            schedaEsercizioId = schedaEsercizioId,
-            nome = nome,
-            gruppoMuscolare = gruppoMuscolare,
-            attrezzatura = attrezzatura,
-            descrizione = descrizione,
-            serie = serie,
-            ripetizioni = ripetizioni,
-            peso = peso,
-            ordine = ordine,
-            tempoRecupero = tempoRecupero,
-            note = note,
-            setType = setType.ifEmpty { "normal" }, // Garantiamo che setType non sia mai vuoto
-            linkedToPreviousInt = if (linkedToPrevious) 1 else 0, // Conversione Boolean -> Int
-            isIsometricInt = if (isIsometric) 1 else 0           // Conversione Boolean -> Int
-        )
-    }
+    // Rimuovere il metodo copy() personalizzato qui
+}
+
+/**
+ * Funzione di estensione per sostituire il metodo copy() personalizzato
+ * La rinominiamo safeCopy per evitare ambiguità
+ */
+fun WorkoutExercise.safeCopy(
+    id: Int = this.id,
+    schedaEsercizioId: Int? = this.schedaEsercizioId,
+    nome: String = this.nome,
+    gruppoMuscolare: String? = this.gruppoMuscolare,
+    attrezzatura: String? = this.attrezzatura,
+    descrizione: String? = this.descrizione,
+    serie: Int = this.serie,
+    ripetizioni: Int = this.ripetizioni,
+    peso: Double = this.peso,
+    ordine: Int = this.ordine,
+    tempoRecupero: Int = this.tempoRecupero,
+    note: String? = this.note,
+    setType: String = this.setType,
+    linkedToPrevious: Boolean = this.linkedToPrevious,
+    isIsometric: Boolean = this.isIsometric
+): WorkoutExercise {
+    return WorkoutExercise(
+        id = id,
+        schedaEsercizioId = schedaEsercizioId,
+        nome = nome,
+        gruppoMuscolare = gruppoMuscolare,
+        attrezzatura = attrezzatura,
+        descrizione = descrizione,
+        serie = serie,
+        ripetizioni = ripetizioni,
+        peso = peso,
+        ordine = ordine,
+        tempoRecupero = tempoRecupero,
+        note = note,
+        setType = setType.ifEmpty { "normal" }, // Garantiamo che setType non sia mai vuoto
+        linkedToPreviousInt = if (linkedToPrevious) 1 else 0, // Conversione Boolean -> Int
+        isIsometricInt = if (isIsometric) 1 else 0           // Conversione Boolean -> Int
+    )
+}
+
+/**
+ * Factory function per creare un WorkoutExercise con parametri booleani
+ */
+fun createWorkoutExercise(
+    id: Int,
+    schedaEsercizioId: Int? = null,
+    nome: String,
+    gruppoMuscolare: String? = null,
+    attrezzatura: String? = null,
+    descrizione: String? = null,
+    serie: Int = 3,
+    ripetizioni: Int = 10,
+    peso: Double = 0.0,
+    ordine: Int = 0,
+    tempoRecupero: Int = 90,
+    note: String? = null,
+    setType: String = "normal",
+    linkedToPrevious: Boolean = false,
+    isIsometric: Boolean = false
+): WorkoutExercise {
+    return WorkoutExercise(
+        id = id,
+        schedaEsercizioId = schedaEsercizioId,
+        nome = nome,
+        gruppoMuscolare = gruppoMuscolare,
+        attrezzatura = attrezzatura,
+        descrizione = descrizione,
+        serie = serie,
+        ripetizioni = ripetizioni,
+        peso = peso,
+        ordine = ordine,
+        tempoRecupero = tempoRecupero,
+        note = note,
+        setType = setType.ifEmpty { "normal" },
+        linkedToPreviousInt = if (linkedToPrevious) 1 else 0,
+        isIsometricInt = if (isIsometric) 1 else 0
+    )
 }
 
 /**

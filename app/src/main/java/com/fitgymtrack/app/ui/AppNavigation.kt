@@ -162,11 +162,14 @@ fun AppNavigation(
             )
         }
 
-        // Nuove rotte per le schede di allenamento
+        // Rotta per la lista delle schede
         composable("workout_plans") {
             WorkoutPlansScreen(
                 onBack = {
-                    navController.popBackStack()
+                    // MODIFICATO: Assicurarsi che torni alla dashboard
+                    navController.navigate("dashboard") {
+                        popUpTo("workout_plans") { inclusive = true }
+                    }
                 },
                 onCreateWorkout = {
                     navController.navigate("create_workout")
@@ -180,40 +183,49 @@ fun AppNavigation(
             )
         }
 
+        // Rotta per la creazione di una scheda
         composable("create_workout") {
             CreateWorkoutScreen(
                 onBack = {
+                    // Torna alla lista delle schede
                     navController.popBackStack()
                 },
                 onWorkoutCreated = {
-                    // Naviga indietro alla lista delle schede dopo la creazione
+                    // MODIFICATO: Naviga alla lista delle schede dopo la creazione
+                    // rimuovendo create_workout dal backstack
                     navController.navigate("workout_plans") {
-                        popUpTo("create_workout") { inclusive = true }
+                        // Rimuove tutte le destinazioni fino a workout_plans (esclusa)
+                        popUpTo("workout_plans") { inclusive = false }
                     }
                 }
             )
         }
 
+        // Rotta per la modifica di una scheda
         composable(
             route = "edit_workout/{schedaId}",
             arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
         ) { backStackEntry ->
             val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
-            // Implementazione effettiva della schermata di modifica scheda
+            // Implementazione della schermata di modifica scheda
             EditWorkoutScreen(
                 schedaId = schedaId,
                 onBack = {
+                    // Torna alla lista delle schede
                     navController.popBackStack()
                 },
                 onWorkoutUpdated = {
-                    // Naviga indietro alla lista delle schede dopo l'aggiornamento
+                    // MODIFICATO: Naviga alla lista delle schede dopo l'aggiornamento
+                    // rimuovendo edit_workout dal backstack
                     navController.navigate("workout_plans") {
-                        popUpTo("edit_workout/$schedaId") { inclusive = true }
+                        // Rimuove tutte le destinazioni fino a workout_plans (esclusa)
+                        popUpTo("workout_plans") { inclusive = false }
                     }
                 }
             )
         }
 
+        // Rotta per l'avvio di un allenamento
         composable(
             route = "start_workout/{schedaId}",
             arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
