@@ -5,9 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.fitgymtrack.app.api.ExerciseItem
 import com.fitgymtrack.app.models.*
 import com.fitgymtrack.app.repository.WorkoutRepository
+import com.fitgymtrack.app.utils.SessionManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class EditWorkoutViewModel(
@@ -48,27 +50,42 @@ class EditWorkoutViewModel(
     /**
      * Carica i dati della scheda
      */
-    fun loadWorkoutPlan(schedaId: Int) {
+    fun loadWorkoutPlan(schedaId: Int, sessionManager: SessionManager) {
         _workoutLoadingState.value = LoadingState.Loading
 
         viewModelScope.launch {
             try {
+                // Ottiene l'ID utente corrente dalla sessione
+                val userId = sessionManager.getUserData().first()?.id
+                if (userId == null || userId <= 0) {
+                    _workoutLoadingState.value = LoadingState.Error("Utente non autenticato")
+                    return@launch
+                }
+
                 // Carica le informazioni della scheda
-                val plansResult = repository.getWorkoutPlans(0) // 0 è un valore temporaneo, verrà ignorato
-                
+                val plansResult = repository.getWorkoutPlans(userId)
+
                 plansResult.fold(
                     onSuccess = { plans ->
                         val plan = plans.find { it.id == schedaId }
                         if (plan != null) {
                             _workoutName.value = plan.nome
                             _workoutDescription.value = plan.descrizione ?: ""
-                            
+
                             // Carica gli esercizi della scheda
                             val exercisesResult = repository.getWorkoutExercises(schedaId)
-                            
+
                             exercisesResult.fold(
                                 onSuccess = { exercises ->
-                                    _selectedExercises.value = exercises
+                                    // Assicuriamo che setType non sia mai null
+                                    val safeExercises = exercises.map { exercise ->
+                                        if (exercise.setType.isNullOrEmpty()) {
+                                            exercise.copy(setType = "normal")
+                                        } else {
+                                            exercise
+                                        }
+                                    }
+                                    _selectedExercises.value = safeExercises
                                     _workoutLoadingState.value = LoadingState.Success
                                 },
                                 onFailure = { e ->
@@ -156,16 +173,16 @@ class EditWorkoutViewModel(
         if (index < 0 || index >= _selectedExercises.value.size) return
 
         val exercise = _selectedExercises.value[index]
-        
+
         // Se l'esercizio ha un ID scheda_esercizio_id, lo aggiungiamo agli esercizi da rimuovere
         if (exercise.schedaEsercizioId != null) {
             _removedExercises.value = _removedExercises.value + WorkoutExerciseToRemove(exercise.id)
         }
-        
+
         // Rimuoviamo l'esercizio dalla lista
         val updatedList = _selectedExercises.value.toMutableList()
         updatedList.removeAt(index)
-        
+
         // Aggiorniamo l'ordine degli esercizi
         _selectedExercises.value = updatedList.mapIndexed { i, ex ->
             ex.copy(ordine = i + 1)
@@ -177,7 +194,7 @@ class EditWorkoutViewModel(
      */
     fun updateExerciseDetails(index: Int, updatedExercise: WorkoutExercise) {
         if (index < 0 || index >= _selectedExercises.value.size) return
-        
+
         val updatedList = _selectedExercises.value.toMutableList()
         updatedList[index] = updatedExercise
         _selectedExercises.value = updatedList
@@ -190,15 +207,15 @@ class EditWorkoutViewModel(
         if (index <= 0 || index >= _selectedExercises.value.size) return
 
         val updatedList = _selectedExercises.value.toMutableList()
-        
+
         // Prima di scambiare, controlliamo se l'esercizio corrente è collegato al precedente
         val currentEx = updatedList[index]
-        
+
         // Se l'esercizio è collegato al precedente, rimuoviamo il collegamento
         if (currentEx.linkedToPrevious) {
             updatedList[index] = currentEx.copy(linkedToPrevious = false)
         }
-        
+
         // Scambiamo gli esercizi
         val temp = updatedList[index]
         updatedList[index] = updatedList[index - 1]
@@ -217,15 +234,15 @@ class EditWorkoutViewModel(
         if (index < 0 || index >= _selectedExercises.value.size - 1) return
 
         val updatedList = _selectedExercises.value.toMutableList()
-        
+
         // Controlliamo se l'esercizio successivo è collegato all'attuale
         val nextEx = updatedList[index + 1]
-        
+
         // Se è collegato, rimuoviamo il collegamento
         if (nextEx.linkedToPrevious) {
             updatedList[index + 1] = nextEx.copy(linkedToPrevious = false)
         }
-        
+
         // Scambiamo gli esercizi
         val temp = updatedList[index]
         updatedList[index] = updatedList[index + 1]
@@ -263,7 +280,8 @@ class EditWorkoutViewModel(
                 ordine = exercise.ordine,
                 tempo_recupero = exercise.tempoRecupero,
                 note = exercise.note,
-                set_type = exercise.setType,
+                // CORREZIONE: Garantiamo che set_type non sia mai null
+                set_type = exercise.setType.takeIf { !it.isNullOrEmpty() } ?: "normal",
                 linked_to_previous = if (exercise.linkedToPrevious) 1 else 0
             )
         }

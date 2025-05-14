@@ -29,6 +29,7 @@ import androidx.compose.animation.shrinkVertically
 import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -264,7 +265,7 @@ fun WorkoutPlansScreen(
 
 @Composable
 fun WorkoutPlanCard(
-    workoutPlan: WorkoutPlan,
+    workoutPlan: com.fitgymtrack.app.models.WorkoutPlan,
     isExpanded: Boolean,
     exercises: List<com.fitgymtrack.app.models.WorkoutExercise>,
     onExpandClick: () -> Unit,
@@ -273,28 +274,57 @@ fun WorkoutPlanCard(
     onStartWorkoutClick: () -> Unit,
     isLoading: Boolean
 ) {
-    // Corretto il parsing della data utilizzando un formato più flessibile
+    // Parsing difensivo della data - gestisce anche il caso null
     val formattedDate = try {
-        // Prova prima il formato standard yyyy-MM-dd HH:mm:ss
-        val parsers = listOf(
-            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
-            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
-        )
+        // Log e verifica della data originale
+        val originalDate = workoutPlan.dataCreazione
+        Log.d("WorkoutPlanCard", "Data originale: ${originalDate ?: "null"}")
 
-        var date: Date? = null
-        for (parser in parsers) {
-            try {
-                date = parser.parse(workoutPlan.dataCreazione)
-                break
-            } catch (e: ParseException) {
-                // Continua con il prossimo parser
+        // Se la data è null, usiamo "Data sconosciuta"
+        if (originalDate == null) {
+            "Data sconosciuta"
+        } else {
+            // Lista di formati di data da provare
+            val parsers = listOf(
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()),
+                SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()),
+                SimpleDateFormat("yyyy/MM/dd HH:mm:ss", Locale.getDefault()),
+                SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+            )
+
+            var date: Date? = null
+            var successfulFormat = ""
+
+            // Pulire la stringa da possibili spazi o caratteri extra
+            val cleanDateString = originalDate.trim()
+
+            // Prova tutti i formati fino a trovare uno che funziona
+            for (parser in parsers) {
+                try {
+                    date = parser.parse(cleanDateString)
+                    successfulFormat = parser.toPattern()
+                    Log.d("WorkoutPlanCard", "Formato data riconosciuto: $successfulFormat")
+                    break
+                } catch (e: Exception) {
+                    // Continua con il prossimo parser
+                    Log.d("WorkoutPlanCard", "Formato non riconosciuto: ${parser.toPattern()}")
+                }
+            }
+
+            // Se è stata trovata una data valida, la formatta per la visualizzazione
+            date?.let {
+                val outputFormat = SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault())
+                outputFormat.format(it)
+            } ?: run {
+                // Se non è stato trovato nessun formato valido, log dell'errore e valore di fallback
+                Log.e("WorkoutPlanCard", "Impossibile interpretare la data: $cleanDateString")
+                "Data sconosciuta"
             }
         }
-
-        date?.let {
-            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it)
-        } ?: "Data sconosciuta"
     } catch (e: Exception) {
+        // In caso di qualsiasi errore, log e valore di fallback
+        Log.e("WorkoutPlanCard", "Errore durante il parsing della data: ${e.message}", e)
         "Data sconosciuta"
     }
 
@@ -338,14 +368,26 @@ fun WorkoutPlanCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Pulsanti di azione
+                // Pulsanti di azione con migliore contrasto
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Pulsante Esercizi (Più alto contrasto)
                     OutlinedButton(
                         onClick = onExpandClick,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isExpanded)
+                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
+                            else Color.Transparent,
+                            contentColor = if (isExpanded)
+                                MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.primary
+                        ),
+                        border = if (isExpanded)
+                            ButtonDefaults.outlinedButtonBorder.copy(width = 0.dp)
+                        else ButtonDefaults.outlinedButtonBorder
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -360,15 +402,17 @@ fun WorkoutPlanCard(
                         }
                         Spacer(modifier = Modifier.width(4.dp))
                         Text(
-                            text = if (isExpanded) "Nascondi" else "Esercizi"
+                            text = if (isExpanded) "Nascondi" else "Esercizi",
+                            fontWeight = FontWeight.Medium
                         )
                     }
 
+                    // Pulsante Modifica (Più alto contrasto)
                     OutlinedButton(
                         onClick = onEditClick,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.tertiary
+                            contentColor = MaterialTheme.colorScheme.primary
                         )
                     ) {
                         Icon(
@@ -376,9 +420,13 @@ fun WorkoutPlanCard(
                             contentDescription = "Modifica"
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Modifica")
+                        Text(
+                            text = "Modifica",
+                            fontWeight = FontWeight.Medium
+                        )
                     }
 
+                    // Pulsante Elimina (Più alto contrasto)
                     OutlinedButton(
                         onClick = onDeleteClick,
                         modifier = Modifier.weight(1f),
@@ -391,17 +439,22 @@ fun WorkoutPlanCard(
                             contentDescription = "Elimina"
                         )
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Elimina")
+                        Text(
+                            text = "Elimina",
+                            fontWeight = FontWeight.Medium
+                        )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
+                // Pulsante Inizia Allenamento (Più alto contrasto)
                 Button(
                     onClick = onStartWorkoutClick,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
                     Icon(
@@ -409,7 +462,10 @@ fun WorkoutPlanCard(
                         contentDescription = "Inizia"
                     )
                     Spacer(modifier = Modifier.width(8.dp))
-                    Text("Inizia allenamento")
+                    Text(
+                        text = "Inizia allenamento",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 
@@ -420,6 +476,7 @@ fun WorkoutPlanCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(100.dp)
+                            .padding(horizontal = 16.dp)
                             .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center
                     ) {

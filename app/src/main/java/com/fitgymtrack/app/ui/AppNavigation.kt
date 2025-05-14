@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.screens.CreateWorkoutScreen
+import com.fitgymtrack.app.ui.screens.EditWorkoutScreen
 import com.fitgymtrack.app.ui.screens.ForgotPasswordScreen
 import com.fitgymtrack.app.ui.screens.LoginScreen
 import com.fitgymtrack.app.ui.screens.RegisterScreen
@@ -198,11 +199,19 @@ fun AppNavigation(
             arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
         ) { backStackEntry ->
             val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
-            // Implementare la schermata di modifica scheda
-            Box(modifier = Modifier) {
-                // Placeholder per la schermata di modifica scheda
-                // Da implementare successivamente
-            }
+            // Implementazione effettiva della schermata di modifica scheda
+            EditWorkoutScreen(
+                schedaId = schedaId,
+                onBack = {
+                    navController.popBackStack()
+                },
+                onWorkoutUpdated = {
+                    // Naviga indietro alla lista delle schede dopo l'aggiornamento
+                    navController.navigate("workout_plans") {
+                        popUpTo("edit_workout/$schedaId") { inclusive = true }
+                    }
+                }
+            )
         }
 
         composable(

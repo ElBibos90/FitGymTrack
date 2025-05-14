@@ -49,11 +49,13 @@ fun EditWorkoutScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSnackbarSuccess by remember { mutableStateOf(true) }
 
-    // Carica i dati della scheda all'avvio
+    // Carica i dati della scheda all'avvio - MODIFICATO: passa sessionManager
     LaunchedEffect(schedaId) {
+        viewModel.loadWorkoutPlan(schedaId, sessionManager)
+
+        // Carica anche la lista degli esercizi disponibili
         val userId = sessionManager.getUserData().first()?.id ?: 0
         if (userId > 0) {
-            viewModel.loadWorkoutPlan(schedaId)
             viewModel.loadAvailableExercises(userId)
         }
     }
@@ -162,7 +164,7 @@ fun EditWorkoutScreen(
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Button(
-                                onClick = { viewModel.loadWorkoutPlan(schedaId) }
+                                onClick = { viewModel.loadWorkoutPlan(schedaId, sessionManager) }
                             ) {
                                 Text("Riprova")
                             }
