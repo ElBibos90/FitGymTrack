@@ -20,6 +20,7 @@ import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.components.WorkoutExerciseEditor
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.CreateWorkoutViewModel
+import com.fitgymtrack.app.viewmodel.UserExerciseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -28,11 +29,15 @@ import kotlinx.coroutines.launch
 fun CreateWorkoutScreen(
     onBack: () -> Unit,
     onWorkoutCreated: () -> Unit,
-    viewModel: CreateWorkoutViewModel = viewModel()
+    viewModel: CreateWorkoutViewModel = viewModel(),
+    userExerciseViewModel: UserExerciseViewModel = viewModel() // ViewModel per gli esercizi personalizzati
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Stato per memorizzare l'utente corrente
+    var currentUser by remember { mutableStateOf<com.fitgymtrack.app.models.User?>(null) }
 
     val workoutName by viewModel.workoutName.collectAsState()
     val workoutDescription by viewModel.workoutDescription.collectAsState()
@@ -48,11 +53,13 @@ fun CreateWorkoutScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSnackbarSuccess by remember { mutableStateOf(true) }
 
-    // Carica gli esercizi disponibili all'avvio
+    // Carica gli esercizi disponibili e l'utente corrente all'avvio
     LaunchedEffect(Unit) {
-        val userId = sessionManager.getUserData().first()?.id ?: 0
-        if (userId > 0) {
-            viewModel.loadAvailableExercises(userId)
+        sessionManager.getUserData().collect { user ->
+            currentUser = user
+            if (user?.id != null && user.id > 0) {
+                viewModel.loadAvailableExercises(user.id)
+            }
         }
     }
 
@@ -93,7 +100,19 @@ fun CreateWorkoutScreen(
             },
             onDismissRequest = {
                 showExerciseDialog = false
-            }
+            },
+            // Funzione per aggiornare gli esercizi dopo la creazione
+            onExercisesRefresh = {
+                // Refresh sincrono degli esercizi
+                coroutineScope.launch {
+                    currentUser?.id?.let { userId ->
+                        viewModel.loadAvailableExercises(userId)
+                    }
+                }
+                Unit
+            },
+            currentUser = currentUser,
+            userExerciseViewModel = userExerciseViewModel
         )
     }
 

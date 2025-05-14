@@ -18,6 +18,7 @@ import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.components.WorkoutExerciseEditor
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.EditWorkoutViewModel
+import com.fitgymtrack.app.viewmodel.UserExerciseViewModel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
@@ -27,11 +28,15 @@ fun EditWorkoutScreen(
     schedaId: Int,
     onBack: () -> Unit,
     onWorkoutUpdated: () -> Unit,
-    viewModel: EditWorkoutViewModel = viewModel()
+    viewModel: EditWorkoutViewModel = viewModel(),
+    userExerciseViewModel: UserExerciseViewModel = viewModel() // ViewModel per gli esercizi personalizzati
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
+
+    // Stato per memorizzare l'utente corrente
+    var currentUser by remember { mutableStateOf<com.fitgymtrack.app.models.User?>(null) }
 
     val workoutName by viewModel.workoutName.collectAsState()
     val workoutDescription by viewModel.workoutDescription.collectAsState()
@@ -49,14 +54,19 @@ fun EditWorkoutScreen(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSnackbarSuccess by remember { mutableStateOf(true) }
 
-    // Carica i dati della scheda all'avvio - MODIFICATO: passa sessionManager
+    // Carica i dati della scheda e l'utente corrente all'avvio
     LaunchedEffect(schedaId) {
-        viewModel.loadWorkoutPlan(schedaId, sessionManager)
+        // Ottieni l'utente corrente
+        sessionManager.getUserData().collect { user ->
+            currentUser = user
 
-        // Carica anche la lista degli esercizi disponibili
-        val userId = sessionManager.getUserData().first()?.id ?: 0
-        if (userId > 0) {
-            viewModel.loadAvailableExercises(userId)
+            // Carica la scheda di allenamento
+            viewModel.loadWorkoutPlan(schedaId, sessionManager)
+
+            // Carica anche la lista degli esercizi disponibili
+            if (user?.id != null && user.id > 0) {
+                viewModel.loadAvailableExercises(user.id)
+            }
         }
     }
 
@@ -97,7 +107,19 @@ fun EditWorkoutScreen(
             },
             onDismissRequest = {
                 showExerciseDialog = false
-            }
+            },
+            // Funzione per aggiornare gli esercizi dopo la creazione
+            onExercisesRefresh = {
+                // Refresh sincrono degli esercizi
+                coroutineScope.launch {
+                    currentUser?.id?.let { userId ->
+                        viewModel.loadAvailableExercises(userId)
+                    }
+                }
+                Unit
+            },
+            currentUser = currentUser,
+            userExerciseViewModel = userExerciseViewModel
         )
     }
 

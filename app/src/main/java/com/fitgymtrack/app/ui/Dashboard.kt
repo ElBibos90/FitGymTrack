@@ -31,7 +31,8 @@ import kotlinx.coroutines.launch
 fun Dashboard(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
-    onNavigateToWorkoutPlans: () -> Unit, // Nuovo parametro per navigare alle schede
+    onNavigateToWorkoutPlans: () -> Unit,
+    onNavigateToUserExercises: () -> Unit, // Aggiunto parametro per navigare agli esercizi personalizzati
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -308,8 +309,8 @@ fun Dashboard(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Custom Exercises Card
-                        CustomExercisesCard()
+                        // Custom Exercises Card - Aggiornata per navigare alla nuova schermata
+                        CustomExercisesCard(onClick = { onNavigateToUserExercises() })
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -335,6 +336,136 @@ fun Dashboard(
                             )
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+// Funzione aggiornata per accettare l'azione di click
+@Composable
+fun CustomExercisesCard(onClick: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(GradientUtils.purpleGradient)
+            .clickable(onClick = onClick), // Aggiunto click listener
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(GradientUtils.purpleGradient)
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Custom Exercises",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Esercizi Personalizzati",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Crea e gestisci i tuoi esercizi",
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = onClick, // Usa lo stesso onClick per coerenza
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Gestisci",
+                        color = Color.White
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun CustomExercisesCard() {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(120.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(GradientUtils.purpleGradient),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(GradientUtils.purpleGradient)
+                .padding(16.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "Custom Exercises",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "Esercizi Personalizzati",
+                        color = Color.White,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Text(
+                        text = "Crea e gestisci i tuoi esercizi",
+                        color = Color.White.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+
+                FilledTonalButton(
+                    onClick = { /* Naviga agli esercizi personalizzati */ },
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = Color.White.copy(alpha = 0.2f)
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text(
+                        text = "Gestisci",
+                        color = Color.White
+                    )
                 }
             }
         }
@@ -643,70 +774,6 @@ fun MainFeatureCards() {
                             color = Color.White
                         )
                     }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun CustomExercisesCard() {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(GradientUtils.purpleGradient),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(GradientUtils.purpleGradient)
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Custom Exercises",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Esercizi Personalizzati",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Text(
-                        text = "Crea e gestisci i tuoi esercizi",
-                        color = Color.White.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
-
-                FilledTonalButton(
-                    onClick = { /* Naviga agli esercizi personalizzati */ },
-                    colors = ButtonDefaults.filledTonalButtonColors(
-                        containerColor = Color.White.copy(alpha = 0.2f)
-                    ),
-                    shape = RoundedCornerShape(8.dp)
-                ) {
-                    Text(
-                        text = "Gestisci",
-                        color = Color.White
-                    )
                 }
             }
         }

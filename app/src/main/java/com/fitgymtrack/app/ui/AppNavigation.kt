@@ -13,14 +13,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
-import com.fitgymtrack.app.ui.screens.CreateWorkoutScreen
-import com.fitgymtrack.app.ui.screens.EditWorkoutScreen
-import com.fitgymtrack.app.ui.screens.ForgotPasswordScreen
-import com.fitgymtrack.app.ui.screens.LoginScreen
-import com.fitgymtrack.app.ui.screens.RegisterScreen
-import com.fitgymtrack.app.ui.screens.SimpleResetPasswordScreen
-import com.fitgymtrack.app.ui.screens.UserProfileScreen
-import com.fitgymtrack.app.ui.screens.WorkoutPlansScreen
+import com.fitgymtrack.app.ui.screens.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
 import kotlinx.coroutines.launch
@@ -53,7 +46,8 @@ fun AppNavigation(
             currentRoute != "forgot_password" &&
             !currentRoute.toString().startsWith("reset_password") &&
             !currentRoute.toString().startsWith("create_workout") &&
-            !currentRoute.toString().startsWith("edit_workout")
+            !currentRoute.toString().startsWith("edit_workout") &&
+            !currentRoute.toString().startsWith("user_exercises") // Aggiungiamo anche la nuova rotta
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -117,6 +111,10 @@ fun AppNavigation(
                 },
                 onNavigateToWorkoutPlans = {
                     navController.navigate("workout_plans")
+                },
+                onNavigateToUserExercises = {
+                    // Nuova navigazione agli esercizi personalizzati
+                    navController.navigate("user_exercises")
                 }
             )
         }
@@ -236,6 +234,18 @@ fun AppNavigation(
                 // Placeholder per la schermata di allenamento
                 // Da implementare successivamente
             }
+        }
+
+        // Nuova rotta per gli esercizi personalizzati
+        composable("user_exercises") {
+            UserExerciseScreen(
+                onBack = {
+                    // Torna alla dashboard
+                    navController.navigate("dashboard") {
+                        popUpTo("user_exercises") { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

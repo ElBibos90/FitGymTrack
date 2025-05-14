@@ -17,6 +17,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.fitgymtrack.app.api.ExerciseItem
+import com.fitgymtrack.app.models.User
+import com.fitgymtrack.app.ui.screens.UserExerciseFormDialog
+import com.fitgymtrack.app.viewmodel.UserExerciseViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -25,7 +28,10 @@ fun ExerciseSelectionDialog(
     selectedExerciseIds: List<Int>, // Tracks exercises already selected
     isLoading: Boolean,
     onExerciseSelected: (ExerciseItem) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    onExercisesRefresh: () -> Unit, // Nuova callback per aggiornare la lista dopo creazione
+    currentUser: User? = null, // Utente corrente per la creazione dell'esercizio
+    userExerciseViewModel: UserExerciseViewModel? = null // ViewModel per la gestione degli esercizi personalizzati
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedGroup by remember { mutableStateOf("") }
@@ -33,6 +39,9 @@ fun ExerciseSelectionDialog(
 
     // State for muscle group filter dialog
     var showGroupFilterDialog by remember { mutableStateOf(false) }
+
+    // State for showing the create exercise dialog
+    var showCreateExerciseDialog by remember { mutableStateOf(false) }
 
     // Extract unique muscle groups from exercise list
     val muscleGroups = remember(exercises) {
@@ -114,6 +123,33 @@ fun ExerciseSelectionDialog(
         )
     }
 
+// Dialog di creazione esercizio personalizzato
+    if (showCreateExerciseDialog && userExerciseViewModel != null && currentUser != null) {
+        UserExerciseFormDialog(
+            exercise = null, // Nuovo esercizio
+            onDismiss = { showCreateExerciseDialog = false },
+            onSave = { nome, gruppoMuscolare, descrizione, attrezzatura, isIsometric ->
+                // Crea il nuovo esercizio
+                userExerciseViewModel.createExercise(
+                    nome = nome,
+                    gruppoMuscolare = gruppoMuscolare,
+                    descrizione = descrizione,
+                    attrezzatura = attrezzatura,
+                    isIsometric = isIsometric,
+                    userId = currentUser.id
+                )
+                // Non chiudiamo ancora il dialog, aspettiamo che l'operazione sia completata
+            },
+            viewModel = userExerciseViewModel,
+            onSuccess = {
+                // Quando l'esercizio è stato creato con successo
+                showCreateExerciseDialog = false
+                // Aggiorna immediatamente la lista degli esercizi
+                onExercisesRefresh()
+            }
+        )
+    }
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(
@@ -140,6 +176,17 @@ fun ExerciseSelectionDialog(
                                 imageVector = Icons.Default.Close,
                                 contentDescription = "Chiudi"
                             )
+                        }
+                    },
+                    actions = {
+                        // Pulsante per creare un nuovo esercizio
+                        if (userExerciseViewModel != null && currentUser != null) {
+                            IconButton(onClick = { showCreateExerciseDialog = true }) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "Crea nuovo esercizio"
+                                )
+                            }
                         }
                     }
                 )
@@ -240,6 +287,33 @@ fun ExerciseSelectionDialog(
                     }
                 }
 
+                // Pulsante "Crea nuovo esercizio" per schermi più piccoli (sempre visibile)
+                if (userExerciseViewModel != null && currentUser != null) {
+                    Button(
+                        onClick = { showCreateExerciseDialog = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        )
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Crea nuovo esercizio")
+                        }
+                    }
+                }
+
                 // Exercise list or loading state
                 if (isLoading) {
                     Box(
@@ -257,13 +331,37 @@ fun ExerciseSelectionDialog(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = if (searchQuery.isNotBlank() || selectedGroup.isNotBlank())
-                                "Nessun esercizio trovato con i filtri applicati"
-                            else
-                                "Nessun esercizio disponibile",
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = if (searchQuery.isNotBlank() || selectedGroup.isNotBlank())
+                                    "Nessun esercizio trovato con i filtri applicati"
+                                else
+                                    "Nessun esercizio disponibile",
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+
+                            if (userExerciseViewModel != null && currentUser != null && searchQuery.isNotBlank()) {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = {
+                                        // Pre-popola il form con la query di ricerca come nome
+                                        showCreateExerciseDialog = true
+                                    }
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text("Crea \"$searchQuery\"")
+                                    }
+                                }
+                            }
+                        }
                     }
                 } else {
                     LazyColumn(

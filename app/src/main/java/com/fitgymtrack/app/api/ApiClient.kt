@@ -122,4 +122,9 @@ object ApiClient {
     val workoutApiService: WorkoutApiService by lazy {
         retrofit.create(WorkoutApiService::class.java)
     }
+
+    // Aggiungiamo l'accesso al UserExerciseApiService
+    val userExerciseApiService: UserExerciseApiService by lazy {
+        retrofit.create(UserExerciseApiService::class.java)
+    }
 }
