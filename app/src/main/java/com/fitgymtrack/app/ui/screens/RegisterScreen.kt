@@ -1,5 +1,5 @@
 // RegisterScreen.kt
-package com.fitgymtrack.app.ui
+package com.fitgymtrack.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,7 +19,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.viewmodel.AuthViewModel
 import androidx.compose.material3.Icon
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Lock

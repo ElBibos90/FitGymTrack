@@ -1,4 +1,4 @@
-package com.fitgymtrack.app.ui
+package com.fitgymtrack.app.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.layout.*

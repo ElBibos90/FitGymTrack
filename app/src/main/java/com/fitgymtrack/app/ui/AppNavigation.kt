@@ -1,12 +1,7 @@
 package com.fitgymtrack.app.ui
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -18,11 +13,15 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
-import com.fitgymtrack.app.ui.components.ImprovedTopBar
+import com.fitgymtrack.app.ui.screens.CreateWorkoutScreen
+import com.fitgymtrack.app.ui.screens.ForgotPasswordScreen
+import com.fitgymtrack.app.ui.screens.LoginScreen
+import com.fitgymtrack.app.ui.screens.RegisterScreen
+import com.fitgymtrack.app.ui.screens.SimpleResetPasswordScreen
+import com.fitgymtrack.app.ui.screens.UserProfileScreen
+import com.fitgymtrack.app.ui.screens.WorkoutPlansScreen
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 @Composable
@@ -51,7 +50,9 @@ fun AppNavigation(
             currentRoute != "register" &&
             currentRoute != "profile" &&
             currentRoute != "forgot_password" &&
-            !currentRoute.toString().startsWith("reset_password")
+            !currentRoute.toString().startsWith("reset_password") &&
+            !currentRoute.toString().startsWith("create_workout") &&
+            !currentRoute.toString().startsWith("edit_workout")
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -112,6 +113,9 @@ fun AppNavigation(
                 },
                 onNavigateToProfile = {
                     navController.navigate("profile")
+                },
+                onNavigateToWorkoutPlans = {
+                    navController.navigate("workout_plans")
                 }
             )
         }
@@ -155,6 +159,62 @@ fun AppNavigation(
                     }
                 }
             )
+        }
+
+        // Nuove rotte per le schede di allenamento
+        composable("workout_plans") {
+            WorkoutPlansScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onCreateWorkout = {
+                    navController.navigate("create_workout")
+                },
+                onEditWorkout = { schedaId ->
+                    navController.navigate("edit_workout/$schedaId")
+                },
+                onStartWorkout = { schedaId ->
+                    navController.navigate("start_workout/$schedaId")
+                }
+            )
+        }
+
+        composable("create_workout") {
+            CreateWorkoutScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onWorkoutCreated = {
+                    // Naviga indietro alla lista delle schede dopo la creazione
+                    navController.navigate("workout_plans") {
+                        popUpTo("create_workout") { inclusive = true }
+                    }
+                }
+            )
+        }
+
+        composable(
+            route = "edit_workout/{schedaId}",
+            arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
+            // Implementare la schermata di modifica scheda
+            Box(modifier = Modifier) {
+                // Placeholder per la schermata di modifica scheda
+                // Da implementare successivamente
+            }
+        }
+
+        composable(
+            route = "start_workout/{schedaId}",
+            arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
+        ) { backStackEntry ->
+            val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
+            // Implementare la schermata di allenamento
+            Box(modifier = Modifier) {
+                // Placeholder per la schermata di allenamento
+                // Da implementare successivamente
+            }
         }
     }
 }

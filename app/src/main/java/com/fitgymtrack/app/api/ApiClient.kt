@@ -10,20 +10,17 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Converter
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.io.IOException
 import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonSyntaxException
 import com.google.gson.Gson
-import okhttp3.Headers
-
 
 object ApiClient {
 
-    //private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
+    private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
     // oppure
-    private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
+    //private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -119,5 +116,10 @@ object ApiClient {
 
     val apiService: ApiService by lazy {
         retrofit.create(ApiService::class.java)
+    }
+
+    // Aggiungiamo l'accesso al WorkoutApiService
+    val workoutApiService: WorkoutApiService by lazy {
+        retrofit.create(WorkoutApiService::class.java)
     }
 }

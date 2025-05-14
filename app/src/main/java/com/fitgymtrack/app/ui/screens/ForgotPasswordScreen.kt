@@ -1,4 +1,4 @@
-package com.fitgymtrack.app.ui
+package com.fitgymtrack.app.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState

@@ -18,10 +18,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.ui.theme.*
@@ -33,6 +31,7 @@ import kotlinx.coroutines.launch
 fun Dashboard(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToWorkoutPlans: () -> Unit, // Nuovo parametro per navigare alle schede
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -42,12 +41,6 @@ fun Dashboard(
 
     // Calcola se la schermata è stata scrollata
     val isScrolled = scrollState.value > 10
-
-    // Invia l'evento di scroll all'esterno se necessario
-    val density = LocalDensity.current
-    LaunchedEffect(scrollState.value) {
-        // Qui potresti voler comunicare lo stato di scroll al parent se necessario
-    }
 
     val dashboardState by viewModel.dashboardState.collectAsState()
     val user by viewModel.user.collectAsState()
@@ -123,7 +116,7 @@ fun Dashboard(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Profilo Utente Card (NUOVA CARD AGGIUNTA)
+                        // Profilo Utente Card
                         Card(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -185,7 +178,133 @@ fun Dashboard(
                         Spacer(modifier = Modifier.height(16.dp))
 
                         // Main Feature Cards
-                        MainFeatureCards()
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(180.dp),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // Workout Plans Card con sfumatura blu
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(GradientUtils.blueGradient)
+                                    .clickable { onNavigateToWorkoutPlans() },
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(GradientUtils.blueGradient)
+                                        .padding(16.dp)
+                                ) {
+                                    Column {
+                                        Icon(
+                                            imageVector = Icons.Default.Description,
+                                            contentDescription = "Workout Plans",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Text(
+                                            text = "Schede",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = "Gestisci le tue schede di allenamento",
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+
+                                        Spacer(modifier = Modifier.weight(1f))
+
+                                        FilledTonalButton(
+                                            onClick = { onNavigateToWorkoutPlans() },
+                                            colors = ButtonDefaults.filledTonalButtonColors(
+                                                containerColor = Color.White.copy(alpha = 0.2f)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Visualizza",
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Workouts Card con sfumatura verde
+                            Card(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .fillMaxHeight()
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(GradientUtils.greenGradient),
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = Color.Transparent),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(GradientUtils.greenGradient)
+                                        .padding(16.dp)
+                                ) {
+                                    Column {
+                                        Icon(
+                                            imageVector = Icons.Default.FitnessCenter,
+                                            contentDescription = "Workouts",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.height(8.dp))
+
+                                        Text(
+                                            text = "Allenamenti",
+                                            color = Color.White,
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold
+                                        )
+
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Text(
+                                            text = "Inizia un allenamento o visualizza lo storico",
+                                            color = Color.White.copy(alpha = 0.9f),
+                                            style = MaterialTheme.typography.bodySmall
+                                        )
+
+                                        Spacer(modifier = Modifier.weight(1f))
+
+                                        FilledTonalButton(
+                                            onClick = { /* Naviga agli allenamenti */ },
+                                            colors = ButtonDefaults.filledTonalButtonColors(
+                                                containerColor = Color.White.copy(alpha = 0.2f)
+                                            ),
+                                            shape = RoundedCornerShape(8.dp)
+                                        ) {
+                                            Text(
+                                                text = "Inizia",
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
 
                         Spacer(modifier = Modifier.height(24.dp))
 
