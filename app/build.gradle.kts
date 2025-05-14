@@ -121,4 +121,9 @@ dependencies {
     implementation("androidx.compose.material3:material3:1.3.0-alpha04")
     implementation("androidx.compose.material:material-icons-extended:1.7.2")
     implementation("androidx.compose.foundation:foundation:1.7.2")
+
+    implementation("io.github.vanpra.compose-material-dialogs:core:0.9.0")
+
+// Per il NumberPicker
+    implementation("com.chargemap.compose:numberpicker:1.0.3")
 }

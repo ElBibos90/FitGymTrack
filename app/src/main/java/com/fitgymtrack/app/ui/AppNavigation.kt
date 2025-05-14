@@ -47,7 +47,8 @@ fun AppNavigation(
             !currentRoute.toString().startsWith("reset_password") &&
             !currentRoute.toString().startsWith("create_workout") &&
             !currentRoute.toString().startsWith("edit_workout") &&
-            !currentRoute.toString().startsWith("user_exercises") // Aggiungiamo anche la nuova rotta
+            !currentRoute.toString().startsWith("user_exercises") &&
+            !currentRoute.toString().startsWith("active_workout") // Aggiungiamo anche la nuova rotta
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -113,7 +114,6 @@ fun AppNavigation(
                     navController.navigate("workout_plans")
                 },
                 onNavigateToUserExercises = {
-                    // Nuova navigazione agli esercizi personalizzati
                     navController.navigate("user_exercises")
                 }
             )
@@ -176,7 +176,10 @@ fun AppNavigation(
                     navController.navigate("edit_workout/$schedaId")
                 },
                 onStartWorkout = { schedaId ->
-                    navController.navigate("start_workout/$schedaId")
+                    // Navigazione verso la nuova schermata di allenamento attivo
+                    currentUser?.let { user ->
+                        navController.navigate("active_workout/${schedaId}/${user.id}")
+                    }
                 }
             )
         }
@@ -223,17 +226,33 @@ fun AppNavigation(
             )
         }
 
-        // Rotta per l'avvio di un allenamento
+        // Rotta per l'allenamento attivo
         composable(
-            route = "start_workout/{schedaId}",
-            arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
+            route = "active_workout/{schedaId}/{userId}",
+            arguments = listOf(
+                navArgument("schedaId") { type = NavType.IntType },
+                navArgument("userId") { type = NavType.IntType }
+            )
         ) { backStackEntry ->
             val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
-            // Implementare la schermata di allenamento
-            Box(modifier = Modifier) {
-                // Placeholder per la schermata di allenamento
-                // Da implementare successivamente
-            }
+            val userId = backStackEntry.arguments?.getInt("userId") ?: 0
+
+            ActiveWorkoutScreen(
+                schedaId = schedaId,
+                userId = userId,
+                onNavigateBack = {
+                    // Torna alla lista delle schede
+                    navController.navigate("workout_plans") {
+                        popUpTo("active_workout/${schedaId}/${userId}") { inclusive = true }
+                    }
+                },
+                onWorkoutCompleted = {
+                    // Naviga alla dashboard dopo il completamento dell'allenamento
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
+                    }
+                }
+            )
         }
 
         // Nuova rotta per gli esercizi personalizzati
