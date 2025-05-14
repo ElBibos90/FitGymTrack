@@ -37,11 +37,12 @@ interface WorkoutApiService {
     ): WorkoutPlanResponse
 
     /**
-     * Elimina una scheda
+     * Elimina una scheda - MODIFICATO per usare FormUrlEncoded invece di JSON
      */
+    @FormUrlEncoded
     @HTTP(method = "DELETE", path = "schede_standalone.php", hasBody = true)
     suspend fun deleteWorkoutPlan(
-        @Body data: Map<String, Int>
+        @Field("scheda_id") schedaId: Int
     ): WorkoutPlanResponse
 
     /**

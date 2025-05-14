@@ -22,7 +22,7 @@ import com.fitgymtrack.app.api.ExerciseItem
 @Composable
 fun ExerciseSelectionDialog(
     exercises: List<ExerciseItem>,
-    selectedExerciseIds: List<Int>, // Nuova proprietà per tracciare gli esercizi già selezionati
+    selectedExerciseIds: List<Int>, // Tracks exercises already selected
     isLoading: Boolean,
     onExerciseSelected: (ExerciseItem) -> Unit,
     onDismissRequest: () -> Unit
@@ -31,10 +31,10 @@ fun ExerciseSelectionDialog(
     var selectedGroup by remember { mutableStateOf("") }
     var filteredExercises by remember { mutableStateOf(exercises) }
 
-    // Stato per il dialogo del filtro gruppi muscolari
+    // State for muscle group filter dialog
     var showGroupFilterDialog by remember { mutableStateOf(false) }
 
-    // Estrai i gruppi muscolari unici dalla lista di esercizi
+    // Extract unique muscle groups from exercise list
     val muscleGroups = remember(exercises) {
         exercises.mapNotNull { it.gruppo_muscolare }
             .filter { it.isNotBlank() }
@@ -42,10 +42,10 @@ fun ExerciseSelectionDialog(
             .sorted()
     }
 
-    // Filtra esercizi quando cambia la query di ricerca o il gruppo muscolare
+    // Filter exercises when search query or muscle group changes
     LaunchedEffect(searchQuery, selectedGroup, exercises) {
         filteredExercises = exercises.filter { exercise ->
-            // Filtra per testo di ricerca
+            // Filter by search text
             val matchesQuery = if (searchQuery.isBlank()) {
                 true
             } else {
@@ -53,7 +53,7 @@ fun ExerciseSelectionDialog(
                         (exercise.gruppo_muscolare?.contains(searchQuery, ignoreCase = true) == true)
             }
 
-            // Filtra per gruppo muscolare
+            // Filter by muscle group
             val matchesGroup = if (selectedGroup.isBlank()) {
                 true
             } else {
@@ -64,13 +64,15 @@ fun ExerciseSelectionDialog(
         }
     }
 
-    // Dialog per la selezione del gruppo muscolare
+    // Dialog for selecting muscle group
     if (showGroupFilterDialog) {
         AlertDialog(
             onDismissRequest = { showGroupFilterDialog = false },
             title = { Text("Seleziona gruppo muscolare") },
             text = {
-                LazyColumn {
+                LazyColumn(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
                     item {
                         ListItem(
                             headlineContent = {
@@ -86,6 +88,7 @@ fun ExerciseSelectionDialog(
                         )
                         Divider()
                     }
+
                     items(muscleGroups) { group ->
                         ListItem(
                             headlineContent = {
@@ -103,7 +106,11 @@ fun ExerciseSelectionDialog(
                     }
                 }
             },
-            confirmButton = { }
+            confirmButton = {
+                TextButton(onClick = { showGroupFilterDialog = false }) {
+                    Text("Chiudi")
+                }
+            }
         )
     }
 
@@ -124,7 +131,7 @@ fun ExerciseSelectionDialog(
             tonalElevation = 8.dp
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
-                // Header con titolo e chiusura
+                // Header with title and close button
                 TopAppBar(
                     title = { Text("Seleziona esercizi") },
                     navigationIcon = {
@@ -137,7 +144,7 @@ fun ExerciseSelectionDialog(
                     }
                 )
 
-                // Barra di ricerca
+                // Search bar
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
@@ -164,26 +171,37 @@ fun ExerciseSelectionDialog(
                     singleLine = true
                 )
 
-                // Filtro per gruppo muscolare
-                OutlinedTextField(
-                    value = if (selectedGroup.isEmpty()) "" else selectedGroup,
-                    onValueChange = { /* Controllato manualmente */ },
-                    readOnly = true,
-                    trailingIcon = {
+                // Filter by muscle group - clickable button approach
+                Button(
+                    onClick = { showGroupFilterDialog = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = if (selectedGroup.isEmpty()) "Filtra per gruppo muscolare" else selectedGroup,
+                            modifier = Modifier.weight(1f),
+                            color = if (selectedGroup.isEmpty())
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                         Icon(
                             imageVector = Icons.Default.ArrowDropDown,
                             contentDescription = "Seleziona gruppo muscolare"
                         )
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                        .clickable { showGroupFilterDialog = true },
-                    placeholder = { Text("Filtra per gruppo muscolare") },
-                    label = { Text("Gruppo muscolare") }
-                )
+                    }
+                }
 
-                // Chip per mostrare il filtro attivo e permettere di rimuoverlo
+                // Chip to show active filter and allow removal
                 if (selectedGroup.isNotEmpty()) {
                     Row(
                         modifier = Modifier
@@ -191,21 +209,38 @@ fun ExerciseSelectionDialog(
                             .padding(horizontal = 16.dp, vertical = 4.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        SuggestionChip(
-                            onClick = { selectedGroup = "" },
-                            label = { Text(selectedGroup) },
-                            trailingIcon = {
+                        Surface(
+                            modifier = Modifier.clickable { selectedGroup = "" },
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(
+                                    start = 12.dp,
+                                    end = 8.dp,
+                                    top = 6.dp,
+                                    bottom = 6.dp
+                                ),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = selectedGroup,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
                                 Icon(
-                                    Icons.Default.Close,
+                                    imageVector = Icons.Default.Close,
                                     contentDescription = "Rimuovi filtro",
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(16.dp),
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
-                        )
+                        }
                     }
                 }
 
-                // Lista esercizi o stato di caricamento
+                // Exercise list or loading state
                 if (isLoading) {
                     Box(
                         modifier = Modifier
@@ -307,14 +342,14 @@ fun ExerciseItem(
             }
 
             if (isSelected) {
-                // Icona per indicare che l'esercizio è già stato selezionato
+                // Icon to indicate the exercise is already selected
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Già aggiunto",
                     tint = MaterialTheme.colorScheme.primary
                 )
             } else {
-                // Icona per aggiungere l'esercizio
+                // Icon to add the exercise
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = "Aggiungi",

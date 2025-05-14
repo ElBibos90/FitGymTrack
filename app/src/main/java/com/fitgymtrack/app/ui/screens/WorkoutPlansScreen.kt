@@ -1,12 +1,5 @@
 package com.fitgymtrack.app.ui.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,19 +10,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.WorkoutPlan
 import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.WorkoutViewModel
+import androidx.compose.foundation.background
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
+import java.text.ParseException
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Aggiunta a livello di file per risolvere l'avviso dell'API sperimentale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutPlansScreen(
@@ -47,18 +47,16 @@ fun WorkoutPlansScreen(
     val deleteState by viewModel.deleteState.collectAsState()
     val expandedWorkoutId by viewModel.expandedWorkoutId.collectAsState()
     val selectedWorkoutExercises by viewModel.selectedWorkoutExercises.collectAsState()
+    val workoutDetailsState by viewModel.workoutDetailsState.collectAsState() // Colleghiamo questo stato
 
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
     var isSnackbarSuccess by remember { mutableStateOf(true) }
 
-    // Configurazione del formato per la data
-    val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
-    val displayFormat = remember { SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()) }
-
     // Gestione del dialog di conferma eliminazione
     var showDeleteDialog by remember { mutableStateOf(false) }
     var schedaToDelete by remember { mutableStateOf<Int?>(null) }
+    var schedaNameToDelete by remember { mutableStateOf("") }
 
     // Effetto per mostrare/nascondere lo snackbar in base allo stato di eliminazione
     LaunchedEffect(deleteState) {
@@ -87,9 +85,14 @@ fun WorkoutPlansScreen(
     // Dialog di conferma eliminazione
     if (showDeleteDialog && schedaToDelete != null) {
         AlertDialog(
-            onDismissRequest = { showDeleteDialog = false },
+            onDismissRequest = {
+                showDeleteDialog = false
+                schedaToDelete = null
+            },
             title = { Text("Conferma eliminazione") },
-            text = { Text("Sei sicuro di voler eliminare questa scheda? Questa azione non può essere annullata.") },
+            text = {
+                Text("Sei sicuro di voler eliminare la scheda \"$schedaNameToDelete\"? Questa azione non può essere annullata.")
+            },
             confirmButton = {
                 Button(
                     onClick = {
@@ -230,17 +233,16 @@ fun WorkoutPlansScreen(
                                     workoutPlan = workoutPlan,
                                     isExpanded = expandedWorkoutId == workoutPlan.id,
                                     exercises = if (expandedWorkoutId == workoutPlan.id) selectedWorkoutExercises else emptyList(),
-                                    dateFormat = dateFormat,
-                                    displayFormat = displayFormat,
                                     onExpandClick = { viewModel.loadWorkoutExercises(workoutPlan.id) },
                                     onDeleteClick = {
                                         schedaToDelete = workoutPlan.id
+                                        schedaNameToDelete = workoutPlan.nome
                                         showDeleteDialog = true
                                     },
                                     onEditClick = { onEditWorkout(workoutPlan.id) },
                                     onStartWorkoutClick = { onStartWorkout(workoutPlan.id) },
                                     isLoading = workoutPlan.id == expandedWorkoutId &&
-                                            viewModel.workoutDetailsState.value is WorkoutViewModel.WorkoutDetailsState.Loading
+                                            workoutDetailsState is WorkoutViewModel.WorkoutDetailsState.Loading
                                 )
                             }
                         }
@@ -265,17 +267,33 @@ fun WorkoutPlanCard(
     workoutPlan: WorkoutPlan,
     isExpanded: Boolean,
     exercises: List<com.fitgymtrack.app.models.WorkoutExercise>,
-    dateFormat: SimpleDateFormat,
-    displayFormat: SimpleDateFormat,
     onExpandClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onEditClick: () -> Unit,
     onStartWorkoutClick: () -> Unit,
     isLoading: Boolean
 ) {
+    // Corretto il parsing della data utilizzando un formato più flessibile
     val formattedDate = try {
-        val date = dateFormat.parse(workoutPlan.dataCreazione)
-        date?.let { displayFormat.format(it) } ?: "Data sconosciuta"
+        // Prova prima il formato standard yyyy-MM-dd HH:mm:ss
+        val parsers = listOf(
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()),
+            SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        )
+
+        var date: Date? = null
+        for (parser in parsers) {
+            try {
+                date = parser.parse(workoutPlan.dataCreazione)
+                break
+            } catch (e: ParseException) {
+                // Continua con il prossimo parser
+            }
+        }
+
+        date?.let {
+            SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(it)
+        } ?: "Data sconosciuta"
     } catch (e: Exception) {
         "Data sconosciuta"
     }
@@ -307,9 +325,7 @@ fun WorkoutPlanCard(
                     Text(
                         text = workoutPlan.descrizione,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -398,19 +414,7 @@ fun WorkoutPlanCard(
             }
 
             // Sezione esercizi espandibile
-            AnimatedVisibility(
-                visible = isExpanded,
-                enter = expandVertically(
-                    animationSpec = tween(300)
-                ) + fadeIn(
-                    animationSpec = tween(300)
-                ),
-                exit = shrinkVertically(
-                    animationSpec = tween(300)
-                ) + fadeOut(
-                    animationSpec = tween(300)
-                )
-            ) {
+            if (isExpanded) {
                 if (isLoading) {
                     Box(
                         modifier = Modifier

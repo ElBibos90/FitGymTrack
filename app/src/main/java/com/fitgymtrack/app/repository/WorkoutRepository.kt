@@ -75,12 +75,13 @@ class WorkoutRepository {
     }
 
     /**
-     * Elimina una scheda
+     * Elimina una scheda - MODIFICATO per passare direttamente l'ID
      */
     suspend fun deleteWorkoutPlan(schedaId: Int): Result<WorkoutPlanResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                val response = apiService.deleteWorkoutPlan(mapOf("scheda_id" to schedaId))
+                // Passa direttamente schedaId invece di usare una mappa
+                val response = apiService.deleteWorkoutPlan(schedaId)
                 Result.success(response)
             } catch (e: Exception) {
                 Result.failure(e)
