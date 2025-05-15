@@ -261,12 +261,6 @@ fun WorkoutPlanStartCard(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                Text(
-                    text = "${workoutPlan.esercizi.size} esercizi",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
                 if (!workoutPlan.descrizione.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
