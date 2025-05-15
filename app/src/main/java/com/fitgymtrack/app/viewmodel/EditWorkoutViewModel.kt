@@ -290,7 +290,7 @@ class EditWorkoutViewModel(
         val updateRequest = UpdateWorkoutPlanRequest(
             scheda_id = schedaId,
             nome = _workoutName.value,
-            descrizione = _workoutDescription.value.ifBlank { null },
+            descrizione = _workoutDescription.value, // CORREZIONE: Invia sempre la stringa, anche se vuota
             esercizi = exerciseRequests,
             rimuovi = _removedExercises.value
         )
@@ -316,7 +316,6 @@ class EditWorkoutViewModel(
             }
         }
     }
-
     /**
      * Resetta lo stato di caricamento
      */
