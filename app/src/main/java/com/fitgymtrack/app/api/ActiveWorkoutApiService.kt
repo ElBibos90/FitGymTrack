@@ -51,7 +51,5 @@ interface ActiveWorkoutApiService {
      * Elimina un allenamento
      */
     @POST("delete_allenamento_standalone.php")
-    suspend fun deleteWorkout(
-        @Body request: DeleteWorkoutRequest
-    ): SaveCompletedSeriesResponse
+    suspend fun deleteWorkout(@Body request: Map<String, Int>): SeriesOperationResponse
 }

@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.repository
 
+import android.util.Log
 import com.fitgymtrack.app.api.ApiClient
 import com.fitgymtrack.app.models.*
 import kotlinx.coroutines.Dispatchers
@@ -20,7 +21,9 @@ class ActiveWorkoutRepository {
         return withContext(Dispatchers.IO) {
             try {
                 // Genera un ID univoco per la sessione
-                val sessionId = "session_${System.currentTimeMillis()}_${UUID.randomUUID().toString().substring(0, 8)}"
+                val sessionId = "session_${System.currentTimeMillis()}_${
+                    UUID.randomUUID().toString().substring(0, 8)
+                }"
 
                 val request = StartWorkoutRequest(
                     userId = userId,
@@ -123,15 +126,18 @@ class ActiveWorkoutRepository {
     /**
      * Elimina un allenamento
      */
-    suspend fun deleteWorkout(allenamentoId: Int): Result<SaveCompletedSeriesResponse> {
+    suspend fun deleteWorkout(workoutId: Int): Result<SeriesOperationResponse> {
+        Log.d("DELETE", "Invio richiesta DELETE per workoutId: $workoutId")
         return withContext(Dispatchers.IO) {
             try {
-                val request = DeleteWorkoutRequest(allenamentoId = allenamentoId)
-                val response = apiService.deleteWorkout(request)
+                val response = apiService.deleteWorkout(mapOf("allenamento_id" to workoutId))
+                Log.d("DELETE", "Risposta: ${response.success}")
                 Result.success(response)
             } catch (e: Exception) {
+                Log.e("DELETE", "Errore API: ${e.message}")
                 Result.failure(e)
             }
         }
     }
+
 }

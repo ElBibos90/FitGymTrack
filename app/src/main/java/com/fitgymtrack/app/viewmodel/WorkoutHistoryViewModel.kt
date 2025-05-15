@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitgymtrack.app.models.CompletedSeriesData
@@ -151,6 +152,8 @@ class WorkoutHistoryViewModel(
      * Delete an entire workout
      */
     fun deleteWorkout(workoutId: Int, userId: Int) {
+        Log.d("DELETE_WORKOUT", "Chiamato con workoutId=$workoutId, userId=$userId") // 🔍 DEBUG
+
         _deleteState.value = OperationState.Loading
 
         viewModelScope.launch {
@@ -159,29 +162,32 @@ class WorkoutHistoryViewModel(
 
                 result.fold(
                     onSuccess = { response ->
+                        Log.d("DELETE_WORKOUT", "Risposta dal backend: ${response.success} - ${response.message}") // 🔍 DEBUG
+
                         if (response.success) {
                             _deleteState.value = OperationState.Success(response.message)
-                            // Clear selected workout
                             _selectedWorkout.value = null
-                            // Refresh the list
                             loadWorkoutHistory(userId)
                         } else {
                             _deleteState.value = OperationState.Error(response.message)
                         }
                     },
                     onFailure = { e ->
+                        Log.e("DELETE_WORKOUT", "Errore nella chiamata: ${e.message}", e) // 🔍 DEBUG
                         _deleteState.value = OperationState.Error(
                             e.message ?: "Si è verificato un errore durante l'eliminazione"
                         )
                     }
                 )
             } catch (e: Exception) {
+                Log.e("DELETE_WORKOUT", "Eccezione imprevista: ${e.message}", e) // 🔍 DEBUG
                 _deleteState.value = OperationState.Error(
                     e.message ?: "Si è verificato un errore durante l'eliminazione"
                 )
             }
         }
     }
+
 
     /**
      * Update a completed series

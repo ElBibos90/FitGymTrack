@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.ui.screens
 
+import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.expandVertically
@@ -242,16 +243,19 @@ fun WorkoutHistoryScreen(
                     confirmButton = {
                         Button(
                             onClick = {
+
                                 coroutineScope.launch {
                                     val userData = sessionManager.getUserData().first()
-                                    userData?.id?.let { userId ->
-                                        workoutToDelete?.id?.let { workoutId ->
-                                            viewModel.deleteWorkout(workoutId, userId)
-                                        }
+                                    val workoutId = workoutToDelete?.id
+                                    val userId = userData?.id
+
+                                    if (userId != null && workoutId != null) {
+                                        viewModel.deleteWorkout(workoutId, userId)
                                     }
+
+                                    showDeleteDialog = false
+                                    workoutToDelete = null
                                 }
-                                showDeleteDialog = false
-                                workoutToDelete = null
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.error
