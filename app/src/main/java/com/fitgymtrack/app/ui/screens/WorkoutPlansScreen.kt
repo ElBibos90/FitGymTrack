@@ -454,25 +454,6 @@ fun WorkoutPlanCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Pulsante Inizia Allenamento (Più alto contrasto)
-                Button(
-                    onClick = onStartWorkoutClick,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
-                ) {
-                    Icon(
-                        Icons.Default.PlayArrow,
-                        contentDescription = "Inizia"
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "Inizia allenamento",
-                        fontWeight = FontWeight.Bold
-                    )
-                }
             }
 
             // Sezione esercizi espandibile

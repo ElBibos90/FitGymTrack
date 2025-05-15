@@ -32,7 +32,8 @@ fun Dashboard(
     onLogout: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToWorkoutPlans: () -> Unit,
-    onNavigateToUserExercises: () -> Unit, // Aggiunto parametro per navigare agli esercizi personalizzati
+    onNavigateToUserExercises: () -> Unit,
+    onNavigateToWorkouts: () -> Unit,
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -252,7 +253,8 @@ fun Dashboard(
                                     .weight(1f)
                                     .fillMaxHeight()
                                     .clip(RoundedCornerShape(16.dp))
-                                    .background(GradientUtils.greenGradient),
+                                    .background(GradientUtils.greenGradient)
+                                    .clickable { onNavigateToWorkouts() },
                                 shape = RoundedCornerShape(16.dp),
                                 colors = CardDefaults.cardColors(containerColor = Color.Transparent),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
@@ -291,14 +293,14 @@ fun Dashboard(
                                         Spacer(modifier = Modifier.weight(1f))
 
                                         FilledTonalButton(
-                                            onClick = { /* Naviga agli allenamenti */ },
+                                            onClick = { onNavigateToWorkouts() },
                                             colors = ButtonDefaults.filledTonalButtonColors(
                                                 containerColor = Color.White.copy(alpha = 0.2f)
                                             ),
                                             shape = RoundedCornerShape(8.dp)
                                         ) {
                                             Text(
-                                                text = "Inizia",
+                                                text = "Visualizza",
                                                 color = Color.White
                                             )
                                         }
@@ -309,7 +311,7 @@ fun Dashboard(
 
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // Custom Exercises Card - Aggiornata per navigare alla nuova schermata
+                        // Custom Exercises Card
                         CustomExercisesCard(onClick = { onNavigateToUserExercises() })
 
                         Spacer(modifier = Modifier.height(24.dp))
@@ -643,136 +645,6 @@ fun SubscriptionCard(subscription: Subscription?) {
                         )
                     ) {
                         Text("Passa al piano Premium", fontWeight = FontWeight.Medium)
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun MainFeatureCards() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(180.dp),
-        horizontalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        // Workout Plans Card con sfumatura blu
-        Card(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(16.dp))
-                .background(GradientUtils.blueGradient),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(GradientUtils.blueGradient)
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Icon(
-                        imageVector = Icons.Default.Description,
-                        contentDescription = "Workout Plans",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Schede",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Gestisci le tue schede di allenamento",
-                        color = Color.White.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    FilledTonalButton(
-                        onClick = { /* Naviga alle schede */ },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color.White.copy(alpha = 0.2f)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Visualizza",
-                            color = Color.White
-                        )
-                    }
-                }
-            }
-        }
-
-        // Workouts Card con sfumatura verde
-        Card(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(16.dp))
-                .background(GradientUtils.greenGradient),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.Transparent),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(GradientUtils.greenGradient)
-                    .padding(16.dp)
-            ) {
-                Column {
-                    Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = "Workouts",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Allenamenti",
-                        color = Color.White,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = "Inizia un allenamento o visualizza lo storico",
-                        color = Color.White.copy(alpha = 0.9f),
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.weight(1f))
-
-                    FilledTonalButton(
-                        onClick = { /* Naviga agli allenamenti */ },
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = Color.White.copy(alpha = 0.2f)
-                        ),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text(
-                            text = "Inizia",
-                            color = Color.White
-                        )
                     }
                 }
             }

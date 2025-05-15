@@ -115,6 +115,9 @@ fun AppNavigation(
                 },
                 onNavigateToUserExercises = {
                     navController.navigate("user_exercises")
+                },
+                onNavigateToWorkouts = {
+                    navController.navigate("workouts")
                 }
             )
         }
@@ -225,7 +228,33 @@ fun AppNavigation(
                 }
             )
         }
+        composable("workouts") {
+            WorkoutsScreen(
+                onBack = {
+                    navController.navigate("dashboard") {
+                        popUpTo("workouts") { inclusive = true }
+                    }
+                },
+                onStartWorkout = { schedaId ->
+                    // Navigazione verso la schermata di allenamento attivo
+                    currentUser?.let { user ->
+                        navController.navigate("active_workout/${schedaId}/${user.id}")
+                    }
+                },
+                onNavigateToHistory = {
+                    navController.navigate("workout_history")
+                }
+            )
+        }
 
+// Aggiungiamo anche la rotta per lo storico degli allenamenti
+        composable("workout_history") {
+            WorkoutHistoryScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
         // Rotta per l'allenamento attivo
         composable(
             route = "active_workout/{schedaId}/{userId}",
