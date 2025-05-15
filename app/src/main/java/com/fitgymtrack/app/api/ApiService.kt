@@ -4,6 +4,7 @@ import com.fitgymtrack.app.models.*
 import retrofit2.http.Body
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import com.fitgymtrack.app.models.Exercise
 import retrofit2.http.GET
 import retrofit2.http.Query
 import okhttp3.ResponseBody

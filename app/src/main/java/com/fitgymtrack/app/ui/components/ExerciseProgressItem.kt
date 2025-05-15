@@ -47,32 +47,20 @@ fun ExerciseProgressItem(
     var showRepsPicker by remember { mutableStateOf(false) }
 
     // Determina se l'esercizio è isometrico
-    val isIsometricByFlag = remember(exercise) {
-        // Verifica se c'è un campo isIsometric booleano o un campo isIsometricInt
-        val isIsometricBool = when {
-            exercise::class.java.declaredFields.any { it.name == "isIsometric" } ->
-                try { exercise.isIsometric } catch (e: Exception) { false }
-            exercise::class.java.declaredFields.any { it.name == "isIsometricInt" } ->
-                try { exercise.javaClass.getMethod("getIsIsometricInt").invoke(exercise) as Int > 0 } catch (e: Exception) { false }
-            exercise::class.java.declaredFields.any { it.name == "is_isometric" } ->
-                try {
-                    val value = exercise.javaClass.getMethod("get_is_isometric").invoke(exercise)
-                    value is Boolean && value || value is String && (value == "1" || value.equals("true", ignoreCase = true)) || value is Int && value > 0
-                } catch (e: Exception) { false }
-            else -> false
-        }
-        isIsometricBool
-    }
+    val isIsometric = remember(exercise) {
+        // Utilizza direttamente la proprietà isIsometric che è già un Boolean
+        val isIsometricFromField = exercise.isIsometric
 
-    val isIsometricByName = remember(exercise) {
-        exercise.nome.lowercase().contains("isometrico") ||
+        // Manteniamo anche il rilevamento basato sul nome come fallback
+        val isIsometricByName = exercise.nome.lowercase().contains("isometrico") ||
                 exercise.nome.lowercase().contains("camminata") ||
                 exercise.nome.lowercase().contains("plank") ||
                 exercise.nome.lowercase().contains("wall sit") ||
-                exercise.nome.lowercase().contains("tenuta")
-    }
+                exercise.nome.lowercase().contains("tenuta") ||
+                exercise.nome.lowercase().contains("(sec)")
 
-    val isIsometric = isIsometricByFlag || isIsometricByName
+        isIsometricFromField || isIsometricByName
+    }
 
     // Animazione per la rotazione dell'icona di espansione
     val rotationState by animateFloatAsState(

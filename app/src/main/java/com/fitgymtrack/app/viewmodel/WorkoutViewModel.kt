@@ -3,7 +3,6 @@ package com.fitgymtrack.app.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitgymtrack.app.api.ExerciseItem
-import com.fitgymtrack.app.models.WorkoutExercise
 import com.fitgymtrack.app.models.WorkoutExerciseToRemove
 import com.fitgymtrack.app.models.WorkoutPlan
 import com.fitgymtrack.app.repository.WorkoutRepository
@@ -13,6 +12,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import com.fitgymtrack.app.models.WorkoutExercise
 
 class WorkoutViewModel(
     private val repository: WorkoutRepository = WorkoutRepository()
