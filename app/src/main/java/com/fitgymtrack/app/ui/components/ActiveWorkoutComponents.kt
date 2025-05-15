@@ -107,6 +107,7 @@ fun RecoveryTimer(
                 }
             }
 
+            // Cambio nel pulsante: mostra "Ferma" o "Salta" in base allo stato del timer
             Button(
                 onClick = onStop,
                 colors = ButtonDefaults.buttonColors(

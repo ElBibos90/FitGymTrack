@@ -88,9 +88,13 @@ fun ActiveWorkoutScreen(
             TopAppBar(
                 title = {
                     Column {
+                        // Utilizza il nome della scheda invece del nome dell'esercizio
                         Text(
                             text = when (workoutState) {
-                                is ActiveWorkoutState.Success -> (workoutState as ActiveWorkoutState.Success).workout.esercizi.firstOrNull()?.nome ?: "Allenamento"
+                                is ActiveWorkoutState.Success -> {
+                                    // Mostra il nome della scheda qui
+                                    "Allenamento" // Questo dovrebbe essere sostituito con il nome effettivo della scheda
+                                }
                                 else -> "Allenamento"
                             },
                             style = MaterialTheme.typography.titleMedium

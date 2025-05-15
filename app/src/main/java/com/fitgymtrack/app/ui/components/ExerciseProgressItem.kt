@@ -39,7 +39,8 @@ fun ExerciseProgressItem(
     isCompleted: Boolean = false,
     modifier: Modifier = Modifier
 ) {
-    var isExpanded by remember { mutableStateOf(true) }
+    // Impostato a false per avere gli esercizi collassati all'inizio
+    var isExpanded by remember { mutableStateOf(false) }
     var currentWeight by remember { mutableStateOf(exercise.peso.toFloat()) }
     var currentReps by remember { mutableStateOf(exercise.ripetizioni) }
     var showWeightPicker by remember { mutableStateOf(false) }
@@ -75,7 +76,7 @@ fun ExerciseProgressItem(
 
     // Animazione per la rotazione dell'icona di espansione
     val rotationState by animateFloatAsState(
-        targetValue = if (isExpanded) 0f else 180f,
+        targetValue = if (isExpanded) 180f else 0f,
         label = "rotation"
     )
 
@@ -155,32 +156,35 @@ fun ExerciseProgressItem(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                // Sezione per il peso e le ripetizioni/secondi
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Peso
-                    ValueChip(
-                        label = "Peso (kg)",
-                        value = formatWeight(currentWeight),
-                        onClick = { showWeightPicker = true },
-                        modifier = Modifier.weight(1f)
-                    )
+                // Non mostrare i controlli di peso e ripetizioni se l'esercizio è completato
+                if (!isCompleted) {
+                    // Sezione per il peso e le ripetizioni/secondi
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Peso
+                        ValueChip(
+                            label = "Peso (kg)",
+                            value = formatWeight(currentWeight),
+                            onClick = { showWeightPicker = true },
+                            modifier = Modifier.weight(1f)
+                        )
 
-                    // Ripetizioni o secondi
-                    ValueChip(
-                        label = if (isIsometric) "Secondi" else "Ripetizioni",
-                        value = currentReps.toString(),
-                        onClick = { showRepsPicker = true },
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                        // Ripetizioni o secondi - Cambiamo l'etichetta in base al tipo di esercizio
+                        ValueChip(
+                            label = if (isIsometric) "Secondi" else "Ripetizioni",
+                            value = currentReps.toString(),
+                            onClick = { showRepsPicker = true },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
 
-                // Timer isometrico
-                if (isIsometric) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    IsometricTimer(seconds = currentReps)
+                    // Timer isometrico
+                    if (isIsometric) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        IsometricTimer(seconds = currentReps)
+                    }
                 }
 
                 // Serie completate
@@ -207,7 +211,7 @@ fun ExerciseProgressItem(
                     }
                 }
 
-                // Pulsanti di azione
+                // Pulsanti di azione solo se non è completato
                 if (!isCompleted) {
                     Spacer(modifier = Modifier.height(16.dp))
 
