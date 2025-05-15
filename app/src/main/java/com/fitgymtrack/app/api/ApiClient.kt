@@ -136,4 +136,8 @@ object ApiClient {
     val exerciseApiService: ExerciseApiService by lazy {
         retrofit.create(ExerciseApiService::class.java)
     }
+
+    val workoutHistoryApiService: WorkoutHistoryApiService by lazy {
+        retrofit.create(WorkoutHistoryApiService::class.java)
+    }
 }
