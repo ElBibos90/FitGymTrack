@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,7 +25,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.fitgymtrack.app.models.CompletedSeries
 import com.fitgymtrack.app.models.WorkoutExercise
+import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.Indigo600
+import com.fitgymtrack.app.ui.theme.PurplePrimary
+import com.fitgymtrack.app.utils.WeightFormatter
 
 /**
  * Componente per visualizzare un esercizio durante l'allenamento
@@ -37,10 +41,11 @@ fun ExerciseProgressItem(
     onAddSeries: (Float, Int) -> Unit,
     isLastExercise: Boolean = false,
     isCompleted: Boolean = false,
+    isInGroup: Boolean = false, // Nuovo parametro per indicare se l'esercizio è in un gruppo
     modifier: Modifier = Modifier
 ) {
     // Impostato a false per avere gli esercizi collassati all'inizio
-    var isExpanded by remember { mutableStateOf(false) }
+    var isExpanded by remember { mutableStateOf(!isInGroup) } // Collassiamo automaticamente se in gruppo
     var currentWeight by remember { mutableStateOf(exercise.peso.toFloat()) }
     var currentReps by remember { mutableStateOf(exercise.ripetizioni) }
     var showWeightPicker by remember { mutableStateOf(false) }
@@ -69,18 +74,18 @@ fun ExerciseProgressItem(
     )
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        shape = RoundedCornerShape(12.dp),
+        modifier = modifier,
+        shape = RoundedCornerShape(if (isInGroup) 4.dp else 12.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isCompleted)
                 MaterialTheme.colorScheme.primaryContainer
+            else if (isInGroup)
+                MaterialTheme.colorScheme.surface
             else
                 MaterialTheme.colorScheme.surface
         ),
         elevation = CardDefaults.cardElevation(
-            defaultElevation = if (isCompleted) 0.dp else 2.dp
+            defaultElevation = if (isCompleted || isInGroup) 0.dp else 2.dp
         )
     ) {
         // Header dell'esercizio (sempre visibile)
@@ -88,7 +93,7 @@ fun ExerciseProgressItem(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { isExpanded = !isExpanded }
-                .padding(16.dp),
+                .padding(if (isInGroup) 12.dp else 16.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -104,6 +109,21 @@ fun ExerciseProgressItem(
                         modifier = Modifier.size(24.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
+                }
+
+                // Indicatore di superset/circuit
+                if (exercise.linkedToPrevious && !isInGroup) {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        tint = when (exercise.setType) {
+                            "superset" -> PurplePrimary
+                            "circuit" -> BluePrimary
+                            else -> MaterialTheme.colorScheme.primary
+                        },
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
                 }
 
                 // Nome e progresso
@@ -154,7 +174,7 @@ fun ExerciseProgressItem(
                         // Peso
                         ValueChip(
                             label = "Peso (kg)",
-                            value = formatWeight(currentWeight),
+                            value = WeightFormatter.formatWeight(currentWeight),
                             onClick = { showWeightPicker = true },
                             modifier = Modifier.weight(1f)
                         )
@@ -233,7 +253,11 @@ fun ExerciseProgressItem(
                         modifier = Modifier.fillMaxWidth(),
                         enabled = !isTimerRunning && completedSeries.size < exercise.serie,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Indigo600,
+                            containerColor = when (exercise.setType) {
+                                "superset" -> PurplePrimary
+                                "circuit" -> BluePrimary
+                                else -> Indigo600
+                            },
                             disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     ) {
@@ -300,7 +324,7 @@ fun CompletedSeriesItem(
             )
 
             Text(
-                text = "${formatWeight(weight)} kg × $reps ${if (isIsometric) "sec" else "rep"}",
+                text = "${WeightFormatter.formatWeight(weight)} kg × $reps ${if (isIsometric) "sec" else "rep"}",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -342,25 +366,5 @@ fun SeriesButton(
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             }
         )
-    }
-}
-
-/**
- * Formatta il peso per la visualizzazione
- */
-private fun formatWeight(weight: Float): String {
-    val wholeNumber = weight.toInt()
-    val fraction = weight - wholeNumber
-
-    return when {
-        fraction == 0f -> wholeNumber.toString()
-        fraction == 0.125f -> "$wholeNumber.125"
-        fraction == 0.25f -> "$wholeNumber.25"
-        fraction == 0.375f -> "$wholeNumber.375"
-        fraction == 0.5f -> "$wholeNumber.5"
-        fraction == 0.625f -> "$wholeNumber.625"
-        fraction == 0.75f -> "$wholeNumber.75"
-        fraction == 0.875f -> "$wholeNumber.875"
-        else -> String.format("%.2f", weight)
     }
 }

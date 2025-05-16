@@ -48,6 +48,14 @@ class ActiveWorkoutViewModel : ViewModel() {
     private val _isTimerRunning = MutableStateFlow(false)
     val isTimerRunning: StateFlow<Boolean> = _isTimerRunning.asStateFlow()
 
+    // ID dell'esercizio attualmente in recupero
+    private val _currentRecoveryExerciseId = MutableStateFlow<Int?>(null)
+    val currentRecoveryExerciseId: StateFlow<Int?> = _currentRecoveryExerciseId.asStateFlow()
+
+    // ID del gruppo di esercizi corrente per superset/circuit
+    private val _currentExerciseGroupId = MutableStateFlow<String?>(null)
+    val currentExerciseGroupId: StateFlow<String?> = _currentExerciseGroupId.asStateFlow()
+
     // Data e ora di inizio dell'allenamento
     private var sessionStartTime: Long = 0
 
@@ -289,10 +297,11 @@ class ActiveWorkoutViewModel : ViewModel() {
                                 )
                             )
 
-                            // Se richiesto, avvia il timer di recupero
-                            if (tempoRecupero > 0) {
-                                startRecoveryTimer(tempoRecupero)
-                            }
+                            // Salva l'ID dell'esercizio corrente per il recupero
+                            _currentRecoveryExerciseId.value = exerciseId
+
+                            // Verifica se questo esercizio fa parte di un superset o circuit
+                            checkAndHandleExerciseGroup(exerciseId)
 
                             _saveSeriesState.value = SaveSeriesState.Success
                         } else {
@@ -311,6 +320,106 @@ class ActiveWorkoutViewModel : ViewModel() {
                 )
             }
         }
+    }
+
+    /**
+     * Verifica se l'esercizio appartiene a un gruppo (superset/circuit)
+     * e gestisce il timer di conseguenza
+     */
+    private fun checkAndHandleExerciseGroup(exerciseId: Int) {
+        val workout = when (val state = _workoutState.value) {
+            is ActiveWorkoutState.Success -> state.workout
+            else -> return
+        }
+
+        // Trova l'esercizio corrente
+        val currentExercise = workout.esercizi.find { it.id == exerciseId } ?: return
+        val currentExerciseIndex = workout.esercizi.indexOfFirst { it.id == exerciseId }
+
+        // Determina il tipo di set
+        val setType = currentExercise.setType
+
+        when (setType) {
+            "superset", "circuit" -> {
+                // Crea un ID di gruppo se non esiste
+                if (_currentExerciseGroupId.value == null) {
+                    _currentExerciseGroupId.value = "group_${System.currentTimeMillis()}_${UUID.randomUUID().toString().substring(0, 8)}"
+                }
+
+                // Trova tutti gli esercizi che appartengono a questo gruppo
+                val groupExercises = findExercisesInSameGroup(workout.esercizi, currentExerciseIndex)
+
+                // Trova l'indice dell'esercizio corrente nel gruppo
+                val groupIndex = groupExercises.indexOfFirst { it.id == exerciseId }
+
+                // Se non è l'ultimo del gruppo, non avviare il timer di recupero
+                if (groupIndex < groupExercises.size - 1) {
+                    return
+                }
+
+                // È l'ultimo esercizio del gruppo, avvia il timer di recupero
+                val tempoRecupero = currentExercise.tempoRecupero
+                if (tempoRecupero > 0) {
+                    startRecoveryTimer(tempoRecupero)
+                }
+
+                // Reset dell'ID del gruppo quando finisce un giro
+                _currentExerciseGroupId.value = null
+            }
+            else -> {
+                // Esercizio normale, avvia il timer di recupero normalmente
+                val tempoRecupero = currentExercise.tempoRecupero
+                if (tempoRecupero > 0) {
+                    startRecoveryTimer(tempoRecupero)
+                }
+            }
+        }
+    }
+
+    /**
+     * Trova tutti gli esercizi che appartengono allo stesso gruppo
+     */
+    private fun findExercisesInSameGroup(
+        allExercises: List<WorkoutExercise>,
+        startIndex: Int
+    ): List<WorkoutExercise> {
+        val result = mutableListOf<WorkoutExercise>()
+
+        // Se l'indice è fuori dai limiti, restituisci una lista vuota
+        if (startIndex < 0 || startIndex >= allExercises.size) {
+            return result
+        }
+
+        // Ottieni l'esercizio iniziale
+        val startExercise = allExercises[startIndex]
+        val setType = startExercise.setType
+
+        // Se è un esercizio normale, restituisci solo quello
+        if (setType == "normal") {
+            result.add(startExercise)
+            return result
+        }
+
+        // Trova l'inizio del gruppo (primo esercizio del gruppo)
+        var groupStartIndex = startIndex
+        while (groupStartIndex > 0 &&
+            allExercises[groupStartIndex - 1].setType == setType &&
+            allExercises[groupStartIndex].linkedToPrevious) {
+            groupStartIndex--
+        }
+
+        // Aggiungi tutti gli esercizi del gruppo
+        result.add(allExercises[groupStartIndex])
+        var currentIndex = groupStartIndex + 1
+
+        while (currentIndex < allExercises.size &&
+            allExercises[currentIndex].setType == setType &&
+            allExercises[currentIndex].linkedToPrevious) {
+            result.add(allExercises[currentIndex])
+            currentIndex++
+        }
+
+        return result
     }
 
     /**
@@ -348,6 +457,7 @@ class ActiveWorkoutViewModel : ViewModel() {
             }
 
             _isTimerRunning.value = false
+            _currentRecoveryExerciseId.value = null
         }
     }
 
@@ -357,6 +467,7 @@ class ActiveWorkoutViewModel : ViewModel() {
     fun stopRecoveryTimer() {
         _isTimerRunning.value = false
         _recoveryTime.value = 0
+        _currentRecoveryExerciseId.value = null
     }
 
     /**
@@ -437,6 +548,8 @@ class ActiveWorkoutViewModel : ViewModel() {
         _workoutCompleted.value = false
         _recoveryTime.value = 0
         _isTimerRunning.value = false
+        _currentRecoveryExerciseId.value = null
+        _currentExerciseGroupId.value = null
         savedSeriesIds.clear()
     }
 
@@ -478,6 +591,41 @@ class ActiveWorkoutViewModel : ViewModel() {
         }
 
         return false
+    }
+
+    /**
+     * Raggruppa gli esercizi per tipo (superset, circuit, normal)
+     */
+    fun groupExercisesByType(): List<List<WorkoutExercise>> {
+        val workout = when (val state = _workoutState.value) {
+            is ActiveWorkoutState.Success -> state.workout
+            else -> return emptyList()
+        }
+
+        val result = mutableListOf<List<WorkoutExercise>>()
+        var currentGroup = mutableListOf<WorkoutExercise>()
+
+        workout.esercizi.forEachIndexed { index, exercise ->
+            // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
+            if (index == 0 || !exercise.linkedToPrevious) {
+                // Se avevamo già un gruppo, aggiungiamolo al risultato
+                if (currentGroup.isNotEmpty()) {
+                    result.add(currentGroup.toList())
+                }
+                // Inizia un nuovo gruppo con questo esercizio
+                currentGroup = mutableListOf(exercise)
+            } else {
+                // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
+                currentGroup.add(exercise)
+            }
+        }
+
+        // Aggiungi l'ultimo gruppo se non è vuoto
+        if (currentGroup.isNotEmpty()) {
+            result.add(currentGroup.toList())
+        }
+
+        return result
     }
 
     /**

@@ -12,14 +12,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.fitgymtrack.app.ui.theme.Indigo600
+import com.fitgymtrack.app.utils.WeightFormatter
 
 /**
  * Dialog semplificato per la selezione del peso con pulsanti + e -
@@ -97,7 +96,7 @@ fun WeightPickerDialog(
                     color = MaterialTheme.colorScheme.primaryContainer
                 ) {
                     Text(
-                        text = "Peso selezionato: ${formatWeight(totalWeight)} kg",
+                        text = "Peso selezionato: ${WeightFormatter.formatWeight(totalWeight)} kg",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Medium,
                         modifier = Modifier.padding(vertical = 12.dp, horizontal = 16.dp),
@@ -144,7 +143,7 @@ fun NumberSelectorWithButtons(
     onIncrement: () -> Unit,
     onDecrement: () -> Unit,
     modifier: Modifier = Modifier,
-    valueWidth: Dp = 80.dp
+    valueWidth: androidx.compose.ui.unit.Dp = 80.dp
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -168,9 +167,15 @@ fun NumberSelectorWithButtons(
                 onClick = onDecrement,
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, Indigo600, CircleShape)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = CircleShape
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Indigo600,
+                        shape = CircleShape
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Remove,
@@ -204,9 +209,15 @@ fun NumberSelectorWithButtons(
                 onClick = onIncrement,
                 modifier = Modifier
                     .size(56.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surface)
-                    .border(1.dp, Indigo600, CircleShape)
+                    .background(
+                        color = MaterialTheme.colorScheme.surface,
+                        shape = CircleShape
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = Indigo600,
+                        shape = CircleShape
+                    )
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -373,25 +384,5 @@ private fun getFractionIndex(fraction: Float): Int {
         0.75f -> 6
         0.875f -> 7
         else -> 0
-    }
-}
-
-/**
- * Formatta il peso per la visualizzazione
- */
-private fun formatWeight(weight: Float): String {
-    val wholeNumber = weight.toInt()
-    val fraction = weight - wholeNumber
-
-    return when {
-        fraction == 0f -> wholeNumber.toString()
-        fraction == 0.125f -> "$wholeNumber.125"
-        fraction == 0.25f -> "$wholeNumber.25"
-        fraction == 0.375f -> "$wholeNumber.375"
-        fraction == 0.5f -> "$wholeNumber.5"
-        fraction == 0.625f -> "$wholeNumber.625"
-        fraction == 0.75f -> "$wholeNumber.75"
-        fraction == 0.875f -> "$wholeNumber.875"
-        else -> String.format("%.3f", weight)
     }
 }

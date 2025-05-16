@@ -269,7 +269,7 @@ fun WorkoutProgressIndicator(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(24.dp)
                     .width(1.dp),
@@ -292,7 +292,7 @@ fun WorkoutProgressIndicator(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(24.dp)
                     .width(1.dp),
@@ -315,7 +315,7 @@ fun WorkoutProgressIndicator(
                 )
             }
 
-            Divider(
+            HorizontalDivider(
                 modifier = Modifier
                     .height(24.dp)
                     .width(1.dp),

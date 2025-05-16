@@ -9,10 +9,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -44,6 +44,7 @@ fun ActiveWorkoutScreen(
     val workoutCompleted by viewModel.workoutCompleted.collectAsState()
     val recoveryTime by viewModel.recoveryTime.collectAsState()
     val isTimerRunning by viewModel.isTimerRunning.collectAsState()
+    val currentRecoveryExerciseId by viewModel.currentRecoveryExerciseId.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -109,7 +110,7 @@ fun ActiveWorkoutScreen(
                 navigationIcon = {
                     IconButton(onClick = { showExitConfirmDialog = true }) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Torna indietro"
                         )
                     }
@@ -166,6 +167,7 @@ fun ActiveWorkoutScreen(
                             seriesState = seriesState,
                             isTimerRunning = isTimerRunning,
                             recoveryTime = recoveryTime,
+                            currentRecoveryExerciseId = currentRecoveryExerciseId,
                             onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
                                 viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
                             },
@@ -302,6 +304,7 @@ private fun ActiveWorkoutContent(
     seriesState: CompletedSeriesState,
     isTimerRunning: Boolean,
     recoveryTime: Int,
+    currentRecoveryExerciseId: Int?,
     onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
     onStopTimer: () -> Unit
 ) {
@@ -310,20 +313,32 @@ private fun ActiveWorkoutContent(
         else -> emptyMap()
     }
 
+    // Raggruppa gli esercizi in base a setType e linkedToPrevious
+    val exerciseGroups = groupExercisesByType(workout.esercizi)
+
     // Calcola gli esercizi attivi e completati
-    val completedExercises = workout.esercizi.filter { exercise ->
-        val completedSeries = seriesMap[exercise.id] ?: emptyList()
-        completedSeries.size >= exercise.serie
+    val completedGroups = exerciseGroups.filter { group ->
+        group.all { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
+        }
     }
 
-    val activeExercises = workout.esercizi.filter { exercise ->
-        val completedSeries = seriesMap[exercise.id] ?: emptyList()
-        completedSeries.size < exercise.serie
+    val activeGroups = exerciseGroups.filter { group ->
+        group.any { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size < exercise.serie
+        }
     }
 
     // Calcola il progresso
     val progress = if (workout.esercizi.isNotEmpty()) {
-        completedExercises.size.toFloat() / workout.esercizi.size.toFloat()
+        // Contiamo gli esercizi completati, non i gruppi
+        val completedExercises = workout.esercizi.count { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
+        }
+        completedExercises.toFloat() / workout.esercizi.size.toFloat()
     } else {
         0f
     }
@@ -335,8 +350,8 @@ private fun ActiveWorkoutContent(
     ) {
         item {
             WorkoutProgressIndicator(
-                activeExercises = activeExercises.size,
-                completedExercises = completedExercises.size,
+                activeExercises = activeGroups.sumOf { it.size },
+                completedExercises = completedGroups.sumOf { it.size },
                 totalExercises = workout.esercizi.size,
                 progress = progress,
                 modifier = Modifier.padding(vertical = 16.dp)
@@ -344,7 +359,7 @@ private fun ActiveWorkoutContent(
         }
 
         // Esercizi attivi
-        if (activeExercises.isNotEmpty()) {
+        if (activeGroups.isNotEmpty()) {
             item {
                 Text(
                     text = "Esercizi da completare",
@@ -354,30 +369,44 @@ private fun ActiveWorkoutContent(
                 )
             }
 
-            itemsIndexed(activeExercises) { index, exercise ->
-                val completedSeries = seriesMap[exercise.id] ?: emptyList()
-                val isLastExercise = index == activeExercises.size - 1
+            items(activeGroups) { group ->
+                if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
+                    // Gruppo di esercizi (superset/circuit)
+                    ExerciseGroupCard(
+                        exercises = group,
+                        completedSeries = seriesMap,
+                        isTimerRunning = isTimerRunning,
+                        onAddSeries = { exerciseId, weight, reps, serieNumber ->
+                            onSeriesCompleted(exerciseId, weight, reps, serieNumber)
+                        },
+                        isCompleted = false
+                    )
+                } else {
+                    // Esercizio singolo
+                    val exercise = group.first()
+                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
 
-                ExerciseProgressItem(
-                    exercise = exercise,
-                    completedSeries = completedSeries,
-                    isTimerRunning = isTimerRunning,
-                    onAddSeries = { weight, reps ->
-                        onSeriesCompleted(
-                            exercise.id,
-                            weight,
-                            reps,
-                            completedSeries.size + 1
-                        )
-                    },
-                    isLastExercise = isLastExercise,
-                    isCompleted = false
-                )
+                    ExerciseProgressItem(
+                        exercise = exercise,
+                        completedSeries = completedSeries,
+                        isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
+                        onAddSeries = { weight, reps ->
+                            onSeriesCompleted(
+                                exercise.id,
+                                weight,
+                                reps,
+                                completedSeries.size + 1
+                            )
+                        },
+                        isLastExercise = false,
+                        isCompleted = false
+                    )
+                }
             }
         }
 
         // Esercizi completati
-        if (completedExercises.isNotEmpty()) {
+        if (completedGroups.isNotEmpty()) {
             item {
                 Text(
                     text = "Esercizi completati",
@@ -387,16 +416,29 @@ private fun ActiveWorkoutContent(
                 )
             }
 
-            items(completedExercises) { exercise ->
-                val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            items(completedGroups) { group ->
+                if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
+                    // Gruppo di esercizi (superset/circuit)
+                    ExerciseGroupCard(
+                        exercises = group,
+                        completedSeries = seriesMap,
+                        isTimerRunning = false,
+                        onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ },
+                        isCompleted = true
+                    )
+                } else {
+                    // Esercizio singolo
+                    val exercise = group.first()
+                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
 
-                ExerciseProgressItem(
-                    exercise = exercise,
-                    completedSeries = completedSeries,
-                    isTimerRunning = false,
-                    onAddSeries = { _, _ -> /* Non dovrebbe essere chiamato */ },
-                    isCompleted = true
-                )
+                    ExerciseProgressItem(
+                        exercise = exercise,
+                        completedSeries = completedSeries,
+                        isTimerRunning = false,
+                        onAddSeries = { _, _ -> /* Non dovrebbe essere chiamato */ },
+                        isCompleted = true
+                    )
+                }
             }
         }
 
@@ -405,6 +447,36 @@ private fun ActiveWorkoutContent(
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
+}
+
+/**
+ * Raggruppa gli esercizi in base al tipo di set e alla connessione
+ */
+private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
+    val result = mutableListOf<List<WorkoutExercise>>()
+    var currentGroup = mutableListOf<WorkoutExercise>()
+
+    exercises.forEachIndexed { index, exercise ->
+        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
+        if (index == 0 || !exercise.linkedToPrevious) {
+            // Se avevamo già un gruppo, aggiungiamolo al risultato
+            if (currentGroup.isNotEmpty()) {
+                result.add(currentGroup.toList())
+            }
+            // Inizia un nuovo gruppo con questo esercizio
+            currentGroup = mutableListOf(exercise)
+        } else {
+            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
+            currentGroup.add(exercise)
+        }
+    }
+
+    // Aggiungi l'ultimo gruppo se non è vuoto
+    if (currentGroup.isNotEmpty()) {
+        result.add(currentGroup.toList())
+    }
+
+    return result
 }
 
 @Composable
