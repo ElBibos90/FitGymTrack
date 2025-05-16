@@ -42,12 +42,21 @@ fun ExerciseProgressItem(
     isLastExercise: Boolean = false,
     isCompleted: Boolean = false,
     isInGroup: Boolean = false, // Parametro per indicare se l'esercizio è in un gruppo
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initialWeight: Float? = null, // NUOVO: peso iniziale basato sullo storico
+    initialReps: Int? = null // NUOVO: ripetizioni iniziali basate sullo storico
 ) {
     // Inizializzato a false per avere gli esercizi collassati all'inizio
     var isExpanded by remember { mutableStateOf(false) }
-    var currentWeight by remember { mutableStateOf(exercise.peso.toFloat()) }
-    var currentReps by remember { mutableStateOf(exercise.ripetizioni) }
+
+    // NUOVO: Inizializza con valori iniziali se forniti, altrimenti usa i valori dell'esercizio
+    var currentWeight by remember(initialWeight) {
+        mutableStateOf(initialWeight ?: exercise.peso.toFloat())
+    }
+    var currentReps by remember(initialReps) {
+        mutableStateOf(initialReps ?: exercise.ripetizioni)
+    }
+
     var showWeightPicker by remember { mutableStateOf(false) }
     var showRepsPicker by remember { mutableStateOf(false) }
 

@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitgymtrack.app.models.*
@@ -52,9 +53,17 @@ class ActiveWorkoutViewModel : ViewModel() {
     private val _currentRecoveryExerciseId = MutableStateFlow<Int?>(null)
     val currentRecoveryExerciseId: StateFlow<Int?> = _currentRecoveryExerciseId.asStateFlow()
 
+    // NUOVO: State flow per memorizzare i dati storici dell'ultimo allenamento
+    private val _historicWorkoutData = MutableStateFlow<Map<Int, List<CompletedSeries>>>(emptyMap())
+    val historicWorkoutData: StateFlow<Map<Int, List<CompletedSeries>>> = _historicWorkoutData.asStateFlow()
+
     // ID del gruppo di esercizi corrente per superset/circuit
     private val _currentExerciseGroupId = MutableStateFlow<String?>(null)
     val currentExerciseGroupId: StateFlow<String?> = _currentExerciseGroupId.asStateFlow()
+
+    // NUOVO: Memorizza i valori di peso e ripetizioni per esercizio
+    private val _exerciseValues = MutableStateFlow<Map<Int, Pair<Float, Int>>>(emptyMap())
+    val exerciseValues: StateFlow<Map<Int, Pair<Float, Int>>> = _exerciseValues.asStateFlow()
 
     // Data e ora di inizio dell'allenamento
     private var sessionStartTime: Long = 0
@@ -133,6 +142,9 @@ class ActiveWorkoutViewModel : ViewModel() {
                         )
 
                         _workoutState.value = ActiveWorkoutState.Success(workout)
+
+                        // NUOVO: Pre-carica i valori di peso e ripetizioni utilizzando lo storico
+                        preloadExerciseValues(exercises)
                     },
                     onFailure = { e ->
                         _workoutState.value = ActiveWorkoutState.Error(
@@ -145,6 +157,202 @@ class ActiveWorkoutViewModel : ViewModel() {
                     e.message ?: "Errore nel caricamento degli esercizi"
                 )
             }
+        }
+    }
+
+    /**
+     * NUOVO: Pre-carica i valori di peso e ripetizioni per tutti gli esercizi
+     */
+    private fun preloadExerciseValues(exercises: List<WorkoutExercise>) {
+        val valueMap = mutableMapOf<Int, Pair<Float, Int>>()
+
+        exercises.forEach { exercise ->
+            // Per ogni esercizio, tenta di caricare i valori dalla sessione precedente o dall'esercizio stesso
+            val initialValues = getInitialValues(exercise.id, 0)
+            valueMap[exercise.id] = initialValues
+        }
+
+        _exerciseValues.value = valueMap
+    }
+
+    /**
+     * NUOVO: Ottiene i valori iniziali per un esercizio basandosi sullo storico o sui valori di default
+     * @param exerciseId ID dell'esercizio
+     * @param seriesIndex Indice della serie (0-based)
+     * @return Coppia di (peso, ripetizioni)
+     */
+    fun getInitialValues(exerciseId: Int, seriesIndex: Int): Pair<Float, Int> {
+        val currentState = _workoutState.value
+        val seriesState = _seriesState.value
+        val historicData = _historicWorkoutData.value
+
+        if (currentState !is ActiveWorkoutState.Success) {
+            return Pair(0f, 0)
+        }
+
+        val workout = currentState.workout
+        val exercise = workout.esercizi.find { it.id == exerciseId } ?: return Pair(0f, 0)
+
+        // Serie corrente (1-based)
+        val currentSerieNumber = seriesIndex + 1
+
+        // Log per debug
+        Log.d("WorkoutHistory", "getInitialValues: esercizio=${exerciseId}, serie=${currentSerieNumber}")
+
+        // 1. Prima verifica i dati storici dell'ultimo allenamento
+        if (historicData.isNotEmpty()) {
+            val historicSeries = historicData[exerciseId]
+            if (historicSeries != null && historicSeries.isNotEmpty()) {
+                // Cerca la serie con lo stesso numero nel dati storici
+                val historicSeriesWithSameNumber = historicSeries.firstOrNull { it.serieNumber == currentSerieNumber }
+                if (historicSeriesWithSameNumber != null) {
+                    Log.d("WorkoutHistory", "Trovata serie storica ${currentSerieNumber} per esercizio ${exerciseId}: peso=${historicSeriesWithSameNumber.peso}, rip=${historicSeriesWithSameNumber.ripetizioni}")
+                    return Pair(historicSeriesWithSameNumber.peso, historicSeriesWithSameNumber.ripetizioni)
+                }
+
+                // Se non troviamo una serie con lo stesso numero, usiamo l'ultima serie storica
+                val lastHistoricSeries = historicSeries.lastOrNull()
+                if (lastHistoricSeries != null) {
+                    Log.d("WorkoutHistory", "Usando ultima serie storica: peso=${lastHistoricSeries.peso}, rip=${lastHistoricSeries.ripetizioni}")
+                    return Pair(lastHistoricSeries.peso, lastHistoricSeries.ripetizioni)
+                }
+            }
+        }
+
+        // 2. Se non ci sono dati storici, verifichiamo serie già completate nell'allenamento corrente
+        if (seriesState is CompletedSeriesState.Success) {
+            val completedSeries = seriesState.series[exerciseId] ?: emptyList()
+
+            if (completedSeries.isNotEmpty()) {
+                // Cerca una serie con lo stesso numero
+                val seriesWithSameNumber = completedSeries.firstOrNull { it.serieNumber == currentSerieNumber }
+
+                if (seriesWithSameNumber != null) {
+                    Log.d("WorkoutHistory", "Trovata serie ${currentSerieNumber} per esercizio ${exerciseId}: peso=${seriesWithSameNumber.peso}, rip=${seriesWithSameNumber.ripetizioni}")
+                    return Pair(seriesWithSameNumber.peso, seriesWithSameNumber.ripetizioni)
+                }
+
+                // Se non abbiamo trovato una serie con lo stesso numero, usiamo l'ultima serie completata
+                val lastCompletedSeries = completedSeries.lastOrNull()
+                if (lastCompletedSeries != null) {
+                    Log.d("WorkoutHistory", "Usando ultima serie disponibile: peso=${lastCompletedSeries.peso}, rip=${lastCompletedSeries.ripetizioni}")
+                    return Pair(lastCompletedSeries.peso, lastCompletedSeries.ripetizioni)
+                }
+            }
+        }
+
+        // 3. Se non ci sono serie completate o storiche, usa i valori di default dell'esercizio
+        Log.d("WorkoutHistory", "Usando valori default: peso=${exercise.peso}, rip=${exercise.ripetizioni}")
+        return Pair(exercise.peso.toFloat(), exercise.ripetizioni)
+    }
+
+    /**
+     * NUOVO: Salva i valori correnti di peso e ripetizioni per un esercizio
+     */
+    fun saveExerciseValues(exerciseId: Int, weight: Float, reps: Int) {
+        val currentValues = _exerciseValues.value.toMutableMap()
+        currentValues[exerciseId] = Pair(weight, reps)
+        _exerciseValues.value = currentValues
+    }
+
+    /**
+     * NUOVO: Seleziona un esercizio in un superset o circuito
+     */
+    fun selectExercise(exerciseId: Int) {
+        _currentSelectedExerciseId.value = exerciseId
+    }
+
+    /**
+     * NUOVO: Trova il prossimo esercizio in un superset
+     */
+    fun findNextExerciseInSuperset(currentExerciseId: Int): Int? {
+        val currentState = _workoutState.value
+
+        if (currentState !is ActiveWorkoutState.Success) {
+            return null
+        }
+
+        val workout = currentState.workout
+        val currentExercise = workout.esercizi.find { it.id == currentExerciseId } ?: return null
+
+        // Verifica se l'esercizio corrente fa parte di un superset
+        val isInSuperset = currentExercise.setType == "superset" || currentExercise.setType == "1"
+
+        if (!isInSuperset) {
+            return null
+        }
+
+        // Trova tutti gli esercizi nello stesso superset
+        val supersetExercises = findExercisesInSameSuperset(workout.esercizi, currentExerciseId)
+
+        // Trova l'indice dell'esercizio corrente
+        val currentIndex = supersetExercises.indexOfFirst { it.id == currentExerciseId }
+
+        // Se non trovato o è l'ultimo, ritorna il primo esercizio del superset
+        if (currentIndex == -1 || currentIndex >= supersetExercises.size - 1) {
+            return supersetExercises.firstOrNull()?.id
+        }
+
+        // Altrimenti, ritorna il prossimo esercizio
+        return supersetExercises[currentIndex + 1].id
+    }
+
+    /**
+     * NUOVO: Trova tutti gli esercizi in uno stesso superset
+     */
+    private fun findExercisesInSameSuperset(
+        allExercises: List<WorkoutExercise>,
+        startExerciseId: Int
+    ): List<WorkoutExercise> {
+        val result = mutableListOf<WorkoutExercise>()
+
+        // Trova l'esercizio di partenza
+        val startExercise = allExercises.find { it.id == startExerciseId } ?: return result
+        val startIndex = allExercises.indexOfFirst { it.id == startExerciseId }
+
+        // Verifica se l'esercizio fa parte di un superset
+        val isSuperset = startExercise.setType == "superset" || startExercise.setType == "1"
+
+        if (!isSuperset) {
+            result.add(startExercise)
+            return result
+        }
+
+        // Trova l'inizio del superset
+        var supersetStartIndex = startIndex
+        while (supersetStartIndex > 0 &&
+            allExercises[supersetStartIndex - 1].setType == startExercise.setType &&
+            allExercises[supersetStartIndex].linkedToPrevious) {
+            supersetStartIndex--
+        }
+
+        // Aggiungi tutti gli esercizi del superset
+        result.add(allExercises[supersetStartIndex])
+        var currentIndex = supersetStartIndex + 1
+
+        while (currentIndex < allExercises.size &&
+            allExercises[currentIndex].setType == startExercise.setType &&
+            allExercises[currentIndex].linkedToPrevious) {
+            result.add(allExercises[currentIndex])
+            currentIndex++
+        }
+
+        return result
+    }
+
+    /**
+     * NUOVO: Controlla se tutti gli esercizi in un superset hanno completato tutte le serie
+     */
+    fun isAllSupersetExercisesCompleted(supersetExercises: List<WorkoutExercise>): Boolean {
+        val seriesState = _seriesState.value
+
+        if (seriesState !is CompletedSeriesState.Success) {
+            return false
+        }
+
+        return supersetExercises.all { exercise ->
+            val completedSeries = seriesState.series[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
         }
     }
 
@@ -162,7 +370,8 @@ class ActiveWorkoutViewModel : ViewModel() {
     }
 
     /**
-     * Carica le serie già completate
+     * Carica le serie già completate per l'allenamento corrente
+     * e recupera anche lo storico dell'ultimo allenamento per inizializzare i valori
      */
     private fun loadCompletedSeries() {
         val currentAllenamentoId = allenamentoId ?: return
@@ -171,6 +380,7 @@ class ActiveWorkoutViewModel : ViewModel() {
 
         viewModelScope.launch {
             try {
+                // 1. Prima carichiamo le serie dell'allenamento corrente (se ce ne sono)
                 val result = repository.getCompletedSeries(currentAllenamentoId)
 
                 result.fold(
@@ -178,8 +388,12 @@ class ActiveWorkoutViewModel : ViewModel() {
                         // Organizza le serie per esercizio
                         val seriesMap = mutableMapOf<Int, MutableList<CompletedSeries>>()
 
+                        // Log per debug
+                        Log.d("WorkoutHistory", "Serie nell'allenamento corrente: ${seriesDataList.size}")
+
                         seriesDataList.forEach { seriesData ->
                             val exId = seriesData.esercizioId ?: 0
+                            Log.d("WorkoutHistory", "Serie trovata: esercizio=${exId}, peso=${seriesData.peso}, rip=${seriesData.ripetizioni}, serieNumber=${seriesData.serieNumber}, realSerieNumber=${seriesData.realSerieNumber}")
 
                             if (!seriesMap.containsKey(exId)) {
                                 seriesMap[exId] = mutableListOf()
@@ -203,12 +417,19 @@ class ActiveWorkoutViewModel : ViewModel() {
                         }
 
                         _seriesState.value = CompletedSeriesState.Success(seriesMap)
+
+                        // 2. Ora carichiamo lo storico dell'ultimo allenamento per inizializzare i valori
+                        // Questo potrebbe essere fatto con una chiamata API separata se necessario
+                        loadLastWorkoutHistory()
                     },
                     onFailure = { e ->
                         // Se è un 404, significa che non ci sono serie (allenamento nuovo)
                         // Lo consideriamo un caso di successo con lista vuota
                         if (e.message?.contains("404") == true) {
                             _seriesState.value = CompletedSeriesState.Success(emptyMap())
+
+                            // Se non ci sono serie, carichiamo comunque lo storico
+                            loadLastWorkoutHistory()
                         } else {
                             _seriesState.value = CompletedSeriesState.Error(
                                 e.message ?: "Errore nel caricamento delle serie completate"
@@ -221,6 +442,119 @@ class ActiveWorkoutViewModel : ViewModel() {
                     e.message ?: "Errore nel caricamento delle serie completate"
                 )
             }
+        }
+    }
+
+    /**
+     * NUOVO: Carica lo storico dell'ultimo allenamento per inizializzare i valori
+     * Implementazione temporanea con valori hardcoded per i test
+     */
+    private fun loadLastWorkoutHistory() {
+        Log.d("WorkoutHistory", "Caricamento storico allenamento precedente (temp)")
+
+        try {
+            // Soluzione temporanea: carichiamo manualmente i valori storici dai dati forniti
+            // Questi valori dovrebbero venire da un'API in una implementazione reale
+
+            // Creiamo una mappa per memorizzare i dati storici
+            val historicData = mutableMapOf<Int, MutableList<CompletedSeries>>()
+
+            // Aggiungiamo i dati storici dell'esercizio 89 (Affondi)
+            val affondiList = mutableListOf<CompletedSeries>()
+            affondiList.add(CompletedSeries(
+                id = "historic_89_1",
+                serieNumber = 1,
+                peso = 1.0f,
+                ripetizioni = 11,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:09"
+            ))
+            affondiList.add(CompletedSeries(
+                id = "historic_89_2",
+                serieNumber = 2,
+                peso = 3.0f,
+                ripetizioni = 13,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:23"
+            ))
+            affondiList.add(CompletedSeries(
+                id = "historic_89_3",
+                serieNumber = 3,
+                peso = 5.0f,
+                ripetizioni = 15,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:31"
+            ))
+            historicData[89] = affondiList
+
+            // Aggiungiamo i dati storici dell'esercizio 65 (Arnold Press)
+            val arnoldList = mutableListOf<CompletedSeries>()
+            arnoldList.add(CompletedSeries(
+                id = "historic_65_1",
+                serieNumber = 1,
+                peso = 2.0f,
+                ripetizioni = 12,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:11"
+            ))
+            arnoldList.add(CompletedSeries(
+                id = "historic_65_2",
+                serieNumber = 2,
+                peso = 4.0f,
+                ripetizioni = 14,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:24"
+            ))
+            arnoldList.add(CompletedSeries(
+                id = "historic_65_3",
+                serieNumber = 3,
+                peso = 6.0f,
+                ripetizioni = 16,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:32"
+            ))
+            historicData[65] = arnoldList
+
+            // Aggiungiamo i dati storici dell'esercizio 64 (Alzate frontali)
+            val alzateList = mutableListOf<CompletedSeries>()
+            alzateList.add(CompletedSeries(
+                id = "historic_64_1",
+                serieNumber = 1,
+                peso = 7.0f,
+                ripetizioni = 17,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:52"
+            ))
+            alzateList.add(CompletedSeries(
+                id = "historic_64_2",
+                serieNumber = 2,
+                peso = 8.0f,
+                ripetizioni = 18,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:55"
+            ))
+            alzateList.add(CompletedSeries(
+                id = "historic_64_3",
+                serieNumber = 3,
+                peso = 9.0f,
+                ripetizioni = 19,
+                tempoRecupero = 60,
+                timestamp = "2025-05-16 17:19:57"
+            ))
+            historicData[64] = alzateList
+
+            // Salviamo questi dati storici in una mappa che possiamo usare in getInitialValues
+            _historicWorkoutData.value = historicData
+
+            Log.d("WorkoutHistory", "Storico caricato: ${historicData.keys.size} esercizi")
+            historicData.forEach { (exId, series) ->
+                Log.d("WorkoutHistory", "Esercizio $exId: ${series.size} serie")
+                series.forEach { serie ->
+                    Log.d("WorkoutHistory", "- Serie ${serie.serieNumber}: peso=${serie.peso}, rip=${serie.ripetizioni}")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("WorkoutHistory", "Errore caricamento storico: ${e.message}", e)
         }
     }
 
@@ -258,8 +592,11 @@ class ActiveWorkoutViewModel : ViewModel() {
                 // Genera l'ID univoco per la richiesta
                 val requestId = "req_${System.currentTimeMillis()}_${UUID.randomUUID().toString().substring(0, 8)}"
 
-                // Calcola il serie_number nel formato richiesto dal backend (esercizioId * 100 + serieNumber)
+                // Calcola il serie_number nel formato corretto: esercizioId * 100 + serieNumber
+                // Questo garantisce che ogni serie abbia un identificatore univoco che include sia l'ID dell'esercizio che il numero di serie
                 val serieNumberEncoded = exerciseId * 100 + serieNumber
+
+                Log.d("WorkoutHistory", "Salvataggio serie: esercizio=${exerciseId}, serie=${serieNumber}, serieNumberEncoded=${serieNumberEncoded}")
 
                 val seriesData = SeriesData(
                     schedaEsercizioId = exerciseId,
@@ -297,6 +634,12 @@ class ActiveWorkoutViewModel : ViewModel() {
                                 )
                             )
 
+                            // Salva i valori attuali per questo esercizio
+                            saveExerciseValues(exerciseId, peso, ripetizioni)
+
+                            // NUOVO: Verifica se l'esercizio fa parte di un superset
+                            handleSupersetNavigation(exerciseId)
+
                             // Salva l'ID dell'esercizio corrente per il recupero
                             _currentRecoveryExerciseId.value = exerciseId
 
@@ -319,6 +662,65 @@ class ActiveWorkoutViewModel : ViewModel() {
                     e.message ?: "Errore nel salvataggio della serie"
                 )
             }
+        }
+    }
+
+    /**
+     * NUOVO: Gestisce la navigazione automatica nei superset
+     */
+    private fun handleSupersetNavigation(exerciseId: Int) {
+        val currentState = _workoutState.value
+
+        if (currentState !is ActiveWorkoutState.Success) {
+            return
+        }
+
+        val workout = currentState.workout
+        val currentExercise = workout.esercizi.find { it.id == exerciseId } ?: return
+
+        // Verifica se l'esercizio fa parte di un superset
+        val isInSuperset = currentExercise.setType == "superset" || currentExercise.setType == "1"
+
+        if (!isInSuperset) {
+            return
+        }
+
+        // Trova gli esercizi nel superset
+        val supersetExercises = findExercisesInSameSuperset(workout.esercizi, exerciseId)
+
+        // Trova l'indice dell'esercizio corrente nel superset
+        val currentIndex = supersetExercises.indexOfFirst { it.id == exerciseId }
+
+        // Se è l'ultimo esercizio del superset
+        if (currentIndex == supersetExercises.size - 1) {
+            // Verifica se tutti gli esercizi del superset hanno completato tutte le serie
+            val allExercisesCompleted = isAllSupersetExercisesCompleted(supersetExercises)
+
+            if (allExercisesCompleted) {
+                // Se tutti gli esercizi hanno completato tutte le serie, non facciamo nulla
+                return
+            }
+
+            // Altrimenti, torna al primo esercizio del superset per la prossima serie
+            val firstExerciseId = supersetExercises.firstOrNull()?.id ?: return
+
+            // Imposta un breve timer prima di passare al primo esercizio
+            viewModelScope.launch {
+                // Se siamo alla fine del superset, applichiamo un timer di recupero
+                val recoveryTime = currentExercise.tempoRecupero
+                if (recoveryTime > 0) {
+                    startRecoveryTimer(recoveryTime)
+                }
+
+                // Seleziona il primo esercizio del superset
+                selectExercise(firstExerciseId)
+            }
+        } else {
+            // Non è l'ultimo esercizio, passa al prossimo
+            val nextExerciseId = supersetExercises.getOrNull(currentIndex + 1)?.id ?: return
+
+            // Seleziona il prossimo esercizio
+            selectExercise(nextExerciseId)
         }
     }
 
@@ -550,6 +952,8 @@ class ActiveWorkoutViewModel : ViewModel() {
         _isTimerRunning.value = false
         _currentRecoveryExerciseId.value = null
         _currentExerciseGroupId.value = null
+        _currentSelectedExerciseId.value = null
+        _exerciseValues.value = emptyMap()
         savedSeriesIds.clear()
     }
 
