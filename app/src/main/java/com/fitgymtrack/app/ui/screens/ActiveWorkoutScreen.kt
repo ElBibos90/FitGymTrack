@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.*
 import com.fitgymtrack.app.ui.components.*
+import com.fitgymtrack.app.ui.theme.BluePrimary
+import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
 
@@ -53,6 +55,14 @@ fun ActiveWorkoutScreen(
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
+
+    // Stato per tenere traccia della modalità di visualizzazione
+    // true = visualizzazione moderna (nuova UI come nelle immagini)
+    // false = visualizzazione classica (UI esistente)
+    var useModernUI by remember { mutableStateOf(true) }
+
+    // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
+    val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
 
     // Gestisce il pulsante indietro del dispositivo
     BackHandler {
@@ -118,6 +128,14 @@ fun ActiveWorkoutScreen(
                     }
                 },
                 actions = {
+                    // Aggiungiamo un toggle per cambiare la visualizzazione
+                    IconButton(onClick = { useModernUI = !useModernUI }) {
+                        Icon(
+                            imageVector = if (useModernUI) Icons.Default.ViewList else Icons.Default.ViewModule,
+                            contentDescription = "Cambia visualizzazione"
+                        )
+                    }
+
                     if (!workoutCompleted) {
                         IconButton(onClick = { showCompleteWorkoutDialog = true }) {
                             Icon(
@@ -164,19 +182,36 @@ fun ActiveWorkoutScreen(
                             }
                         )
                     } else {
-                        ActiveWorkoutContent(
-                            workout = workout,
-                            seriesState = seriesState,
-                            isTimerRunning = isTimerRunning,
-                            recoveryTime = recoveryTime,
-                            currentRecoveryExerciseId = currentRecoveryExerciseId,
-                            onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
-                                viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
-                            },
-                            onStopTimer = {
-                                viewModel.stopRecoveryTimer()
-                            }
-                        )
+                        if (useModernUI) {
+                            ModernActiveWorkoutContent(
+                                workout = workout,
+                                seriesState = seriesState,
+                                isTimerRunning = isTimerRunning,
+                                recoveryTime = recoveryTime,
+                                currentRecoveryExerciseId = currentRecoveryExerciseId,
+                                onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
+                                    viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
+                                },
+                                onStopTimer = {
+                                    viewModel.stopRecoveryTimer()
+                                },
+                                expandedGroups = expandedModernGroups
+                            )
+                        } else {
+                            ActiveWorkoutContent(
+                                workout = workout,
+                                seriesState = seriesState,
+                                isTimerRunning = isTimerRunning,
+                                recoveryTime = recoveryTime,
+                                currentRecoveryExerciseId = currentRecoveryExerciseId,
+                                onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
+                                    viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
+                                },
+                                onStopTimer = {
+                                    viewModel.stopRecoveryTimer()
+                                }
+                            )
+                        }
                     }
                 }
 
@@ -296,6 +331,170 @@ private fun ErrorScreen(
             onClick = onBack
         ) {
             Text("Torna indietro")
+        }
+    }
+}
+
+/**
+ * Nuova visualizzazione dell'allenamento con UI moderna
+ */
+@Composable
+private fun ModernActiveWorkoutContent(
+    workout: ActiveWorkout,
+    seriesState: CompletedSeriesState,
+    isTimerRunning: Boolean,
+    recoveryTime: Int,
+    currentRecoveryExerciseId: Int?,
+    onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
+    onStopTimer: () -> Unit,
+    expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() }
+) {
+    val seriesMap = when (seriesState) {
+        is CompletedSeriesState.Success -> seriesState.series
+        else -> emptyMap()
+    }
+
+    // Raggruppa gli esercizi in base a setType e linkedToPrevious
+    val exerciseGroups = groupExercisesByType(workout.esercizi)
+
+    // Calcola gli esercizi attivi e completati
+    val completedGroups = exerciseGroups.filter { group ->
+        group.all { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
+        }
+    }
+
+    val activeGroups = exerciseGroups.filter { group ->
+        group.any { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size < exercise.serie
+        }
+    }
+
+    // Calcola il progresso
+    val progress = if (workout.esercizi.isNotEmpty()) {
+        val completedExercises = workout.esercizi.count { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
+        }
+        completedExercises.toFloat() / workout.esercizi.size.toFloat()
+    } else {
+        0f
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp),
+        state = rememberLazyListState()
+    ) {
+        item {
+            WorkoutProgressIndicator(
+                activeExercises = activeGroups.sumOf { it.size },
+                completedExercises = completedGroups.sumOf { it.size },
+                totalExercises = workout.esercizi.size,
+                progress = progress,
+                modifier = Modifier.padding(vertical = 16.dp)
+            )
+        }
+
+        // Esercizi attivi
+        if (activeGroups.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Esercizi da completare",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            itemsIndexed(activeGroups) { index, group ->
+                if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
+                    // Gruppo di esercizi (superset/circuit)
+                    // Nuova visualizzazione moderna
+                    val isSuperset = group.first().setType == "superset"
+                    val title = if (isSuperset) "Superset ${index + 1}" else "Circuito ${index + 1}"
+                    val subtitle = "${group.size} esercizi"
+
+                    ModernWorkoutGroupCard(
+                        title = title,
+                        subtitle = subtitle,
+                        exercises = group,
+                        completedSeries = seriesMap,
+                        isSuperset = isSuperset,
+                        onAddSeries = onSeriesCompleted
+                    )
+                } else {
+                    // Esercizio singolo
+                    val exercise = group.first()
+                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
+
+                    ExerciseProgressItem(
+                        exercise = exercise,
+                        completedSeries = completedSeries,
+                        isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
+                        onAddSeries = { weight, reps ->
+                            onSeriesCompleted(
+                                exercise.id,
+                                weight,
+                                reps,
+                                completedSeries.size + 1
+                            )
+                        },
+                        isLastExercise = false,
+                        isCompleted = false
+                    )
+                }
+            }
+        }
+
+        // Esercizi completati
+        if (completedGroups.isNotEmpty()) {
+            item {
+                Text(
+                    text = "Esercizi completati",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
+                )
+            }
+
+            itemsIndexed(completedGroups) { index, group ->
+                if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
+                    // Gruppo di esercizi (superset/circuit) completato
+                    val isSuperset = group.first().setType == "superset"
+                    val title = if (isSuperset) "Superset ${index + 1}" else "Circuito ${index + 1}"
+                    val subtitle = "${group.size} esercizi - Completato"
+
+                    ModernWorkoutGroupCard(
+                        title = title,
+                        subtitle = subtitle,
+                        exercises = group,
+                        completedSeries = seriesMap,
+                        isSuperset = isSuperset,
+                        onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ }
+                    )
+                } else {
+                    // Esercizio singolo completato
+                    val exercise = group.first()
+                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
+
+                    ExerciseProgressItem(
+                        exercise = exercise,
+                        completedSeries = completedSeries,
+                        isTimerRunning = false,
+                        onAddSeries = { _, _ -> /* Non dovrebbe essere chiamato */ },
+                        isCompleted = true
+                    )
+                }
+            }
+        }
+
+        // Spazio extra in fondo per far posto al timer di recupero
+        item {
+            Spacer(modifier = Modifier.height(80.dp))
         }
     }
 }
