@@ -41,11 +41,11 @@ fun ExerciseProgressItem(
     onAddSeries: (Float, Int) -> Unit,
     isLastExercise: Boolean = false,
     isCompleted: Boolean = false,
-    isInGroup: Boolean = false, // Nuovo parametro per indicare se l'esercizio è in un gruppo
+    isInGroup: Boolean = false, // Parametro per indicare se l'esercizio è in un gruppo
     modifier: Modifier = Modifier
 ) {
-    // Impostato a false per avere gli esercizi collassati all'inizio
-    var isExpanded by remember { mutableStateOf(!isInGroup) } // Collassiamo automaticamente se in gruppo
+    // Inizializzato a false per avere gli esercizi collassati all'inizio
+    var isExpanded by remember { mutableStateOf(false) }
     var currentWeight by remember { mutableStateOf(exercise.peso.toFloat()) }
     var currentReps by remember { mutableStateOf(exercise.ripetizioni) }
     var showWeightPicker by remember { mutableStateOf(false) }

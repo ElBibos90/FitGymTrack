@@ -9,6 +9,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -308,6 +310,10 @@ private fun ActiveWorkoutContent(
     onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
     onStopTimer: () -> Unit
 ) {
+    // Add this to store expansion states of groups
+    val expandedGroups = remember { mutableStateMapOf<Int, Boolean>() }
+    val coroutineScope = rememberCoroutineScope()
+
     val seriesMap = when (seriesState) {
         is CompletedSeriesState.Success -> seriesState.series
         else -> emptyMap()
@@ -315,6 +321,16 @@ private fun ActiveWorkoutContent(
 
     // Raggruppa gli esercizi in base a setType e linkedToPrevious
     val exerciseGroups = groupExercisesByType(workout.esercizi)
+
+    // Initialize expansion state for new groups
+    LaunchedEffect(exerciseGroups) {
+        exerciseGroups.forEachIndexed { index, group ->
+            if (!expandedGroups.containsKey(index)) {
+                // Default to collapsed
+                expandedGroups[index] = false
+            }
+        }
+    }
 
     // Calcola gli esercizi attivi e completati
     val completedGroups = exerciseGroups.filter { group ->
@@ -346,7 +362,8 @@ private fun ActiveWorkoutContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = 16.dp),
+        state = rememberLazyListState() // Use a remembered state to maintain scroll position
     ) {
         item {
             WorkoutProgressIndicator(
@@ -369,18 +386,28 @@ private fun ActiveWorkoutContent(
                 )
             }
 
-            items(activeGroups) { group ->
+            itemsIndexed(activeGroups) { index, group ->
+                // Modified to use the stored expansion state
+                val isExpanded = expandedGroups[index] ?: false
+
                 if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
                     // Gruppo di esercizi (superset/circuit)
-                    ExerciseGroupCard(
-                        exercises = group,
-                        completedSeries = seriesMap,
-                        isTimerRunning = isTimerRunning,
-                        onAddSeries = { exerciseId, weight, reps, serieNumber ->
-                            onSeriesCompleted(exerciseId, weight, reps, serieNumber)
-                        },
-                        isCompleted = false
-                    )
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Modified ExerciseGroupCard to use custom expansion state
+                        ManagedExerciseGroupCard(
+                            exercises = group,
+                            completedSeries = seriesMap,
+                            isTimerRunning = isTimerRunning,
+                            onAddSeries = { exerciseId, weight, reps, serieNumber ->
+                                onSeriesCompleted(exerciseId, weight, reps, serieNumber)
+                            },
+                            isCompleted = false,
+                            isExpanded = isExpanded,
+                            onExpandToggle = { expandedGroups[index] = !isExpanded }
+                        )
+                    }
                 } else {
                     // Esercizio singolo
                     val exercise = group.first()
@@ -416,18 +443,28 @@ private fun ActiveWorkoutContent(
                 )
             }
 
-            items(completedGroups) { group ->
+            itemsIndexed(completedGroups) { index, group ->
+                // Get the appropriate index for the completed groups
+                val groupIndex = activeGroups.size + index
+                val isExpanded = expandedGroups[groupIndex] ?: false
+
                 if (group.size > 1 && (group.first().setType == "superset" || group.first().setType == "circuit")) {
-                    // Gruppo di esercizi (superset/circuit)
-                    ExerciseGroupCard(
-                        exercises = group,
-                        completedSeries = seriesMap,
-                        isTimerRunning = false,
-                        onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ },
-                        isCompleted = true
-                    )
+                    // Gruppo di esercizi (superset/circuit) completato
+                    Box(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        ManagedExerciseGroupCard(
+                            exercises = group,
+                            completedSeries = seriesMap,
+                            isTimerRunning = false,
+                            onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ },
+                            isCompleted = true,
+                            isExpanded = isExpanded,
+                            onExpandToggle = { expandedGroups[groupIndex] = !isExpanded }
+                        )
+                    }
                 } else {
-                    // Esercizio singolo
+                    // Esercizio singolo completato
                     val exercise = group.first()
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
 
@@ -447,36 +484,6 @@ private fun ActiveWorkoutContent(
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
-}
-
-/**
- * Raggruppa gli esercizi in base al tipo di set e alla connessione
- */
-private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
-    val result = mutableListOf<List<WorkoutExercise>>()
-    var currentGroup = mutableListOf<WorkoutExercise>()
-
-    exercises.forEachIndexed { index, exercise ->
-        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
-        if (index == 0 || !exercise.linkedToPrevious) {
-            // Se avevamo già un gruppo, aggiungiamolo al risultato
-            if (currentGroup.isNotEmpty()) {
-                result.add(currentGroup.toList())
-            }
-            // Inizia un nuovo gruppo con questo esercizio
-            currentGroup = mutableListOf(exercise)
-        } else {
-            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
-            currentGroup.add(exercise)
-        }
-    }
-
-    // Aggiungi l'ultimo gruppo se non è vuoto
-    if (currentGroup.isNotEmpty()) {
-        result.add(currentGroup.toList())
-    }
-
-    return result
 }
 
 @Composable
@@ -666,4 +673,34 @@ private fun StatCard(
             )
         }
     }
+}
+
+/**
+ * Raggruppa gli esercizi in base al tipo di set e alla connessione
+ */
+private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
+    val result = mutableListOf<List<WorkoutExercise>>()
+    var currentGroup = mutableListOf<WorkoutExercise>()
+
+    exercises.forEachIndexed { index, exercise ->
+        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
+        if (index == 0 || !exercise.linkedToPrevious) {
+            // Se avevamo già un gruppo, aggiungiamolo al risultato
+            if (currentGroup.isNotEmpty()) {
+                result.add(currentGroup.toList())
+            }
+            // Inizia un nuovo gruppo con questo esercizio
+            currentGroup = mutableListOf(exercise)
+        } else {
+            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
+            currentGroup.add(exercise)
+        }
+    }
+
+    // Aggiungi l'ultimo gruppo se non è vuoto
+    if (currentGroup.isNotEmpty()) {
+        result.add(currentGroup.toList())
+    }
+
+    return result
 }
