@@ -424,7 +424,9 @@ private fun ModernActiveWorkoutContent(
                         exercises = group,
                         completedSeries = seriesMap,
                         isSuperset = isSuperset,
-                        onAddSeries = onSeriesCompleted
+                        onAddSeries = onSeriesCompleted,
+                        groupIndex = index,
+                        expandedGroups = expandedGroups
                     )
                 } else {
                     // Esercizio singolo
@@ -474,7 +476,9 @@ private fun ModernActiveWorkoutContent(
                         exercises = group,
                         completedSeries = seriesMap,
                         isSuperset = isSuperset,
-                        onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ }
+                        onAddSeries = { _, _, _, _ -> /* Non dovrebbe essere chiamato */ },
+                        groupIndex = completedGroups.size + index,
+                        expandedGroups = expandedGroups
                     )
                 } else {
                     // Esercizio singolo completato

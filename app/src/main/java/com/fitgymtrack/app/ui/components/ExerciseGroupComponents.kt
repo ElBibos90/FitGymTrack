@@ -28,6 +28,7 @@ import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.utils.WeightFormatter
+import kotlinx.coroutines.delay
 
 /**
  * Componente che visualizza un gruppo di esercizi (superset o circuit)
@@ -606,13 +607,6 @@ fun ModernWorkoutGroupCard(
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
                 // Selettore di esercizi
-                Text(
-                    text = "Seleziona Esercizio",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-
                 // Round indicator (for circuit only)
                 if (!isSuperset) {
                     Row(
@@ -717,6 +711,18 @@ fun ModernWorkoutGroupCard(
                     val seriesCompleted = exerciseSeries.size
                     val seriesTotal = selectedExercise.serie
 
+                    // Variabili per peso e ripetizioni - spostate a livello superiore
+                    var showWeightPicker by remember { mutableStateOf(false) }
+                    var currentWeight by remember { mutableStateOf(selectedExercise.peso.toFloat()) }
+                    var showRepsPicker by remember { mutableStateOf(false) }
+                    var currentReps by remember { mutableStateOf(selectedExercise.ripetizioni) }
+
+                    // Aggiorna peso e ripetizioni quando cambia l'esercizio selezionato
+                    LaunchedEffect(selectedExerciseIndex) {
+                        currentWeight = selectedExercise.peso.toFloat()
+                        currentReps = selectedExercise.ripetizioni
+                    }
+
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // Current exercise section - black box
@@ -724,25 +730,31 @@ fun ModernWorkoutGroupCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                color = Color.Black.copy(alpha = 0.7f),
+                                color = Color(0xFF1A1A1A),
                                 shape = RoundedCornerShape(12.dp)
                             )
                             .padding(16.dp)
                     ) {
                         // Exercise name
-                        Text(
-                            text = selectedExercise.nome,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-
-                        if (selectedExercise.isIsometric) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Text(
-                                text = "(sec)",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.7f)
+                                text = selectedExercise.nome,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
                             )
+
+                            if (selectedExercise.isIsometric) {
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = "(sec)",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.White.copy(alpha = 0.7f)
+                                )
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -750,32 +762,25 @@ fun ModernWorkoutGroupCard(
                         // Round indicator or set number
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            verticalAlignment = Alignment.CenterVertically
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .height(26.dp)
-                                    .background(
-                                        color = backgroundColor.copy(alpha = 0.2f),
-                                        shape = RoundedCornerShape(13.dp)
-                                    )
-                                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                                contentAlignment = Alignment.Center
+                            // Serie indicator
+                            Surface(
+                                shape = RoundedCornerShape(8.dp),
+                                color = backgroundColor.copy(alpha = 0.2f),
+                                modifier = Modifier.padding(vertical = 4.dp)
                             ) {
                                 Text(
-                                    text = if (!isSuperset && roundIndex != null)
-                                        "Round $roundIndex/$roundTotal"
-                                    else
-                                        "Serie ${seriesCompleted + 1}",
-                                    style = MaterialTheme.typography.bodySmall,
+                                    text = "Serie ${seriesCompleted + 1}",
+                                    style = MaterialTheme.typography.bodyMedium,
                                     fontWeight = FontWeight.Medium,
-                                    color = backgroundColor
+                                    color = backgroundColor,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
 
-                            Spacer(modifier = Modifier.weight(1f))
-
-                            // Progress indicator
+                            // Progress and info
                             Row(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -815,79 +820,230 @@ fun ModernWorkoutGroupCard(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        // Timer isometrico se l'esercizio è isometrico
+                        if (selectedExercise.isIsometric) {
+                            var isTimerRunning by remember { mutableStateOf(false) }
+                            var timerCompleted by remember { mutableStateOf(false) }
+                            var timeLeft by remember { mutableStateOf(currentReps) }
+
+                            // Aggiorna timeLeft quando cambiano le ripetizioni/secondi
+                            LaunchedEffect(currentReps) {
+                                if (!isTimerRunning) {
+                                    timeLeft = currentReps
+                                }
+                            }
+
+                            // Effetto per gestire il countdown quando il timer è attivo
+                            LaunchedEffect(isTimerRunning) {
+                                if (isTimerRunning) {
+                                    while (timeLeft > 0 && isTimerRunning) {
+                                        delay(1000L)
+                                        timeLeft--
+                                    }
+
+                                    if (timeLeft <= 0) {
+                                        isTimerRunning = false
+                                        timerCompleted = true
+                                    }
+                                }
+                            }
+
+                            // Timer isometrico più simile all'immagine di riferimento
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF2A2A2A)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Timer icon and counter
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(backgroundColor),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Timer,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        // Timer display - sempre visualizzato anche se non attivo
+                                        Text(
+                                            // Formato mm:ss come nell'immagine
+                                            text = String.format("%02d:%02d", timeLeft / 60, timeLeft % 60),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    // Play button with circular background
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(
+                                                color = backgroundColor,
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
+                                            .clickable {
+                                                if (timerCompleted || timeLeft <= 0) {
+                                                    // Se il timer è completato, lo resettiamo
+                                                    timeLeft = currentReps
+                                                    timerCompleted = false
+                                                }
+                                                isTimerRunning = !isTimerRunning
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                            contentDescription = if (isTimerRunning) "Pausa" else "Avvia",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
                         // Exercise actions - Add the ability to track sets
+                        // Prima riga con peso e ripetizioni/secondi
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             // Weight input
-                            var showWeightPicker by remember { mutableStateOf(false) }
-                            var currentWeight by remember { mutableStateOf(selectedExercise.peso.toFloat()) }
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF444444),
+                                onClick = { showWeightPicker = true }
+                            ) {
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = "Peso",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
 
-                            ValueChip(
-                                label = "Peso",
-                                value = WeightFormatter.formatWeight(currentWeight) + " kg",
-                                onClick = { showWeightPicker = true },
-                                modifier = Modifier.weight(1f)
-                            )
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    Text(
+                                        text = WeightFormatter.formatWeight(currentWeight) + " kg",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
 
                             Spacer(modifier = Modifier.width(8.dp))
 
                             // Reps input
-                            var showRepsPicker by remember { mutableStateOf(false) }
-                            var currentReps by remember { mutableStateOf(selectedExercise.ripetizioni) }
-
-                            ValueChip(
-                                label = if (selectedExercise.isIsometric) "Secondi" else "Ripetizioni",
-                                value = currentReps.toString(),
-                                onClick = { showRepsPicker = true },
-                                modifier = Modifier.weight(1f)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            // Complete set button
-                            Button(
-                                onClick = {
-                                    onAddSeries(
-                                        selectedExercise.id,
-                                        currentWeight,
-                                        currentReps,
-                                        seriesCompleted + 1
-                                    )
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = backgroundColor
-                                ),
-                                enabled = seriesCompleted < seriesTotal
+                            Surface(
+                                modifier = Modifier.weight(1f),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF444444),
+                                onClick = { showRepsPicker = true }
                             ) {
-                                Text("Completa")
-                            }
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 16.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(
+                                        text = if (selectedExercise.isIsometric) "Secondi" else "Ripetizioni",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.White.copy(alpha = 0.7f)
+                                    )
 
-                            // Weight picker dialog
-                            if (showWeightPicker) {
-                                WeightPickerDialog(
-                                    initialWeight = currentWeight,
-                                    onDismiss = { showWeightPicker = false },
-                                    onConfirm = {
-                                        currentWeight = it
-                                        showWeightPicker = false
-                                    }
-                                )
-                            }
+                                    Spacer(modifier = Modifier.height(4.dp))
 
-                            // Reps picker dialog
-                            if (showRepsPicker) {
-                                RepsPickerDialog(
-                                    initialReps = currentReps,
-                                    isIsometric = selectedExercise.isIsometric,
-                                    onDismiss = { showRepsPicker = false },
-                                    onConfirm = {
-                                        currentReps = it
-                                        showRepsPicker = false
-                                    }
-                                )
+                                    Text(
+                                        text = currentReps.toString(),
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                             }
+                        }
+
+                        // Spazio tra le righe
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // Bottone completa su tutta la larghezza
+                        Button(
+                            onClick = {
+                                onAddSeries(
+                                    selectedExercise.id,
+                                    currentWeight,
+                                    currentReps,
+                                    seriesCompleted + 1
+                                )
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = backgroundColor
+                            ),
+                            enabled = seriesCompleted < seriesTotal,
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Completa",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+
+                        // Weight picker dialog
+                        if (showWeightPicker) {
+                            WeightPickerDialog(
+                                initialWeight = currentWeight,
+                                onDismiss = { showWeightPicker = false },
+                                onConfirm = {
+                                    currentWeight = it
+                                    showWeightPicker = false
+                                }
+                            )
+                        }
+
+                        // Reps picker dialog
+                        if (showRepsPicker) {
+                            RepsPickerDialog(
+                                initialReps = currentReps,
+                                isIsometric = selectedExercise.isIsometric,
+                                onDismiss = { showRepsPicker = false },
+                                onConfirm = {
+                                    currentReps = it
+                                    showRepsPicker = false
+                                }
+                            )
                         }
                     }
                 }
