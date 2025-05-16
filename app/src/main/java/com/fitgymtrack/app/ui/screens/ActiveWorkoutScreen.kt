@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -19,8 +20,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,6 +67,31 @@ fun ActiveWorkoutScreen(
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
     val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
 
+    // Gestisce la navigazione indietro
+    BackHandler(workoutCompleted) {
+        // Se siamo nella schermata di riepilogo, torniamo alla home
+        onWorkoutCompleted()
+    }
+
+    // Gestisce il completamento dell'allenamento
+    LaunchedEffect(completeWorkoutState) {
+        if (completeWorkoutState is CompleteWorkoutState.Success) {
+            // Se l'allenamento è già stato salvato, non mostrare più snackbar
+            if (!workoutCompleted) {
+                // Mostra un messaggio di successo
+                snackbarHostState.showSnackbar(
+                    message = "Allenamento salvato con successo!",
+                    duration = SnackbarDuration.Short
+                )
+            }
+        } else if (completeWorkoutState is CompleteWorkoutState.Error) {
+            snackbarHostState.showSnackbar(
+                message = (completeWorkoutState as CompleteWorkoutState.Error).message,
+                duration = SnackbarDuration.Long
+            )
+        }
+    }
+
     // Gestisce il pulsante indietro del dispositivo
     BackHandler {
         showExitConfirmDialog = true
@@ -79,18 +107,6 @@ fun ActiveWorkoutScreen(
         if (saveSeriesState is SaveSeriesState.Error) {
             snackbarHostState.showSnackbar(
                 message = (saveSeriesState as SaveSeriesState.Error).message,
-                duration = SnackbarDuration.Short
-            )
-        }
-    }
-
-    // Gestisce il completamento dell'allenamento
-    LaunchedEffect(completeWorkoutState) {
-        if (completeWorkoutState is CompleteWorkoutState.Success) {
-            onWorkoutCompleted()
-        } else if (completeWorkoutState is CompleteWorkoutState.Error) {
-            snackbarHostState.showSnackbar(
-                message = (completeWorkoutState as CompleteWorkoutState.Error).message,
                 duration = SnackbarDuration.Short
             )
         }
@@ -173,12 +189,12 @@ fun ActiveWorkoutScreen(
                     val workout = (workoutState as ActiveWorkoutState.Success).workout
 
                     if (workoutCompleted) {
-                        WorkoutCompletedScreen(
-                            workout = workout,
-                            seriesState = seriesState,
-                            elapsedTime = elapsedTime,
-                            onComplete = {
-                                viewModel.completeWorkout()
+                        // Utilizziamo la nuova schermata di successo
+                        WorkoutSuccessScreen(
+                            totalSeries = calculateTotalSeries(seriesState),
+                            totalWeight = calculateTotalWeight(seriesState).toInt(),
+                            onBackToHome = {
+                                onWorkoutCompleted()
                             }
                         )
                     } else {
@@ -194,6 +210,9 @@ fun ActiveWorkoutScreen(
                                 },
                                 onStopTimer = {
                                     viewModel.stopRecoveryTimer()
+                                },
+                                onSaveWorkout = {
+                                    showCompleteWorkoutDialog = true
                                 },
                                 expandedGroups = expandedModernGroups
                             )
@@ -347,6 +366,7 @@ private fun ModernActiveWorkoutContent(
     currentRecoveryExerciseId: Int?,
     onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
     onStopTimer: () -> Unit,
+    onSaveWorkout: () -> Unit = {},
     expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() }
 ) {
     val seriesMap = when (seriesState) {
@@ -690,154 +710,19 @@ private fun ActiveWorkoutContent(
 }
 
 @Composable
-private fun WorkoutCompletedScreen(
-    workout: ActiveWorkout,
-    seriesState: CompletedSeriesState,
-    elapsedTime: Int,
-    onComplete: () -> Unit
-) {
-    val seriesMap = when (seriesState) {
-        is CompletedSeriesState.Success -> seriesState.series
-        else -> emptyMap()
-    }
-
-    // Calcola le statistiche dell'allenamento
-    var totalSeries = 0
-    var totalWeight = 0f
-    var totalReps = 0
-
-    seriesMap.values.forEach { seriesList ->
-        totalSeries += seriesList.size
-
-        seriesList.forEach { series ->
-            totalWeight += series.peso
-            totalReps += series.ripetizioni
-        }
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
-    ) {
-        // Header
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 24.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer
-            )
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(64.dp)
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Allenamento Completato!",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Hai completato con successo l'allenamento",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Statistiche
-        Text(
-            text = "Riepilogo",
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            StatCard(
-                title = "Serie",
-                value = totalSeries.toString(),
-                icon = Icons.Default.FitnessCenter,
-                modifier = Modifier.weight(1f)
-            )
-
-            StatCard(
-                title = "Peso",
-                value = "$totalWeight kg",
-                icon = Icons.Default.Speed,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            StatCard(
-                title = "Ripetizioni",
-                value = totalReps.toString(),
-                icon = Icons.Default.Repeat,
-                modifier = Modifier.weight(1f)
-            )
-
-            StatCard(
-                title = "Durata",
-                value = "${elapsedTime} min",
-                icon = Icons.Default.Timer,
-                modifier = Modifier.weight(1f)
-            )
-        }
-
-        Spacer(modifier = Modifier.weight(1f))
-
-        // Pulsante di completamento
-        Button(
-            onClick = onComplete,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Text(
-                text = "Salva Allenamento",
-                style = MaterialTheme.typography.titleMedium
-            )
-        }
-    }
-}
-
-@Composable
 private fun StatCard(
     title: String,
     value: String,
     icon: androidx.compose.ui.graphics.vector.ImageVector,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    iconTint: Color = MaterialTheme.colorScheme.primary
 ) {
     Card(
         modifier = modifier,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+            containerColor = Color(0xFF333333) // Grigio scuro uniforme
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(
             modifier = Modifier
@@ -849,7 +734,7 @@ private fun StatCard(
                 modifier = Modifier
                     .size(48.dp)
                     .background(
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        color = iconTint.copy(alpha = 0.2f),
                         shape = RoundedCornerShape(12.dp)
                     ),
                 contentAlignment = Alignment.Center
@@ -857,7 +742,8 @@ private fun StatCard(
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary
+                    tint = iconTint,
+                    modifier = Modifier.size(26.dp)
                 )
             }
 
@@ -866,13 +752,16 @@ private fun StatCard(
             Text(
                 text = title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = Color.White.copy(alpha = 0.7f)
             )
+
+            Spacer(modifier = Modifier.height(4.dp))
 
             Text(
                 text = value,
                 style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Color.White
             )
         }
     }
@@ -906,4 +795,30 @@ private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<Wo
     }
 
     return result
+}
+
+// Funzione di supporto per calcolare il numero totale di serie completate
+private fun calculateTotalSeries(seriesState: CompletedSeriesState): Int {
+    return when (seriesState) {
+        is CompletedSeriesState.Success -> {
+            seriesState.series.values.sumOf { it.size }
+        }
+        else -> 0
+    }
+}
+
+// Funzione di supporto per calcolare il peso totale sollevato
+private fun calculateTotalWeight(seriesState: CompletedSeriesState): Float {
+    return when (seriesState) {
+        is CompletedSeriesState.Success -> {
+            var totalWeight = 0f
+            seriesState.series.values.forEach { seriesList ->
+                seriesList.forEach { series ->
+                    totalWeight += series.peso
+                }
+            }
+            totalWeight
+        }
+        else -> 0f
+    }
 }

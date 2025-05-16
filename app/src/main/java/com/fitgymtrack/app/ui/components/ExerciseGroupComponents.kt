@@ -717,6 +717,17 @@ fun ModernWorkoutGroupCard(
                     var showRepsPicker by remember { mutableStateOf(false) }
                     var currentReps by remember { mutableStateOf(selectedExercise.ripetizioni) }
 
+                    // Funzione per passare all'esercizio successivo
+                    val moveToNextExercise = {
+                        // Se l'esercizio corrente è l'ultimo, torna al primo
+                        if (selectedExerciseIndex >= exercises.size - 1) {
+                            selectedExerciseIndex = 0
+                        } else {
+                            // Altrimenti, passa al prossimo
+                            selectedExerciseIndex++
+                        }
+                    }
+
                     // Aggiorna peso e ripetizioni quando cambia l'esercizio selezionato
                     LaunchedEffect(selectedExerciseIndex) {
                         currentWeight = selectedExercise.peso.toFloat()
@@ -844,6 +855,28 @@ fun ModernWorkoutGroupCard(
                                     if (timeLeft <= 0) {
                                         isTimerRunning = false
                                         timerCompleted = true
+
+                                        // Auto-completa la serie quando il timer raggiunge zero
+                                        if (seriesCompleted < seriesTotal) {
+                                            onAddSeries(
+                                                selectedExercise.id,
+                                                currentWeight,
+                                                currentReps,
+                                                seriesCompleted + 1
+                                            )
+
+                                            // Breve delay prima di passare all'esercizio successivo
+                                            delay(500L)
+
+                                            // Se abbiamo completato tutte le serie di questo esercizio, passa al successivo
+                                            if (seriesCompleted + 1 >= seriesTotal) {
+                                                moveToNextExercise()
+                                            } else {
+                                                // Altrimenti, resetta il timer per la prossima serie
+                                                timeLeft = currentReps
+                                                timerCompleted = false
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -903,6 +936,11 @@ fun ModernWorkoutGroupCard(
                                                 shape = RoundedCornerShape(18.dp)
                                             )
                                             .clickable {
+                                                // Se tutte le serie sono completate, non fare nulla
+                                                if (seriesCompleted >= seriesTotal) {
+                                                    return@clickable
+                                                }
+
                                                 if (timerCompleted || timeLeft <= 0) {
                                                     // Se il timer è completato, lo resettiamo
                                                     timeLeft = currentReps
@@ -912,9 +950,21 @@ fun ModernWorkoutGroupCard(
                                             },
                                         contentAlignment = Alignment.Center
                                     ) {
+                                        // Mostra l'icona corrispondente allo stato del timer
+                                        // Se tutte le serie sono completate, mostra un segno di spunta
+                                        val icon = when {
+                                            seriesCompleted >= seriesTotal -> Icons.Default.Check
+                                            isTimerRunning -> Icons.Default.Pause
+                                            else -> Icons.Default.PlayArrow
+                                        }
+
                                         Icon(
-                                            imageVector = if (isTimerRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
-                                            contentDescription = if (isTimerRunning) "Pausa" else "Avvia",
+                                            imageVector = icon,
+                                            contentDescription = when {
+                                                seriesCompleted >= seriesTotal -> "Completato"
+                                                isTimerRunning -> "Pausa"
+                                                else -> "Avvia"
+                                            },
                                             tint = Color.White,
                                             modifier = Modifier.size(20.dp)
                                         )
@@ -1000,12 +1050,18 @@ fun ModernWorkoutGroupCard(
                         // Bottone completa su tutta la larghezza
                         Button(
                             onClick = {
+                                // Completa la serie corrente
                                 onAddSeries(
                                     selectedExercise.id,
                                     currentWeight,
                                     currentReps,
                                     seriesCompleted + 1
                                 )
+
+                                // Se abbiamo completato tutte le serie di questo esercizio, passa al successivo
+                                if (seriesCompleted + 1 >= seriesTotal) {
+                                    moveToNextExercise()
+                                }
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = backgroundColor
