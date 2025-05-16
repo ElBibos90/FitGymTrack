@@ -13,7 +13,7 @@ interface WorkoutHistoryApiService {
     @GET("get_allenamenti_standalone.php")
     suspend fun getWorkoutHistory(
         @Query("user_id") userId: Int
-    ): WorkoutHistoryResponse
+    ): Map<String, Any>
 
     /**
      * Get the completed series for a specific workout
