@@ -2,17 +2,14 @@ package com.fitgymtrack.app.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -23,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.CompletedSeriesData
@@ -35,6 +31,11 @@ import com.fitgymtrack.app.viewmodel.WorkoutHistoryViewModel
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.util.*
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,6 +56,7 @@ fun WorkoutHistoryScreen(
     val workoutHistory by viewModel.workoutHistory.collectAsState()
     val seriesDetails by viewModel.seriesDetails.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
+    val seriesDetailsState by viewModel.seriesDetailsState.collectAsState()
 
     // Stato locale
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -68,12 +70,24 @@ fun WorkoutHistoryScreen(
     var editReps by remember { mutableStateOf(0) }
     var editRecoveryTime by remember { mutableStateOf(0) }
 
+    // Stato per la navigazione
+    var showingDetails by remember { mutableStateOf(false) }
+
+    // Gestisce la navigazione indietro quando si visualizzano i dettagli
+    BackHandler(enabled = showingDetails) {
+        showingDetails = false
+    }
+
     // Carica dati all'avvio
     LaunchedEffect(Unit) {
+        Log.d("WorkoutHistory", "Caricamento dati iniziale")
         coroutineScope.launch {
             sessionManager.getUserData().collect { user ->
                 if (user != null) {
+                    Log.d("WorkoutHistory", "Utente trovato: id=${user.id}, caricamento cronologia allenamenti")
                     viewModel.loadWorkoutHistory(user.id)
+                } else {
+                    Log.e("WorkoutHistory", "Nessun utente trovato in sessione")
                 }
             }
         }
@@ -83,12 +97,18 @@ fun WorkoutHistoryScreen(
     LaunchedEffect(deleteState) {
         when (deleteState) {
             is WorkoutHistoryViewModel.OperationState.Success -> {
+                Log.d("WorkoutHistory", "Eliminazione completata: ${(deleteState as WorkoutHistoryViewModel.OperationState.Success).message}")
                 snackbarHostState.showSnackbar(
                     (deleteState as WorkoutHistoryViewModel.OperationState.Success).message
                 )
+                // Se abbiamo eliminato l'allenamento attualmente visualizzato, torna alla lista
+                if (workoutToDelete != null && workoutToDelete?.id == selectedWorkout?.id) {
+                    showingDetails = false
+                }
                 viewModel.resetDeleteState()
             }
             is WorkoutHistoryViewModel.OperationState.Error -> {
+                Log.e("WorkoutHistory", "Errore durante l'eliminazione: ${(deleteState as WorkoutHistoryViewModel.OperationState.Error).message}")
                 snackbarHostState.showSnackbar(
                     (deleteState as WorkoutHistoryViewModel.OperationState.Error).message
                 )
@@ -102,12 +122,14 @@ fun WorkoutHistoryScreen(
     LaunchedEffect(updateState) {
         when (updateState) {
             is WorkoutHistoryViewModel.UpdateState.Success -> {
+                Log.d("WorkoutHistory", "Aggiornamento completato: ${(updateState as WorkoutHistoryViewModel.UpdateState.Success).message}")
                 snackbarHostState.showSnackbar(
                     (updateState as WorkoutHistoryViewModel.UpdateState.Success).message
                 )
                 viewModel.resetUpdateState()
             }
             is WorkoutHistoryViewModel.UpdateState.Error -> {
+                Log.e("WorkoutHistory", "Errore durante l'aggiornamento: ${(updateState as WorkoutHistoryViewModel.UpdateState.Error).message}")
                 snackbarHostState.showSnackbar(
                     (updateState as WorkoutHistoryViewModel.UpdateState.Error).message
                 )
@@ -120,10 +142,22 @@ fun WorkoutHistoryScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Storico Allenamenti") },
+                title = {
+                    Text(if (showingDetails && selectedWorkout != null)
+                        selectedWorkout?.schedaNome ?: "Dettagli Allenamento"
+                    else
+                        "Storico Allenamenti"
+                    )
+                },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Indietro")
+                    IconButton(onClick = {
+                        if (showingDetails) {
+                            showingDetails = false
+                        } else {
+                            onBack()
+                        }
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro")
                     }
                 }
             )
@@ -135,58 +169,26 @@ fun WorkoutHistoryScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            when (workoutHistoryState) {
-                is WorkoutHistoryViewModel.WorkoutHistoryState.Loading -> {
-                    // Stato di caricamento
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-                is WorkoutHistoryViewModel.WorkoutHistoryState.Error -> {
-                    // Errore
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally
+            // Visualizzazione sequenziale: solo una delle due viste è visibile in un dato momento
+
+            // Lista degli allenamenti
+            AnimatedVisibility(
+                visible = !showingDetails,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300))
+            ) {
+                when (workoutHistoryState) {
+                    is WorkoutHistoryViewModel.WorkoutHistoryState.Loading -> {
+                        // Stato di caricamento
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Error,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.size(64.dp)
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = (workoutHistoryState as WorkoutHistoryViewModel.WorkoutHistoryState.Error).message,
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = MaterialTheme.colorScheme.error
-                            )
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Button(
-                                onClick = {
-                                    coroutineScope.launch {
-                                        sessionManager.getUserData().collect { user ->
-                                            if (user != null) {
-                                                viewModel.loadWorkoutHistory(user.id)
-                                            }
-                                        }
-                                    }
-                                }
-                            ) {
-                                Text("Riprova")
-                            }
+                            CircularProgressIndicator()
                         }
                     }
-                }
-                else -> {
-                    // Contenuto principale
-                    if (workoutHistory.isEmpty()) {
-                        // Nessun allenamento
+                    is WorkoutHistoryViewModel.WorkoutHistoryState.Error -> {
+                        // Errore
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
@@ -195,41 +197,80 @@ fun WorkoutHistoryScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 Icon(
-                                    imageVector = Icons.Default.FitnessCenter,
+                                    imageVector = Icons.Default.Error,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.size(64.dp)
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Text(
-                                    text = "Nessun allenamento trovato",
-                                    style = MaterialTheme.typography.bodyLarge
+                                    text = (workoutHistoryState as WorkoutHistoryViewModel.WorkoutHistoryState.Error).message,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.error
                                 )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Inizia un allenamento per vederlo qui",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Button(
+                                    onClick = {
+                                        coroutineScope.launch {
+                                            sessionManager.getUserData().collect { user ->
+                                                if (user != null) {
+                                                    viewModel.loadWorkoutHistory(user.id)
+                                                }
+                                            }
+                                        }
+                                    }
+                                ) {
+                                    Text("Riprova")
+                                }
                             }
                         }
-                    } else {
-                        // Lista allenamenti
-                        Row(modifier = Modifier.fillMaxSize()) {
-                            // Lista principale
+                    }
+                    else -> {
+                        // Lista degli allenamenti
+                        if (workoutHistory.isEmpty()) {
+                            // Nessun allenamento
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FitnessCenter,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(64.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = "Nessun allenamento trovato",
+                                        style = MaterialTheme.typography.bodyLarge
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = "Inizia un allenamento per vederlo qui",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            // Lista degli allenamenti
                             LazyColumn(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
+                                    .fillMaxSize()
                                     .padding(16.dp)
                             ) {
                                 items(workoutHistory) { workout ->
                                     WorkoutHistoryItem(
                                         workout = workout,
-                                        isSelected = selectedWorkout?.id == workout.id,
+                                        isSelected = false, // Non serve più questo stato
                                         onClick = {
+                                            Log.d("WorkoutHistory", "Selezionato allenamento: id=${workout.id}")
                                             viewModel.selectWorkout(workout)
                                             viewModel.loadSeriesDetails(workout.id)
+                                            showingDetails = true // Mostra i dettagli
                                         },
                                         onLongClick = {
                                             workoutToDelete = workout
@@ -238,168 +279,168 @@ fun WorkoutHistoryScreen(
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
 
-                            // Dettagli, se disponibili
-                            AnimatedVisibility(
-                                visible = selectedWorkout != null,
-                                enter = fadeIn() + expandVertically(),
-                                exit = fadeOut() + shrinkVertically(),
+            // Dettagli dell'allenamento
+            AnimatedVisibility(
+                visible = showingDetails && selectedWorkout != null,
+                enter = fadeIn(animationSpec = tween(300)),
+                exit = fadeOut(animationSpec = tween(300))
+            ) {
+                selectedWorkout?.let { workout ->
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp)
+                    ) {
+                        item {
+                            // Card informazioni generali
+                            Card(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxHeight()
+                                    .fillMaxWidth()
+                                    .padding(bottom = 16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                                )
                             ) {
-                                LazyColumn(
+                                Column(
                                     modifier = Modifier
-                                        .fillMaxHeight()
-                                        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                                        .fillMaxWidth()
                                         .padding(16.dp)
                                 ) {
-                                    item {
-                                        selectedWorkout?.let { workout ->
-                                            // Header sezione dettagli
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(bottom = 16.dp),
-                                                colors = CardDefaults.cardColors(
-                                                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                                                )
-                                            ) {
-                                                Column(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(16.dp)
-                                                ) {
-                                                    // Nome scheda
-                                                    Text(
-                                                        text = workout.schedaNome ?: "Scheda senza nome",
-                                                        style = MaterialTheme.typography.titleLarge,
-                                                        fontWeight = FontWeight.Bold
-                                                    )
+                                    // Data allenamento
+                                    Text(
+                                        text = "Data: ${workout.formattedDate}",
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
 
-                                                    Spacer(modifier = Modifier.height(4.dp))
-
-                                                    // Data
-                                                    Text(
-                                                        text = "Data: ${workout.formattedDate}",
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                    )
-
-                                                    // Durata
-                                                    if (workout.durataTotale != null && workout.durataTotale > 0) {
-                                                        Spacer(modifier = Modifier.height(4.dp))
-                                                        Text(
-                                                            text = "Durata: ${workout.formattedDuration}",
-                                                            style = MaterialTheme.typography.bodyMedium
-                                                        )
-                                                    }
-
-                                                    // Stato completamento
-                                                    Spacer(modifier = Modifier.height(8.dp))
-                                                    Row(
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = if (workout.isCompleted) Icons.Default.CheckCircle else Icons.Default.Cancel,
-                                                            contentDescription = null,
-                                                            tint = if (workout.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Text(
-                                                            text = if (workout.isCompleted) "Completato" else "Non completato",
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontWeight = FontWeight.Medium,
-                                                            color = if (workout.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                                                        )
-                                                    }
-
-                                                    // Note
-                                                    if (!workout.note.isNullOrBlank()) {
-                                                        Spacer(modifier = Modifier.height(16.dp))
-                                                        Text(
-                                                            text = "Note:",
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontWeight = FontWeight.Medium
-                                                        )
-                                                        Text(
-                                                            text = workout.note,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            fontStyle = FontStyle.Italic
-                                                        )
-                                                    }
-
-                                                    // Pulsante elimina
-                                                    Spacer(modifier = Modifier.height(16.dp))
-                                                    Button(
-                                                        onClick = {
-                                                            workoutToDelete = workout
-                                                            showDeleteDialog = true
-                                                        },
-                                                        colors = ButtonDefaults.buttonColors(
-                                                            containerColor = MaterialTheme.colorScheme.error
-                                                        )
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Delete,
-                                                            contentDescription = null
-                                                        )
-                                                        Spacer(modifier = Modifier.width(8.dp))
-                                                        Text("Elimina allenamento")
-                                                    }
-                                                }
-                                            }
-
-                                            // Series details
-                                            val workoutSeries = seriesDetails[workout.id] ?: emptyList()
-
-                                            if (workoutSeries.isNotEmpty()) {
-                                                Text(
-                                                    text = "Serie completate:",
-                                                    style = MaterialTheme.typography.titleMedium,
-                                                    fontWeight = FontWeight.Bold,
-                                                    modifier = Modifier.padding(vertical = 8.dp)
-                                                )
-
-                                                // Group series by exercise for display
-                                                val seriesByExercise = workoutSeries.groupBy { it.esercizioId ?: 0 }
-
-                                                seriesByExercise.forEach { (exerciseId, seriesList) ->
-                                                    if (exerciseId > 0) {
-                                                        val exerciseName = seriesList.firstOrNull()?.esercizioNome ?: "Esercizio sconosciuto"
-
-                                                        ExerciseSeriesGroup(
-                                                            exerciseName = exerciseName,
-                                                            series = seriesList,
-                                                            onDeleteSeries = { seriesId ->
-                                                                seriesIdToDelete = seriesId
-                                                                showDeleteDialog = true
-                                                            },
-                                                            onEditSeries = { series ->
-                                                                seriesToEdit = series
-                                                                editWeight = series.peso
-                                                                editReps = series.ripetizioni
-                                                                editRecoveryTime = series.tempoRecupero ?: 60
-                                                                showEditDialog = true
-                                                            }
-                                                        )
-                                                    }
-                                                }
-                                            } else {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .padding(vertical = 32.dp),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Text(
-                                                        text = "Nessuna serie completata",
-                                                        style = MaterialTheme.typography.bodyLarge,
-                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                    )
-                                                }
-                                            }
-                                        }
+                                    // Durata
+                                    if (workout.durataTotale != null && workout.durataTotale > 0) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "Durata: ${workout.formattedDuration}",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
                                     }
+
+                                    // Stato completamento
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = if (workout.isCompleted) Icons.Default.CheckCircle else Icons.Default.Cancel,
+                                            contentDescription = null,
+                                            tint = if (workout.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            text = if (workout.isCompleted) "Completato" else "Non completato",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            color = if (workout.isCompleted) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                                        )
+                                    }
+
+                                    // Note
+                                    if (!workout.note.isNullOrBlank()) {
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Text(
+                                            text = "Note:",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                        Text(
+                                            text = workout.note,
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontStyle = FontStyle.Italic
+                                        )
+                                    }
+                                }
+                            }
+
+                            // Pulsante elimina
+                            Button(
+                                onClick = {
+                                    workoutToDelete = workout
+                                    showDeleteDialog = true
+                                },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = MaterialTheme.colorScheme.error
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Delete,
+                                    contentDescription = null
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Elimina allenamento")
+                            }
+
+                            Spacer(modifier = Modifier.height(24.dp))
+
+                            // Serie completate
+                            val workoutSeries = seriesDetails[workout.id] ?: emptyList()
+
+                            Log.d("WorkoutHistory", "Dettagli per allenamento ${workout.id}: " +
+                                    "serie trovate=${workoutSeries.size}")
+
+                            if (workoutSeries.isNotEmpty()) {
+                                Text(
+                                    text = "Serie completate:",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                )
+
+                                // Group series by exercise for display
+                                val seriesByExercise = workoutSeries.groupBy { it.esercizioId ?: 0 }
+
+                                Log.d("WorkoutHistory", "Serie raggruppate per esercizio: ${seriesByExercise.keys.size} esercizi")
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "Nessuna serie completata per questo allenamento",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+
+                        // Serie raggruppate per esercizio
+                        val workoutSeries = seriesDetails[workout.id] ?: emptyList()
+                        val seriesByExercise = workoutSeries.groupBy { it.esercizioId ?: 0 }
+
+                        seriesByExercise.forEach { (exerciseId, seriesList) ->
+                            if (exerciseId > 0) {
+                                item {
+                                    val exerciseName = seriesList.firstOrNull()?.esercizioNome ?: "Esercizio sconosciuto"
+
+                                    ExerciseSeriesGroup(
+                                        exerciseName = exerciseName,
+                                        series = seriesList,
+                                        onDeleteSeries = { seriesId ->
+                                            seriesIdToDelete = seriesId
+                                            showDeleteDialog = true
+                                        },
+                                        onEditSeries = { series ->
+                                            seriesToEdit = series
+                                            editWeight = series.peso
+                                            editReps = series.ripetizioni
+                                            editRecoveryTime = series.tempoRecupero ?: 60
+                                            showEditDialog = true
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -436,9 +477,11 @@ fun WorkoutHistoryScreen(
                         if (seriesIdToDelete != null) {
                             // Elimina serie
                             val workoutId = selectedWorkout?.id ?: 0
+                            Log.d("WorkoutHistory", "Richiesta eliminazione serie $seriesIdToDelete da allenamento $workoutId")
                             viewModel.deleteCompletedSeries(seriesIdToDelete!!, workoutId)
                         } else if (workoutToDelete != null) {
                             // Elimina allenamento
+                            Log.d("WorkoutHistory", "Richiesta eliminazione allenamento ${workoutToDelete?.id}")
                             viewModel.deleteWorkout(workoutToDelete!!.id)
                         }
                         showDeleteDialog = false
@@ -483,7 +526,6 @@ fun WorkoutHistoryScreen(
                             editWeight = it.toFloatOrNull() ?: 0f
                         },
                         label = { Text("Peso (kg)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -496,7 +538,6 @@ fun WorkoutHistoryScreen(
                             editReps = it.toIntOrNull() ?: 0
                         },
                         label = { Text("Ripetizioni") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -509,7 +550,6 @@ fun WorkoutHistoryScreen(
                             editRecoveryTime = it.toIntOrNull() ?: 60
                         },
                         label = { Text("Tempo di recupero (sec)") },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -518,6 +558,9 @@ fun WorkoutHistoryScreen(
                 Button(
                     onClick = {
                         val workoutId = selectedWorkout?.id ?: 0
+
+                        Log.d("WorkoutHistory", "Aggiornamento serie ${seriesToEdit?.id}: " +
+                                "peso=$editWeight, rip=$editReps, recupero=$editRecoveryTime")
 
                         viewModel.updateCompletedSeries(
                             seriesId = seriesToEdit!!.id,
@@ -672,7 +715,8 @@ fun ExerciseSeriesGroup(
                         // Actions
                         Row {
                             IconButton(
-                                onClick = { onEditSeries(serie) }
+                                onClick = { onEditSeries(serie) },
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Edit,
@@ -682,7 +726,8 @@ fun ExerciseSeriesGroup(
                             }
 
                             IconButton(
-                                onClick = { onDeleteSeries(serie.id) }
+                                onClick = { onDeleteSeries(serie.id) },
+                                modifier = Modifier.size(40.dp)
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Delete,

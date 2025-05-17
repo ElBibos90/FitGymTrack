@@ -8,7 +8,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +32,7 @@ import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
+import android.util.Log
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -180,15 +180,72 @@ fun ActiveWorkoutScreen(
             // Contenuto principale
             when (workoutState) {
                 is ActiveWorkoutState.Loading -> {
-                    LoadingScreen()
+                    // Stato di caricamento, implementazione diretta invece di usare LoadingScreen
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator()
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Caricamento allenamento...",
+                                style = MaterialTheme.typography.bodyLarge
+                            )
+                        }
+                    }
                 }
 
                 is ActiveWorkoutState.Error -> {
-                    ErrorScreen(
-                        message = (workoutState as ActiveWorkoutState.Error).message,
-                        onRetry = { viewModel.initializeWorkout(userId, schedaId) },
-                        onBack = onNavigateBack
-                    )
+                    // Stato di errore, implementazione diretta invece di usare ErrorScreen
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Error,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(64.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        Text(
+                            text = "Errore",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = (workoutState as ActiveWorkoutState.Error).message,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                        )
+
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        Button(
+                            onClick = { viewModel.initializeWorkout(userId, schedaId) }
+                        ) {
+                            Text("Riprova")
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        TextButton(
+                            onClick = onNavigateBack
+                        ) {
+                            Text("Torna indietro")
+                        }
+                    }
                 }
 
                 is ActiveWorkoutState.Success -> {
@@ -214,6 +271,8 @@ fun ActiveWorkoutScreen(
                                 currentSelectedExerciseId = currentSelectedExerciseId,
                                 exerciseValues = exerciseValues,
                                 onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
+                                    // Log per debug
+                                    Log.d("ActiveWorkout", "Completamento serie: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
                                     viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
                                 },
                                 onStopTimer = {
@@ -223,28 +282,25 @@ fun ActiveWorkoutScreen(
                                     showCompleteWorkoutDialog = true
                                 },
                                 onSelectExercise = { exerciseId ->
+                                    // Log per debug
+                                    Log.d("ActiveWorkout", "Selezionato esercizio: $exerciseId")
                                     viewModel.selectExercise(exerciseId)
                                 },
-                                expandedGroups = expandedModernGroups
+                                expandedGroups = expandedModernGroups,
+                                onExerciseValuesChanged = { exerciseId, values ->
+                                    // Log per debug
+                                    Log.d("ActiveWorkout", "Valori esercizio modificati: exerciseId=$exerciseId, weight=${values.first}, reps=${values.second}")
+                                    viewModel.saveExerciseValues(exerciseId, values.first, values.second)
+                                }
                             )
                         } else {
-                            ActiveWorkoutContent(
-                                workout = workout,
-                                seriesState = seriesState,
-                                isTimerRunning = isTimerRunning,
-                                recoveryTime = recoveryTime,
-                                currentRecoveryExerciseId = currentRecoveryExerciseId,
-                                currentSelectedExerciseId = currentSelectedExerciseId,
-                                exerciseValues = exerciseValues,
-                                onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
-                                    viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
-                                },
-                                onStopTimer = {
-                                    viewModel.stopRecoveryTimer()
-                                },
-                                onSelectExercise = { exerciseId ->
-                                    viewModel.selectExercise(exerciseId)
-                                }
+                            // Versione classica: usa una visualizzazione semplificata invece di ActiveWorkoutContent
+                            Text(
+                                text = "Modalità classica non disponibile in questa versione",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                textAlign = TextAlign.Center
                             )
                         }
                     }
@@ -298,82 +354,6 @@ fun ActiveWorkoutScreen(
 }
 
 @Composable
-private fun LoadingScreen() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            CircularProgressIndicator()
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                text = "Caricamento allenamento...",
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-    }
-}
-
-@Composable
-private fun ErrorScreen(
-    message: String,
-    onRetry: () -> Unit,
-    onBack: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Icon(
-            imageVector = Icons.Default.Error,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.error,
-            modifier = Modifier.size(64.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Errore",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.error
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Button(
-            onClick = onRetry
-        ) {
-            Text("Riprova")
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        TextButton(
-            onClick = onBack
-        ) {
-            Text("Torna indietro")
-        }
-    }
-}
-
-/**
- * Nuova visualizzazione dell'allenamento con UI moderna e supporto per navigazione superset
- */
-@Composable
 private fun ModernActiveWorkoutContent(
     workout: ActiveWorkout,
     seriesState: CompletedSeriesState,
@@ -386,8 +366,11 @@ private fun ModernActiveWorkoutContent(
     onStopTimer: () -> Unit,
     onSaveWorkout: () -> Unit = {},
     onSelectExercise: (Int) -> Unit = {},
-    expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() }
+    expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() },
+    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> }
 ) {
+    Log.d("ActiveWorkout", "ModernActiveWorkoutContent: numero esercizi=${workout.esercizi.size}")
+
     val seriesMap = when (seriesState) {
         is CompletedSeriesState.Success -> seriesState.series
         else -> emptyMap()
@@ -395,6 +378,11 @@ private fun ModernActiveWorkoutContent(
 
     // Raggruppa gli esercizi in base a setType e linkedToPrevious
     val exerciseGroups = groupExercisesByType(workout.esercizi)
+
+    Log.d("ActiveWorkout", "Gruppi di esercizi trovati: ${exerciseGroups.size}")
+    exerciseGroups.forEachIndexed { index, group ->
+        Log.d("ActiveWorkout", "Gruppo $index: ${group.size} esercizi, tipo=${group.firstOrNull()?.setType ?: "N/A"}")
+    }
 
     // Calcola gli esercizi attivi e completati
     val completedGroups = exerciseGroups.filter { group ->
@@ -464,6 +452,9 @@ private fun ModernActiveWorkoutContent(
                     // Gestisci lo stato di espansione per questo gruppo specifico
                     val isGroupExpanded = expandedGroups[index] ?: false
 
+                    Log.d("ActiveWorkout", "Rendering superset gruppo $index: expanded=$isGroupExpanded, " +
+                            "exerciseId=${selectedExerciseInGroup.id}, nome=${selectedExerciseInGroup.nome}")
+
                     SupersetGroupCard(
                         title = "Superset ${index + 1}",
                         exercises = group,
@@ -471,6 +462,7 @@ private fun ModernActiveWorkoutContent(
                         serieCompletate = seriesMap,
                         onExerciseSelected = { onSelectExercise(it) },
                         onAddSeries = { exerciseId, weight, reps, serieNumber ->
+                            Log.d("ActiveWorkout", "AddSeries da superset: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
                             onSeriesCompleted(exerciseId, weight, reps, serieNumber)
                         },
                         isTimerRunning = isTimerRunning,
@@ -478,6 +470,7 @@ private fun ModernActiveWorkoutContent(
                         // Passa lo stato di espansione e la callback per aggiornarlo
                         isExpanded = isGroupExpanded,
                         onExpandToggle = {
+                            Log.d("ActiveWorkout", "Toggle espansione gruppo $index: ${!isGroupExpanded}")
                             expandedGroups[index] = !isGroupExpanded
                         }
                     )
@@ -487,11 +480,15 @@ private fun ModernActiveWorkoutContent(
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
                     val values = exerciseValues[exercise.id]
 
+                    Log.d("ActiveWorkout", "Rendering esercizio singolo: id=${exercise.id}, " +
+                            "nome=${exercise.nome}, completedSeries=${completedSeries.size}/${exercise.serie}")
+
                     ExerciseProgressItem(
                         exercise = exercise,
                         completedSeries = completedSeries,
                         isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
                         onAddSeries = { weight, reps ->
+                            Log.d("ActiveWorkout", "AddSeries da elemento singolo: exerciseId=${exercise.id}, weight=$weight, reps=$reps")
                             onSeriesCompleted(
                                 exercise.id,
                                 weight,
@@ -522,6 +519,8 @@ private fun ModernActiveWorkoutContent(
             itemsIndexed(completedGroups) { index, group ->
                 if (group.size > 1 && isSuperset(group.first())) {
                     // Superset completato
+                    Log.d("ActiveWorkout", "Rendering superset completato $index: ${group.size} esercizi")
+
                     CompletedSupersetCard(
                         title = "Superset ${index + 1}",
                         exercises = group,
@@ -532,211 +531,8 @@ private fun ModernActiveWorkoutContent(
                     val exercise = group.first()
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
 
-                    ExerciseProgressItem(
-                        exercise = exercise,
-                        completedSeries = completedSeries,
-                        isTimerRunning = false,
-                        onAddSeries = { _, _ -> /* Non dovrebbe essere chiamato */ },
-                        isCompleted = true
-                    )
-                }
-            }
-        }
-
-        // Spazio extra in fondo per far posto al timer di recupero
-        item {
-            Spacer(modifier = Modifier.height(80.dp))
-        }
-    }
-}
-
-/**
- * Visualizzazione dell'allenamento classica con supporto per navigazione superset
- */
-@Composable
-private fun ActiveWorkoutContent(
-    workout: ActiveWorkout,
-    seriesState: CompletedSeriesState,
-    isTimerRunning: Boolean,
-    recoveryTime: Int,
-    currentRecoveryExerciseId: Int?,
-    currentSelectedExerciseId: Int?,
-    exerciseValues: Map<Int, Pair<Float, Int>>,
-    onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
-    onStopTimer: () -> Unit,
-    onSelectExercise: (Int) -> Unit = {}
-) {
-    // Add this to store expansion states of groups
-    val expandedGroups = remember { mutableStateMapOf<Int, Boolean>() }
-    val coroutineScope = rememberCoroutineScope()
-
-    val seriesMap = when (seriesState) {
-        is CompletedSeriesState.Success -> seriesState.series
-        else -> emptyMap()
-    }
-
-    // Raggruppa gli esercizi in base a setType e linkedToPrevious
-    val exerciseGroups = groupExercisesByType(workout.esercizi)
-
-    // Initialize expansion state for new groups
-    LaunchedEffect(exerciseGroups) {
-        exerciseGroups.forEachIndexed { index, group ->
-            if (!expandedGroups.containsKey(index)) {
-                // Default to collapsed
-                expandedGroups[index] = false
-            }
-        }
-    }
-
-    // Calcola gli esercizi attivi e completati
-    val completedGroups = exerciseGroups.filter { group ->
-        group.all { exercise ->
-            val completedSeries = seriesMap[exercise.id] ?: emptyList()
-            completedSeries.size >= exercise.serie
-        }
-    }
-
-    val activeGroups = exerciseGroups.filter { group ->
-        group.any { exercise ->
-            val completedSeries = seriesMap[exercise.id] ?: emptyList()
-            completedSeries.size < exercise.serie
-        }
-    }
-
-    // Calcola il progresso
-    val progress = if (workout.esercizi.isNotEmpty()) {
-        // Contiamo gli esercizi completati, non i gruppi
-        val completedExercises = workout.esercizi.count { exercise ->
-            val completedSeries = seriesMap[exercise.id] ?: emptyList()
-            completedSeries.size >= exercise.serie
-        }
-        completedExercises.toFloat() / workout.esercizi.size.toFloat()
-    } else {
-        0f
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        state = rememberLazyListState() // Use a remembered state to maintain scroll position
-    ) {
-        item {
-            WorkoutProgressIndicator(
-                activeExercises = activeGroups.sumOf { it.size },
-                completedExercises = completedGroups.sumOf { it.size },
-                totalExercises = workout.esercizi.size,
-                progress = progress,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
-        }
-
-        // Esercizi attivi
-        if (activeGroups.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Esercizi da completare",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
-                )
-            }
-
-            itemsIndexed(activeGroups) { index, group ->
-                // Modified to use the stored expansion state
-                val isExpanded = expandedGroups[index] ?: false
-
-                if (group.size > 1 && isSuperset(group.first())) {
-                    // Se il gruppo è un superset
-                    val isInSuperset = true
-
-                    // Trova l'esercizio selezionato nel superset
-                    val selectedExercise = if (currentSelectedExerciseId != null && group.any { it.id == currentSelectedExerciseId }) {
-                        group.first { it.id == currentSelectedExerciseId }
-                    } else {
-                        group.first()
-                    }
-
-                    // Ottieni lo stato di espansione per questo gruppo
-                    val isExpanded = expandedGroups[index] ?: false
-
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        SupersetCard(
-                            exercises = group,
-                            selectedExerciseId = selectedExercise.id,
-                            serieCompletate = seriesMap,
-                            isTimerRunning = isTimerRunning,
-                            onExerciseSelect = { onSelectExercise(it) },
-                            onAddSeries = { exerciseId, weight, reps, serieNumber ->
-                                onSeriesCompleted(exerciseId, weight, reps, serieNumber)
-                            },
-                            isExpanded = isExpanded,
-                            onExpandToggle = { expandedGroups[index] = !isExpanded },
-                            exerciseValues = exerciseValues
-                        )
-                    }
-                } else {
-                    // Esercizio singolo
-                    val exercise = group.first()
-                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
-                    val values = exerciseValues[exercise.id]
-
-                    ExerciseProgressItem(
-                        exercise = exercise,
-                        completedSeries = completedSeries,
-                        isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
-                        onAddSeries = { weight, reps ->
-                            onSeriesCompleted(
-                                exercise.id,
-                                weight,
-                                reps,
-                                completedSeries.size + 1
-                            )
-                        },
-                        isLastExercise = false,
-                        isCompleted = false,
-                        initialWeight = values?.first,
-                        initialReps = values?.second
-                    )
-                }
-            }
-        }
-
-        // Esercizi completati
-        if (completedGroups.isNotEmpty()) {
-            item {
-                Text(
-                    text = "Esercizi completati",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(top = 24.dp, bottom = 8.dp)
-                )
-            }
-
-            itemsIndexed(completedGroups) { index, group ->
-                // Get the appropriate index for the completed groups
-                val groupIndex = activeGroups.size + index
-                val isExpanded = expandedGroups[groupIndex] ?: false
-
-                if (group.size > 1 && isSuperset(group.first())) {
-                    // Gruppo di esercizi (superset) completato
-                    Box(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        CompletedSupersetCard(
-                            title = "Superset ${index + 1}",
-                            exercises = group,
-                            serieCompletate = seriesMap,
-                            isExpanded = isExpanded,
-                            onExpandToggle = { expandedGroups[groupIndex] = !isExpanded }
-                        )
-                    }
-                } else {
-                    // Esercizio singolo completato
-                    val exercise = group.first()
-                    val completedSeries = seriesMap[exercise.id] ?: emptyList()
+                    Log.d("ActiveWorkout", "Rendering esercizio completato: id=${exercise.id}, " +
+                            "nome=${exercise.nome}, completedSeries=${completedSeries.size}/${exercise.serie}")
 
                     ExerciseProgressItem(
                         exercise = exercise,
@@ -754,36 +550,6 @@ private fun ActiveWorkoutContent(
             Spacer(modifier = Modifier.height(80.dp))
         }
     }
-}
-
-/**
- * Raggruppa gli esercizi in base al tipo di set e alla connessione
- */
-private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
-    val result = mutableListOf<List<WorkoutExercise>>()
-    var currentGroup = mutableListOf<WorkoutExercise>()
-
-    exercises.forEachIndexed { index, exercise ->
-        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
-        if (index == 0 || !exercise.linkedToPrevious) {
-            // Se avevamo già un gruppo, aggiungiamolo al risultato
-            if (currentGroup.isNotEmpty()) {
-                result.add(currentGroup.toList())
-            }
-            // Inizia un nuovo gruppo con questo esercizio
-            currentGroup = mutableListOf(exercise)
-        } else {
-            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
-            currentGroup.add(exercise)
-        }
-    }
-
-    // Aggiungi l'ultimo gruppo se non è vuoto
-    if (currentGroup.isNotEmpty()) {
-        result.add(currentGroup.toList())
-    }
-
-    return result
 }
 
 // Funzione di supporto per calcolare il numero totale di serie completate
@@ -819,7 +585,32 @@ private fun isSuperset(exercise: WorkoutExercise): Boolean {
     return exercise.setType == "superset" || exercise.setType == "1"
 }
 
-// La definizione della funzione WorkoutSuccessScreen è stata rimossa
-// per evitare conflitti con l'implementazione esistente nel progetto.
-// I riferimenti alla funzione sono stati mantenuti poiché utilizzano
-// la versione già definita altrove.
+/**
+ * Raggruppa gli esercizi in base al tipo di set e alla connessione
+ */
+private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
+    val result = mutableListOf<List<WorkoutExercise>>()
+    var currentGroup = mutableListOf<WorkoutExercise>()
+
+    exercises.forEachIndexed { index, exercise ->
+        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
+        if (index == 0 || !exercise.linkedToPrevious) {
+            // Se avevamo già un gruppo, aggiungiamolo al risultato
+            if (currentGroup.isNotEmpty()) {
+                result.add(currentGroup.toList())
+            }
+            // Inizia un nuovo gruppo con questo esercizio
+            currentGroup = mutableListOf(exercise)
+        } else {
+            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
+            currentGroup.add(exercise)
+        }
+    }
+
+    // Aggiungi l'ultimo gruppo se non è vuoto
+    if (currentGroup.isNotEmpty()) {
+        result.add(currentGroup.toList())
+    }
+
+    return result
+}
