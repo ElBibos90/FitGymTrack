@@ -114,8 +114,8 @@ class ActiveWorkoutViewModel : ViewModel() {
                             // Carica le serie già completate (se ce ne sono)
                             loadCompletedSeries()
 
-                            // Carica lo storico degli allenamenti precedenti
-                            loadLastWorkoutHistory(userId, schedaId)
+                            // RIMOSSA LA CHIAMATA:
+                            // loadLastWorkoutHistory(userId, schedaId)
                         } else {
                             _workoutState.value = ActiveWorkoutState.Error(response.message)
                         }
@@ -140,10 +140,13 @@ class ActiveWorkoutViewModel : ViewModel() {
     private fun loadWorkoutExercises(schedaId: Int) {
         viewModelScope.launch {
             try {
+                Log.d("WorkoutHistory", "Inizio caricamento esercizi per scheda $schedaId")
                 val result = repository.getWorkoutExercises(schedaId)
 
                 result.fold(
                     onSuccess = { exercises ->
+                        Log.d("WorkoutHistory", "Esercizi caricati con successo: ${exercises.size} esercizi")
+
                         // Crea un ActiveWorkout temporaneo con i dati disponibili
                         val workout = ActiveWorkout(
                             id = allenamentoId ?: 0,
@@ -158,14 +161,22 @@ class ActiveWorkoutViewModel : ViewModel() {
                         // Pre-carica i valori di peso e ripetizioni dai default
                         // (verranno poi aggiornati quando saranno disponibili i dati storici)
                         preloadDefaultValues()
+
+                        // AGGIUNTA: carica lo storico DOPO aver impostato gli esercizi
+                        userId?.let {
+                            Log.d("WorkoutHistory", "Caricamento storico dopo aver impostato gli esercizi")
+                            loadLastWorkoutHistory(it, schedaId)
+                        }
                     },
                     onFailure = { e ->
+                        Log.e("WorkoutHistory", "Errore nel caricamento degli esercizi: ${e.message}")
                         _workoutState.value = ActiveWorkoutState.Error(
                             e.message ?: "Errore nel caricamento degli esercizi"
                         )
                     }
                 )
             } catch (e: Exception) {
+                Log.e("WorkoutHistory", "Eccezione nel caricamento degli esercizi: ${e.message}")
                 _workoutState.value = ActiveWorkoutState.Error(
                     e.message ?: "Errore nel caricamento degli esercizi"
                 )
