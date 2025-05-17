@@ -271,8 +271,8 @@ fun AppNavigation(
                 userId = userId,
                 onNavigateBack = {
                     // Torna alla lista delle schede
-                    navController.navigate("workout_plans") {
-                        popUpTo("active_workout/${schedaId}/${userId}") { inclusive = true }
+                    navController.navigate("dashboard") {
+                        popUpTo("dashboard") { inclusive = false }
                     }
                 },
                 onWorkoutCompleted = {
