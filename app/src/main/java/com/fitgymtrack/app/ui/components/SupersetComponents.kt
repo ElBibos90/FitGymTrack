@@ -326,16 +326,32 @@ fun SupersetGroupCard(
     isTimerRunning: Boolean = false,
     exerciseValues: Map<Int, Pair<Float, Int>> = emptyMap(),
     isExpanded: Boolean = false, // Aggiungiamo questo parametro con default a false
-    onExpandToggle: () -> Unit = {} // Aggiungiamo un callback per gestire l'espansione
+    onExpandToggle: () -> Unit = {}, // Aggiungiamo un callback per gestire l'espansione
+    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> }
 ) {
     val selectedExerciseIndex = exercises.indexOfFirst { it.id == selectedExerciseId }
     val selectedExercise = exercises.getOrNull(selectedExerciseIndex) ?: exercises.firstOrNull() ?: return
     val completedSeries = serieCompletate[selectedExercise.id] ?: emptyList()
+    val values = exerciseValues[selectedExercise.id]
+
+    // Spostiamo le dichiarazioni delle variabili qui in modo che siano accessibili in tutto il componente
+    var showWeightPicker by remember { mutableStateOf(false) }
+    var currentWeight by remember { mutableStateOf(values?.first ?: selectedExercise.peso.toFloat()) }
+    var showRepsPicker by remember { mutableStateOf(false) }
+    var currentReps by remember { mutableStateOf(values?.second ?: selectedExercise.ripetizioni) }
+
+    // Aggiorniamo i valori correnti quando cambiano i valori dall'esterno
+    LaunchedEffect(values) {
+        values?.let {
+            currentWeight = it.first
+            currentReps = it.second
+        }
+    }
 
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
+            .padding(bottom = 32.dp) // Aumentato il padding inferiore per distanziare meglio
     ) {
         // Header del superset - cliccabile per espandere/comprimere
         Surface(
@@ -439,14 +455,13 @@ fun SupersetGroupCard(
                     compact = true
                 )
 
-                // Esercizio selezionato - con sfondo grigio scuro
+                // Esercizio selezionato - con sfondo che rispetta il tema
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
-                    color = Color(0xFF1A1A1A),
+                    // Usa i colori del tema invece di valori fissi
+                    color = MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(bottomStart = 12.dp, bottomEnd = 12.dp)
                 ) {
-                    val values = exerciseValues[selectedExercise.id]
-
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
@@ -455,7 +470,7 @@ fun SupersetGroupCard(
                             text = selectedExercise.nome,
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = Color.White
+                            color = MaterialTheme.colorScheme.onSurface // Usa il colore del tema
                         )
 
                         Spacer(modifier = Modifier.height(12.dp))
@@ -497,7 +512,8 @@ fun SupersetGroupCard(
                                         .height(4.dp)
                                         .clip(RoundedCornerShape(2.dp)),
                                     color = BluePrimary,
-                                    trackColor = Color.White.copy(alpha = 0.2f)
+                                    // Usa un colore adatto al tema
+                                    trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                                 )
 
                                 Spacer(modifier = Modifier.width(8.dp))
@@ -506,7 +522,7 @@ fun SupersetGroupCard(
                                     text = "$completedSeriesCount/$totalSeries",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = Color.White
+                                    color = MaterialTheme.colorScheme.onSurface // Usa il colore del tema
                                 )
                             }
                         }
@@ -518,11 +534,13 @@ fun SupersetGroupCard(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            // Peso
+                            // Peso - con onClick per aprire il dialog
                             Surface(
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF444444)
+                                // Usa i colori del tema
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                onClick = { showWeightPicker = true }
                             ) {
                                 Column(
                                     modifier = Modifier
@@ -533,15 +551,15 @@ fun SupersetGroupCard(
                                     Text(
                                         text = "Peso",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
 
                                     Spacer(modifier = Modifier.height(4.dp))
 
                                     Text(
-                                        text = "${WeightFormatter.formatWeight(values?.first ?: selectedExercise.peso.toFloat())} kg",
+                                        text = "${WeightFormatter.formatWeight(currentWeight)} kg",
                                         style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -549,11 +567,13 @@ fun SupersetGroupCard(
 
                             Spacer(modifier = Modifier.width(8.dp))
 
-                            // Ripetizioni
+                            // Ripetizioni - con onClick per aprire il dialog
                             Surface(
                                 modifier = Modifier.weight(1f),
                                 shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFF444444)
+                                // Usa i colori del tema
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                onClick = { showRepsPicker = true }
                             ) {
                                 Column(
                                     modifier = Modifier
@@ -564,15 +584,15 @@ fun SupersetGroupCard(
                                     Text(
                                         text = if (selectedExercise.isIsometric) "Secondi" else "Ripetizioni",
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
 
                                     Spacer(modifier = Modifier.height(4.dp))
 
                                     Text(
-                                        text = "${values?.second ?: selectedExercise.ripetizioni}",
+                                        text = "$currentReps",
                                         style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         fontWeight = FontWeight.Bold
                                     )
                                 }
@@ -586,8 +606,8 @@ fun SupersetGroupCard(
                             onClick = {
                                 onAddSeries(
                                     selectedExercise.id,
-                                    values?.first ?: selectedExercise.peso.toFloat(),
-                                    values?.second ?: selectedExercise.ripetizioni,
+                                    currentWeight, // Ora accessibile qui
+                                    currentReps,   // Ora accessibile qui
                                     completedSeries.size + 1
                                 )
                             },
@@ -607,6 +627,35 @@ fun SupersetGroupCard(
                     }
                 }
             }
+        }
+
+        // Dialog per scegliere il peso
+        if (showWeightPicker) {
+            WeightPickerDialog(
+                initialWeight = currentWeight,
+                onDismiss = { showWeightPicker = false },
+                onConfirm = { weight ->
+                    currentWeight = weight
+                    showWeightPicker = false
+                    // Notifica il cambio di valori
+                    onExerciseValuesChanged(selectedExercise.id, Pair(weight, currentReps))
+                }
+            )
+        }
+
+        // Dialog per scegliere le ripetizioni
+        if (showRepsPicker) {
+            RepsPickerDialog(
+                initialReps = currentReps,
+                isIsometric = selectedExercise.isIsometric,
+                onDismiss = { showRepsPicker = false },
+                onConfirm = { reps ->
+                    currentReps = reps
+                    showRepsPicker = false
+                    // Notifica il cambio di valori
+                    onExerciseValuesChanged(selectedExercise.id, Pair(currentWeight, reps))
+                }
+            )
         }
     }
 }

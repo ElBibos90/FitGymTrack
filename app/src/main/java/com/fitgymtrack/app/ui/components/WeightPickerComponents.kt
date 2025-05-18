@@ -235,139 +235,132 @@ fun NumberSelectorWithButtons(
 @Composable
 fun RepsPickerDialog(
     initialReps: Int,
-    isIsometric: Boolean,
+    isIsometric: Boolean = false,
     onDismiss: () -> Unit,
     onConfirm: (Int) -> Unit
 ) {
-    var selectedReps by remember { mutableStateOf(initialReps) }
-    val maxValue = if (isIsometric) 120 else 100
-    val title = if (isIsometric) "Seleziona i secondi" else "Seleziona le ripetizioni"
-    val label = if (isIsometric) "Secondi" else "Ripetizioni"
+    var reps by remember { mutableStateOf(initialReps) }
 
-    // Presets comuni
-    val presets = if (isIsometric) {
-        listOf(10, 20, 30, 45, 60, 90, 120)
-    } else {
-        listOf(6, 8, 10, 12, 15, 20, 25)
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .wrapContentHeight(),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surface
-        ) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = if (isIsometric) "Seleziona secondi" else "Seleziona ripetizioni",
+                style = MaterialTheme.typography.titleLarge
+            )
+        },
+        text = {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(24.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Selector with buttons
-                NumberSelectorWithButtons(
-                    label = label,
-                    value = selectedReps,
-                    onIncrement = { if (selectedReps < maxValue) selectedReps++ },
-                    onDecrement = { if (selectedReps > 1) selectedReps-- }
-                )
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Presets section
-                Column(
+                // Selettore numerico con bottoni + e -
+                Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
+                    // Bottone -
+                    FilledIconButton(
+                        onClick = {
+                            if (reps > 1) reps--
+                        },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = "Diminuisci"
+                        )
+                    }
+
+                    // Valore numerico - allarghiamo lo spazio per le 3 cifre
                     Text(
-                        text = "Valori comuni:",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        text = reps.toString(),
+                        style = MaterialTheme.typography.displayMedium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .padding(horizontal = 24.dp)
+                            // Assicuriamo uno spazio minimo sufficiente per 3 cifre
+                            .widthIn(min = 90.dp),
+                        textAlign = TextAlign.Center
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    // Bottone +
+                    FilledIconButton(
+                        onClick = { reps++ },
+                        modifier = Modifier.size(48.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Aumenta"
+                        )
+                    }
+                }
 
-                    // Chip grid for presets in a simple row
-                    Row(
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Valori comuni
+                Text(
+                    text = "Valori comuni:",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier
+                        .align(Alignment.Start)
+                        .padding(bottom = 8.dp)
+                )
+
+                // Lista di valori comuni come nel design originale
+                val commonValues = if (isIsometric) {
+                    listOf(10, 20, 30, 45, 60, 90, 120)
+                } else {
+                    listOf(8, 10, 12, 15, 20, 25, 30)
+                }
+
+                // Mostra i valori comuni in formato lista verticale (stile originale)
+                commonValues.forEach { value ->
+                    Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
+                            .padding(vertical = 4.dp)
+                            .height(48.dp),
+                        color = if (reps == value)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = RoundedCornerShape(8.dp),
+                        onClick = { reps = value }
                     ) {
-                        for (preset in presets.take(4)) {
-                            FilterChip(
-                                selected = preset == selectedReps,
-                                onClick = { selectedReps = preset },
-                                label = { Text("$preset") },
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = Indigo600,
-                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                )
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = value.toString(),
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (reps == value)
+                                    MaterialTheme.colorScheme.onPrimary
+                                else
+                                    MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    // Second row for remaining presets
-                    if (presets.size > 4) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            for (preset in presets.drop(4)) {
-                                FilterChip(
-                                    selected = preset == selectedReps,
-                                    onClick = { selectedReps = preset },
-                                    label = { Text("$preset") },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = Indigo600,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
-                // Buttons row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    TextButton(
-                        onClick = onDismiss,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Annulla")
-                    }
-
-                    Button(
-                        onClick = { onConfirm(selectedReps) },
-                        modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Indigo600
-                        )
-                    ) {
-                        Text("Conferma")
-                    }
                 }
             }
+        },
+        confirmButton = {
+            Button(
+                onClick = { onConfirm(reps) }
+            ) {
+                Text("Conferma")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss
+            ) {
+                Text("Annulla")
+            }
         }
-    }
+    )
 }
 
 /**
