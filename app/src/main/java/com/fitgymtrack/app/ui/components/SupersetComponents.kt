@@ -325,9 +325,10 @@ fun SupersetGroupCard(
     onAddSeries: (Int, Float, Int, Int) -> Unit,
     isTimerRunning: Boolean = false,
     exerciseValues: Map<Int, Pair<Float, Int>> = emptyMap(),
-    isExpanded: Boolean = false, // Aggiungiamo questo parametro con default a false
-    onExpandToggle: () -> Unit = {}, // Aggiungiamo un callback per gestire l'espansione
-    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> }
+    isExpanded: Boolean = false,
+    onExpandToggle: () -> Unit = {},
+    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> },
+    accentColor: Color = BluePrimary // Nuovo parametro colore
 ) {
     val selectedExerciseIndex = exercises.indexOfFirst { it.id == selectedExerciseId }
     val selectedExercise = exercises.getOrNull(selectedExerciseIndex) ?: exercises.firstOrNull() ?: return

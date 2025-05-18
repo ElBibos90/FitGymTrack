@@ -34,6 +34,9 @@ import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
 import android.util.Log
 
+private fun isCircuit(exercise: WorkoutExercise): Boolean {
+    return exercise.setType == "circuit"
+}
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveWorkoutScreen(
@@ -123,19 +126,21 @@ fun ActiveWorkoutScreen(
             TopAppBar(
                 title = {
                     Column {
-                        // Utilizza il nome della scheda invece del nome dell'esercizio
                         Text(
                             text = when (workoutState) {
                                 is ActiveWorkoutState.Success -> {
-                                    // Mostra il nome della scheda qui
-                                    "Allenamento" // Questo dovrebbe essere sostituito con il nome effettivo della scheda
+                                    "Allenamento"
                                 }
                                 else -> "Allenamento"
                             },
                             style = MaterialTheme.typography.titleMedium
                         )
+                        // Make this a STATE - currently it only renders once
+                        val elapsedTimeFormatted by remember(elapsedTime) {
+                            derivedStateOf { viewModel.getFormattedElapsedTime() }
+                        }
                         Text(
-                            text = "Durata: ${viewModel.getFormattedElapsedTime()}",
+                            text = "Durata: $elapsedTimeFormatted",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                         )
@@ -415,7 +420,7 @@ private fun ModernActiveWorkoutContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         state = rememberLazyListState(),
-        verticalArrangement = Arrangement.spacedBy(12.dp) // Aggiungi spaziatura consistente tra gli elementi
+        verticalArrangement = Arrangement.spacedBy(16.dp) // Increased consistent spacing
     ) {
         item {
             WorkoutProgressIndicator(
@@ -423,25 +428,29 @@ private fun ModernActiveWorkoutContent(
                 completedExercises = completedGroups.sumOf { it.size },
                 totalExercises = workout.esercizi.size,
                 progress = progress,
-                modifier = Modifier.padding(vertical = 16.dp)
+                modifier = Modifier.fillMaxWidth() // remove the vertical padding
             )
+
         }
 
-        // Esercizi attivi
         if (activeGroups.isNotEmpty()) {
             item {
                 Text(
                     text = "Esercizi da completare",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(vertical = 8.dp)
+                    modifier = Modifier.padding(bottom = 8.dp) // Rimosso padding verticale per consistenza
                 )
             }
 
             itemsIndexed(activeGroups) { index, group ->
-                // Se il gruppo ha più di un esercizio e il primo è di tipo "superset", trattalo come un superset
-                if (group.size > 1 && isSuperset(group.first())) {
-                    // Trova l'esercizio da visualizzare nel superset
+                // Verifica se il gruppo è un superset o un circuit
+                val isSuperset = group.size > 1 && isSuperset(group.first())
+                val isCircuit = group.size > 1 && isCircuit(group.first())
+
+                // Se il gruppo è un superset o un circuit, usa una visualizzazione speciale
+                if (isSuperset || isCircuit) {
+                    // Trova l'esercizio da visualizzare nel gruppo
                     val selectedExerciseInGroup = if (currentSelectedExerciseId != null && group.any { it.id == currentSelectedExerciseId }) {
                         // Se c'è un esercizio selezionato nel gruppo corrente, mostra quello
                         group.first { it.id == currentSelectedExerciseId }
@@ -453,17 +462,23 @@ private fun ModernActiveWorkoutContent(
                     // Gestisci lo stato di espansione per questo gruppo specifico
                     val isGroupExpanded = expandedGroups[index] ?: false
 
-                    Log.d("ActiveWorkout", "Rendering superset gruppo $index: expanded=$isGroupExpanded, " +
+                    // Determina il titolo in base al tipo di gruppo
+                    val groupTitle = if (isSuperset) "Superset ${index + 1}" else "Circuit ${index + 1}"
+
+                    // Colore del tema in base al tipo di gruppo
+                    val groupColor = if (isSuperset) BluePrimary else PurplePrimary
+
+                    Log.d("ActiveWorkout", "Rendering ${if (isSuperset) "superset" else "circuit"} gruppo $index: expanded=$isGroupExpanded, " +
                             "exerciseId=${selectedExerciseInGroup.id}, nome=${selectedExerciseInGroup.nome}")
 
                     SupersetGroupCard(
-                        title = "Superset ${index + 1}",
+                        title = groupTitle,
                         exercises = group,
                         selectedExerciseId = selectedExerciseInGroup.id,
                         serieCompletate = seriesMap,
                         onExerciseSelected = { onSelectExercise(it) },
                         onAddSeries = { exerciseId, weight, reps, serieNumber ->
-                            Log.d("ActiveWorkout", "AddSeries da superset: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
+                            Log.d("ActiveWorkout", "AddSeries da gruppo: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
                             onSeriesCompleted(exerciseId, weight, reps, serieNumber)
                         },
                         isTimerRunning = isTimerRunning,
@@ -473,10 +488,12 @@ private fun ModernActiveWorkoutContent(
                         onExpandToggle = {
                             Log.d("ActiveWorkout", "Toggle espansione gruppo $index: ${!isGroupExpanded}")
                             expandedGroups[index] = !isGroupExpanded
-                        }
+                        },
+                        // Passa un colore di tema diverso in base al tipo di gruppo
+                        accentColor = groupColor
                     )
                 } else {
-                    // Esercizio singolo o altro tipo
+                    // Esercizio singolo
                     val exercise = group.first()
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
                     val values = exerciseValues[exercise.id]
@@ -504,7 +521,6 @@ private fun ModernActiveWorkoutContent(
                     )
                 }
             }
-
         }
 
         // Esercizi completati
@@ -594,24 +610,31 @@ private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<Wo
     val result = mutableListOf<List<WorkoutExercise>>()
     var currentGroup = mutableListOf<WorkoutExercise>()
 
-    exercises.forEachIndexed { index, exercise ->
-        // Se è il primo esercizio o non è collegato al precedente, inizia un nuovo gruppo
-        if (index == 0 || !exercise.linkedToPrevious) {
-            // Se avevamo già un gruppo, aggiungiamolo al risultato
-            if (currentGroup.isNotEmpty()) {
-                result.add(currentGroup.toList())
-            }
-            // Inizia un nuovo gruppo con questo esercizio
-            currentGroup = mutableListOf(exercise)
-        } else {
-            // Questo esercizio è collegato al precedente, aggiungilo al gruppo corrente
+    exercises.forEach { exercise ->
+        if (currentGroup.isEmpty()) {
+            // First exercise always starts a new group
             currentGroup.add(exercise)
+        } else {
+            val prevExercise = currentGroup.last()
+
+            // Check if current exercise is linked to previous
+            if (exercise.linkedToPrevious &&
+                (exercise.setType == prevExercise.setType) &&
+                (exercise.setType == "superset" || exercise.setType == "circuit")) {
+                // This exercise belongs to the same group
+                currentGroup.add(exercise)
+            } else {
+                // This exercise starts a new group
+                // Save the current group and start a new one
+                result.add(currentGroup.toList())
+                currentGroup = mutableListOf(exercise)
+            }
         }
     }
 
-    // Aggiungi l'ultimo gruppo se non è vuoto
+    // Add the last group if not empty
     if (currentGroup.isNotEmpty()) {
-        result.add(currentGroup.toList())
+        result.add(currentGroup)
     }
 
     return result
