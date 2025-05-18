@@ -414,7 +414,8 @@ private fun ModernActiveWorkoutContent(
         modifier = Modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp),
-        state = rememberLazyListState()
+        state = rememberLazyListState(),
+        verticalArrangement = Arrangement.spacedBy(12.dp) // Aggiungi spaziatura consistente tra gli elementi
     ) {
         item {
             WorkoutProgressIndicator(
@@ -503,6 +504,7 @@ private fun ModernActiveWorkoutContent(
                     )
                 }
             }
+
         }
 
         // Esercizi completati

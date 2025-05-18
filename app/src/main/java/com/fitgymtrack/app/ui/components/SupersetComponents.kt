@@ -351,7 +351,7 @@ fun SupersetGroupCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 32.dp) // Aumentato il padding inferiore per distanziare meglio
+            .padding(bottom = 16.dp)
     ) {
         // Header del superset - cliccabile per espandere/comprimere
         Surface(
@@ -527,7 +527,7 @@ fun SupersetGroupCard(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Peso e ripetizioni
                         Row(
@@ -599,7 +599,7 @@ fun SupersetGroupCard(
                             }
                         }
 
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
 
                         // Bottone completa
                         Button(

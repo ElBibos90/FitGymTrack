@@ -731,8 +731,9 @@ class ActiveWorkoutViewModel : ViewModel() {
         viewModelScope.launch {
             while (!_workoutCompleted.value) {
                 val elapsedMillis = System.currentTimeMillis() - sessionStartTime
-                _elapsedTime.value = (elapsedMillis / (1000 * 60)).toInt() // Converti in minuti
-                delay(60000) // Aggiorna ogni minuto
+                // Aggiorniamo il tempo ogni secondo invece di ogni minuto
+                _elapsedTime.value = (elapsedMillis / 1000).toInt() // Traccia in secondi invece di minuti
+                delay(1000) // Aggiorna ogni secondo
             }
         }
     }
@@ -1352,15 +1353,11 @@ class ActiveWorkoutViewModel : ViewModel() {
      * Formatta il tempo trascorso come ore:minuti
      */
     fun getFormattedElapsedTime(): String {
-        val minutes = _elapsedTime.value
-        val hours = minutes / 60
-        val mins = minutes % 60
+        val totalSeconds = _elapsedTime.value
+        val minutes = totalSeconds / 60
+        val seconds = totalSeconds % 60
 
-        return if (hours > 0) {
-            "$hours:${mins.toString().padStart(2, '0')}"
-        } else {
-            "$mins min"
-        }
+        return String.format("%02d:%02d", minutes, seconds)
     }
 
     /**
