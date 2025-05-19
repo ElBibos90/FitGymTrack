@@ -827,9 +827,9 @@ class ActiveWorkoutViewModel : ViewModel() {
         val currentExercise = workout.esercizi.find { it.id == currentExerciseId } ?: return null
 
         // Verifica se l'esercizio corrente fa parte di un superset
-        val isInSuperset = currentExercise.setType == "superset" || currentExercise.setType == "1"
+        val isInGroup = currentExercise.setType == "superset" || currentExercise.setType == "circuit"
 
-        if (!isInSuperset) {
+        if (!isInGroup) {
             return null
         }
 
@@ -862,7 +862,7 @@ class ActiveWorkoutViewModel : ViewModel() {
         val startIndex = allExercises.indexOfFirst { it.id == startExerciseId }
 
         // Verifica se l'esercizio fa parte di un superset
-        val isSuperset = startExercise.setType == "superset" || startExercise.setType == "1"
+        val isSuperset = startExercise.setType == "superset" || startExercise.setType == "circuit"
 
         if (!isSuperset) {
             result.add(startExercise)
@@ -1071,9 +1071,9 @@ class ActiveWorkoutViewModel : ViewModel() {
         val currentExercise = workout.esercizi.find { it.id == exerciseId } ?: return
 
         // Verifica se l'esercizio fa parte di un superset
-        val isInSuperset = currentExercise.setType == "superset" || currentExercise.setType == "1"
+        val isInGroup = currentExercise.setType == "superset" || currentExercise.setType == "circuit"
 
-        if (!isInSuperset) {
+        if (!isInGroup) {
             return
         }
 
