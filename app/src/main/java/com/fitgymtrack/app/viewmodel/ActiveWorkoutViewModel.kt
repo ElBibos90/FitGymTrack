@@ -1237,19 +1237,32 @@ class ActiveWorkoutViewModel : ViewModel() {
         }
     }
 
+
     /**
      * Avvia il timer di recupero
      */
     private fun startRecoveryTimer(seconds: Int) {
+        // Imposta il valore iniziale esatto
         _recoveryTime.value = seconds
         _isTimerRunning.value = true
 
         viewModelScope.launch {
-            while (_recoveryTime.value > 0 && _isTimerRunning.value) {
+            // Utilizziamo un approccio più semplice e affidabile: un decremento esatto
+            // di un secondo alla volta, senza basarci sul tempo trascorso
+            var remainingSeconds = seconds
+
+            while (remainingSeconds > 0 && _isTimerRunning.value) {
+                // Attendiamo esattamente un secondo
                 delay(1000)
-                _recoveryTime.value = max(0, _recoveryTime.value - 1)
+
+                // Decrementiamo di esattamente 1 secondo
+                remainingSeconds -= 1
+
+                // Aggiorniamo il valore nel flusso
+                _recoveryTime.value = remainingSeconds
             }
 
+            // Al termine, resettiamo lo stato
             _isTimerRunning.value = false
             _currentRecoveryExerciseId.value = null
         }

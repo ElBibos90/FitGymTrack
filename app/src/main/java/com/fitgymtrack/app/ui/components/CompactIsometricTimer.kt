@@ -42,8 +42,8 @@ fun CompactIsometricTimer(
     LaunchedEffect(key1 = isRunning) {
         if (isRunning) {
             while (timeLeft > 0) {
-                delay(1000L)
-                timeLeft--
+                delay(1000L) // Delay costante di esattamente 1 secondo
+                timeLeft -= 1 // Decremento semplice e preciso
             }
             timerFinished = true
             onTimerComplete()

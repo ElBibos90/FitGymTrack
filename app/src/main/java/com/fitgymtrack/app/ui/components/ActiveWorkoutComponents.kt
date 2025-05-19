@@ -28,43 +28,45 @@ fun RecoveryTimer(
     onStop: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var timeLeft by remember { mutableStateOf(seconds) }
-    var timerRunning by remember { mutableStateOf(isRunning) }
+    // Usiamo un valore ricordato per il conteggio alla rovescia, inizializzato una sola volta
+    // al valore originale dei secondi, e poi modificato solo dal LaunchedEffect
+    var timeLeft by remember(seconds) { mutableStateOf(seconds) }
 
-    // Aggiorna timeLeft quando cambia seconds
-    LaunchedEffect(seconds) {
-        timeLeft = seconds
-    }
+    // Anche se il valore di isRunning cambia, non vogliamo resettare timeLeft
+    // quindi lo gestiamo separatamente
+    var timerActive by remember { mutableStateOf(isRunning) }
 
-    // Aggiorna timerRunning quando cambia isRunning
+    // Aggiorniamo lo stato del timer quando cambia isRunning
     LaunchedEffect(isRunning) {
-        timerRunning = isRunning
+        timerActive = isRunning
     }
 
-    // Effetto per gestire il countdown
-    LaunchedEffect(key1 = timerRunning) {
-        if (timerRunning) {
-            val startTime = System.currentTimeMillis()
-            while (timeLeft > 0 && timerRunning) {
-                // Calcola il tempo rimanente basandosi sul timestamp di inizio
-                val elapsedSeconds = ((System.currentTimeMillis() - startTime) / 1000).toInt()
-                timeLeft = seconds - elapsedSeconds
-                delay(100) // Aggiornamento più frequente per maggiore fluidità
-            }
-            timerRunning = false
-            if (timeLeft <= 0) {
-                onFinish()
-            }
+    // Effetto per il countdown - questo è il cuore della soluzione
+    LaunchedEffect(key1 = seconds, key2 = isRunning) {
+        // Se il timer non è attivo, non fare nulla
+        if (!isRunning) return@LaunchedEffect
+
+        // Assicuriamoci che il valore iniziale sia corretto
+        timeLeft = seconds
+
+        // Ogni secondo esatto, decrementa timeLeft di 1
+        while (timeLeft > 0 && timerActive) {
+            // Attendi un secondo esatto prima di decrementare
+            delay(1000)
+            timeLeft -= 1
+        }
+
+        // Se il timer raggiunge 0, notifica il completamento
+        if (timeLeft <= 0) {
+            onFinish()
         }
     }
 
     // Formatta il tempo in formato mm:ss
-    val formattedTime by remember(timeLeft) {
-        derivedStateOf {
-            val minutes = timeLeft / 60
-            val remainingSeconds = timeLeft % 60
-            String.format("%02d:%02d", minutes, remainingSeconds)
-        }
+    val formattedTime = remember(timeLeft) {
+        val minutes = timeLeft / 60
+        val remainingSeconds = timeLeft % 60
+        String.format("%02d:%02d", minutes, remainingSeconds)
     }
 
     Surface(
@@ -116,13 +118,16 @@ fun RecoveryTimer(
 
             // Cambio nel pulsante: mostra "Ferma" o "Salta" in base allo stato del timer
             Button(
-                onClick = onStop,
+                onClick = {
+                    timerActive = false // Ferma immediatamente il countdown
+                    onStop()
+                },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerRunning) Indigo600 else MaterialTheme.colorScheme.errorContainer,
-                    contentColor = if (timerRunning) Color.White else MaterialTheme.colorScheme.error
+                    containerColor = if (timerActive) Indigo600 else MaterialTheme.colorScheme.errorContainer,
+                    contentColor = if (timerActive) Color.White else MaterialTheme.colorScheme.error
                 )
             ) {
-                Text(if (timerRunning) "Ferma" else "Salta")
+                Text(if (timerActive) "Ferma" else "Salta")
             }
         }
     }

@@ -25,6 +25,7 @@ import com.fitgymtrack.app.models.CompletedSeries
 import com.fitgymtrack.app.models.WorkoutExercise
 import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.utils.WeightFormatter
+import kotlinx.coroutines.delay
 
 /**
  * Card per visualizzare un gruppo di esercizi in superset
@@ -529,6 +530,152 @@ fun SupersetGroupCard(
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
+
+                        // Timer isometrico se l'esercizio è isometrico
+                        if (selectedExercise.isIsometric) {
+                            var isTimerRunning by remember { mutableStateOf(false) }
+                            var timerCompleted by remember { mutableStateOf(false) }
+                            var timeLeft by remember { mutableStateOf(currentReps) }
+
+                            // Aggiorna timeLeft quando cambiano le ripetizioni/secondi
+                            LaunchedEffect(currentReps) {
+                                if (!isTimerRunning) {
+                                    timeLeft = currentReps
+                                }
+                            }
+
+                            // Effetto per gestire il countdown quando il timer è attivo
+                            LaunchedEffect(isTimerRunning) {
+                                if (isTimerRunning) {
+                                    while (timeLeft > 0 && isTimerRunning) {
+                                        delay(1000L) // Delay costante di 1 secondo
+                                        timeLeft -= 1 // Decremento semplice e preciso
+                                    }
+
+                                    if (timeLeft <= 0) {
+                                        isTimerRunning = false
+                                        timerCompleted = true
+
+                                        // Auto-completa la serie quando il timer raggiunge zero
+                                        if (completedSeries.size < selectedExercise.serie) {
+                                            onAddSeries(
+                                                selectedExercise.id,
+                                                currentWeight,
+                                                currentReps,
+                                                completedSeries.size + 1
+                                            )
+
+                                            // Breve delay prima di passare all'esercizio successivo
+                                            delay(500L)
+
+                                            // Se abbiamo completato tutte le serie di questo esercizio, passa al successivo
+                                            if (completedSeries.size + 1 >= selectedExercise.serie) {
+                                                // Funzione per passare all'esercizio successivo
+                                                val nextIndex = (selectedExerciseIndex + 1) % exercises.size
+                                                onExerciseSelected(exercises[nextIndex].id)
+                                            } else {
+                                                // Altrimenti, resetta il timer per la prossima serie
+                                                timeLeft = currentReps
+                                                timerCompleted = false
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Timer isometrico più simile all'immagine di riferimento
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 8.dp),
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFF2A2A2A)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    // Timer icon and counter
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(28.dp)
+                                                .clip(RoundedCornerShape(14.dp))
+                                                .background(accentColor),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Timer,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.width(12.dp))
+
+                                        // Timer display - sempre visualizzato anche se non attivo
+                                        Text(
+                                            // Formato mm:ss come nell'immagine
+                                            text = String.format("%02d:%02d", timeLeft / 60, timeLeft % 60),
+                                            style = MaterialTheme.typography.titleLarge,
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color.White
+                                        )
+                                    }
+
+                                    // Play button with circular background
+                                    Box(
+                                        modifier = Modifier
+                                            .size(36.dp)
+                                            .background(
+                                                color = accentColor,
+                                                shape = RoundedCornerShape(18.dp)
+                                            )
+                                            .clickable {
+                                                // Se tutte le serie sono completate, non fare nulla
+                                                if (completedSeries.size >= selectedExercise.serie) {
+                                                    return@clickable
+                                                }
+
+                                                if (timerCompleted || timeLeft <= 0) {
+                                                    // Se il timer è completato, lo resettiamo
+                                                    timeLeft = currentReps
+                                                    timerCompleted = false
+                                                }
+                                                isTimerRunning = !isTimerRunning
+                                            },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        // Mostra l'icona corrispondente allo stato del timer
+                                        // Se tutte le serie sono completate, mostra un segno di spunta
+                                        val icon = when {
+                                            completedSeries.size >= selectedExercise.serie -> Icons.Default.Check
+                                            isTimerRunning -> Icons.Default.Pause
+                                            else -> Icons.Default.PlayArrow
+                                        }
+
+                                        Icon(
+                                            imageVector = icon,
+                                            contentDescription = when {
+                                                completedSeries.size >= selectedExercise.serie -> "Completato"
+                                                isTimerRunning -> "Pausa"
+                                                else -> "Avvia"
+                                            },
+                                            tint = Color.White,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
 
                         // Peso e ripetizioni
                         Row(
