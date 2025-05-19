@@ -307,17 +307,17 @@ fun CurrentSubscriptionCard(subscription: Subscription) {
 
             FeatureItem(
                 text = "Statistiche avanzate",
-                isIncluded = TODO()
+                isIncluded = subscription.advancedStats
             )
 
             FeatureItem(
                 text = "Backup cloud",
-                isIncluded = TODO()
+                isIncluded = subscription.cloudBackup
             )
 
             FeatureItem(
                 text = "Nessuna pubblicità",
-                isIncluded = TODO()
+                isIncluded = subscription.noAds
             )
         }
     }
@@ -461,7 +461,11 @@ fun DonationBanner() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { /* Implementare la donazione */ },
+                    onClick = {
+                        // Implementazione della donazione usando il ViewModel
+                        // Esempio:
+                        // viewModel.initializePayment(5.0, type = "donation")
+                    },
                     modifier = Modifier.align(Alignment.End),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White
