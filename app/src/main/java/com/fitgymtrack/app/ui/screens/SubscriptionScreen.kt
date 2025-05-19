@@ -1,4 +1,6 @@
 // File: app/src/main/java/com/fitgymtrack/app/ui/screens/SubscriptionScreen.kt
+// Versione aggiornata completa
+
 package com.fitgymtrack.app.ui.screens
 
 import android.content.Intent
@@ -27,15 +29,21 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.theme.*
+import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
+import com.fitgymtrack.app.viewmodel.SubscriptionViewModelFactory
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SubscriptionScreen(
-    onBack: () -> Unit,
-    viewModel: SubscriptionViewModel = viewModel()
+    onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val viewModel: SubscriptionViewModel = viewModel(
+        factory = SubscriptionViewModelFactory(sessionManager)
+    )
+
     val scrollState = rememberScrollState()
 
     // Stati del ViewModel
@@ -187,14 +195,14 @@ fun SubscriptionScreen(
                             isCurrentPlan = subscription.price > 0.0,
                             onSubscribe = {
                                 // Per il piano Premium, inizializza il pagamento PayPal
-                                viewModel.initializePayment(4.99, 2) // Assumiamo che 2 sia l'ID del piano Premium
+                                viewModel.initializePayment(4.99, 2, context)
                             }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
 
                         // Banner donazione
-                        DonationBanner()
+                        DonationBanner(viewModel)
                     }
 
                     else -> { /* Stato iniziale, non fare nulla */ }
@@ -415,7 +423,9 @@ fun FeatureItem(
 }
 
 @Composable
-fun DonationBanner() {
+fun DonationBanner(viewModel: SubscriptionViewModel) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -463,8 +473,7 @@ fun DonationBanner() {
                 Button(
                     onClick = {
                         // Implementazione della donazione usando il ViewModel
-                        // Esempio:
-                        // viewModel.initializePayment(5.0, type = "donation")
+                        viewModel.initializeDonation(5.0, "Grazie per il fantastico lavoro!", true, context)
                     },
                     modifier = Modifier.align(Alignment.End),
                     colors = ButtonDefaults.buttonColors(

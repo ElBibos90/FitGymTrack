@@ -126,4 +126,5 @@ dependencies {
 
 // Per il NumberPicker
     implementation("com.chargemap.compose:numberpicker:1.0.3")
+    implementation ("androidx.browser:browser:1.4.0")
 }

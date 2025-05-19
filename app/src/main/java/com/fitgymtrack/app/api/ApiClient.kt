@@ -140,4 +140,7 @@ object ApiClient {
     val workoutHistoryApiService: WorkoutHistoryApiService by lazy {
         retrofit.create(WorkoutHistoryApiService::class.java)
     }
+    val paypalApiService: PayPalApiService by lazy {
+        retrofit.create(PayPalApiService::class.java)
+    }
 }
