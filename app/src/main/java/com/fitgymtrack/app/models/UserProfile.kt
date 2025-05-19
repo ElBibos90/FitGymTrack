@@ -12,12 +12,9 @@ data class UserProfile(
     val notes: String? = null
 )
 
-data class Subscription(
+data class UserSubscriptionInfo(
     val planId: Int,
     val planName: String,
-    val price: Double,
-    val maxWorkouts: Int? = null,
-    val currentCount: Int = 0,
-    val maxCustomExercises: Int? = null,
-    val currentCustomExercises: Int = 0
+    val isActive: Boolean,
+    val expiryDate: String? = null
 )

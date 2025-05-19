@@ -148,6 +148,14 @@ fun AppNavigation(
             }
         }
 
+        composable("subscription") {
+            SubscriptionScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable(
             route = "reset_password/{token}",
             arguments = listOf(navArgument("token") { type = NavType.StringType })

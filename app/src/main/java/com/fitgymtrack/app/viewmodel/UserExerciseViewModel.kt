@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fitgymtrack.app.models.*
 import com.fitgymtrack.app.repository.UserExerciseRepository
+import com.fitgymtrack.app.utils.SubscriptionLimitChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,6 +34,10 @@ class UserExerciseViewModel : ViewModel() {
     private val _deleteState = MutableStateFlow<OperationState>(OperationState.Idle)
     val deleteState: StateFlow<OperationState> = _deleteState.asStateFlow()
 
+    // Stato per il controllo dei limiti
+    private val _limitsState = MutableStateFlow<LimitsState>(LimitsState.Initial)
+    val limitsState: StateFlow<LimitsState> = _limitsState.asStateFlow()
+
     // Cache degli esercizi
     private val _exercises = MutableStateFlow<List<UserExercise>>(emptyList())
     val exercises = _exercises.asStateFlow()
@@ -58,6 +63,26 @@ class UserExerciseViewModel : ViewModel() {
                     _exercisesState.value = ExercisesState.Error(errorMessage)
                 }
             )
+        }
+    }
+
+    // Controlla i limiti prima di creare un esercizio
+    fun checkLimitsBeforeCreate() {
+        _limitsState.value = LimitsState.Loading
+
+        viewModelScope.launch {
+            try {
+                val (limitReached, currentCount, maxAllowed) = SubscriptionLimitChecker.canCreateCustomExercise()
+
+                if (limitReached) {
+                    _limitsState.value = LimitsState.LimitReached(currentCount, maxAllowed)
+                } else {
+                    _limitsState.value = LimitsState.CanProceed
+                }
+            } catch (e: Exception) {
+                // In caso di errore, permettiamo la creazione
+                _limitsState.value = LimitsState.CanProceed
+            }
         }
     }
 
@@ -195,6 +220,11 @@ class UserExerciseViewModel : ViewModel() {
         _exercisesState.value = ExercisesState.Idle
     }
 
+    // Resetta lo stato dei limiti
+    fun resetLimitsState() {
+        _limitsState.value = LimitsState.Initial
+    }
+
     // Definizione degli stati possibili
     sealed class ExercisesState {
         object Idle : ExercisesState()
@@ -208,5 +238,13 @@ class UserExerciseViewModel : ViewModel() {
         object Loading : OperationState()
         data class Success(val message: String) : OperationState()
         data class Error(val message: String) : OperationState()
+    }
+
+    // Stati per il controllo dei limiti
+    sealed class LimitsState {
+        object Initial : LimitsState()
+        object Loading : LimitsState()
+        object CanProceed : LimitsState()
+        data class LimitReached(val currentCount: Int, val maxAllowed: Int?) : LimitsState()
     }
 }

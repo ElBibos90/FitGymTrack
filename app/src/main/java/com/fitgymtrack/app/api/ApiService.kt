@@ -30,11 +30,6 @@ interface ApiService {
         @Body userProfile: UserProfile
     ): Map<String, Any>
 
-    @GET("subscription_api.php")
-    suspend fun getCurrentSubscription(
-        @Query("action") action: String = "current_subscription"
-    ): Map<String, Any>
-
     // Modificato per ricevere ResponseBody invece di un oggetto tipizzato
     @POST("password_reset.php")
     suspend fun requestPasswordReset(
@@ -48,4 +43,27 @@ interface ApiService {
         @Query("action") action: String = "reset",
         @Body resetConfirmRequest: PasswordResetConfirmRequest
     ): Response<ResponseBody>
+
+    @GET("subscription_api.php")
+    suspend fun getCurrentSubscription(
+        @Query("action") action: String = "current_subscription"
+    ): Map<String, Any>
+
+    @GET("subscription_api.php")
+    suspend fun checkResourceLimits(
+        @Query("resource_type") resourceType: String,
+        @Query("action") action: String = "check_limits"
+    ): Map<String, Any>
+
+    @POST("subscription_api.php")
+    suspend fun updatePlan(
+        @Body request: Map<String, Any>,
+        @Query("action") action: String = "update_plan"
+    ): Map<String, Any>
+
+    // Per la gestione dei pagamenti (opzionale se implementi pagamenti PayPal)
+    @POST("paypal_payment.php")
+    suspend fun initializePayment(
+        @Body paymentRequest: PaymentRequest
+    ): PaymentResponse
 }

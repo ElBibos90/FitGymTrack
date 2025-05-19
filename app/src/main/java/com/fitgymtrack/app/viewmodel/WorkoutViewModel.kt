@@ -7,6 +7,7 @@ import com.fitgymtrack.app.models.WorkoutExerciseToRemove
 import com.fitgymtrack.app.models.WorkoutPlan
 import com.fitgymtrack.app.repository.WorkoutRepository
 import com.fitgymtrack.app.utils.SessionManager
+import com.fitgymtrack.app.utils.SubscriptionLimitChecker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -34,6 +35,10 @@ class WorkoutViewModel(
     private val _workoutDetailsState = MutableStateFlow<WorkoutDetailsState>(WorkoutDetailsState.Idle)
     val workoutDetailsState: StateFlow<WorkoutDetailsState> = _workoutDetailsState.asStateFlow()
 
+    // Stato per il controllo dei limiti
+    private val _limitsState = MutableStateFlow<LimitsState>(LimitsState.Initial)
+    val limitsState: StateFlow<LimitsState> = _limitsState.asStateFlow()
+
     // Dettagli della scheda selezionata
     private val _selectedWorkoutExercises = MutableStateFlow<List<WorkoutExercise>>(emptyList())
     val selectedWorkoutExercises = _selectedWorkoutExercises.asStateFlow()
@@ -41,6 +46,28 @@ class WorkoutViewModel(
     // ID della scheda espansa
     private val _expandedWorkoutId = MutableStateFlow<Int?>(null)
     val expandedWorkoutId = _expandedWorkoutId.asStateFlow()
+
+    /**
+     * Controlla i limiti prima di creare una scheda
+     */
+    fun checkLimitsBeforeCreate() {
+        _limitsState.value = LimitsState.Loading
+
+        viewModelScope.launch {
+            try {
+                val (limitReached, currentCount, maxAllowed) = SubscriptionLimitChecker.canCreateWorkout()
+
+                if (limitReached) {
+                    _limitsState.value = LimitsState.LimitReached(currentCount, maxAllowed)
+                } else {
+                    _limitsState.value = LimitsState.CanProceed
+                }
+            } catch (e: Exception) {
+                // In caso di errore, permettiamo la creazione
+                _limitsState.value = LimitsState.CanProceed
+            }
+        }
+    }
 
     /**
      * Carica tutte le schede dell'utente
@@ -148,6 +175,13 @@ class WorkoutViewModel(
         _workoutDetailsState.value = WorkoutDetailsState.Idle
     }
 
+    /**
+     * Resetta lo stato dei limiti
+     */
+    fun resetLimitsState() {
+        _limitsState.value = LimitsState.Initial
+    }
+
     // Stati per le schede
     sealed class WorkoutPlansState {
         object Loading : WorkoutPlansState()
@@ -169,5 +203,13 @@ class WorkoutViewModel(
         object Loading : WorkoutDetailsState()
         object Success : WorkoutDetailsState()
         data class Error(val message: String) : WorkoutDetailsState()
+    }
+
+    // Stati per il controllo dei limiti
+    sealed class LimitsState {
+        object Initial : LimitsState()
+        object Loading : LimitsState()
+        object CanProceed : LimitsState()
+        data class LimitReached(val currentCount: Int, val maxAllowed: Int?) : LimitsState()
     }
 }

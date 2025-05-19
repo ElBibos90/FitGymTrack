@@ -26,6 +26,17 @@ import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.DashboardViewModel
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.StarBorder
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.fitgymtrack.app.ui.theme.Indigo600
 
 @Composable
 fun Dashboard(
@@ -114,7 +125,7 @@ fun Dashboard(
                         )
 
                         // Subscription Card
-                        SubscriptionCard(subscription = subscription)
+                        SimplifiedSubscriptionCard(subscription = subscription)
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -475,178 +486,157 @@ fun CustomExercisesCard() {
 }
 
 @Composable
-fun SubscriptionCard(subscription: Subscription?) {
-    if (subscription != null) {
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .animateContentSize(),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (subscription.price > 0)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceVariant
-            )
+fun SimplifiedSubscriptionCard(
+    subscription: Subscription?,
+    onUpgradeClick: () -> Unit = {}
+) {
+    if (subscription == null) return
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFF7F5FF)
+        )
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
+            // Piano info
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(bottom = 8.dp)
             ) {
+                // Icon
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.LightGray.copy(alpha = 0.3f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (subscription.price > 0) Icons.Default.Star else Icons.Default.StarBorder,
+                        contentDescription = "Piano",
+                        tint = Color.Gray
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = "Piano ${subscription.planName}",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp
+                )
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                Button(
+                    onClick = {},
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFFEAE6FF)
+                    ),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                ) {
+                    Text(
+                        text = "Gestisci",
+                        color = Color(0xFF4F46E5),
+                        fontWeight = FontWeight.Medium,
+                        fontSize = 14.sp
+                    )
+                }
+            }
+
+            Divider(
+                color = Color.LightGray.copy(alpha = 0.5f),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+
+            // Limiti Piano Free
+            Text(
+                text = "Limiti Piano Free:",
+                fontWeight = FontWeight.Medium,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 8.dp)
+            )
+
+            // Allenamenti
+            Column(modifier = Modifier.padding(bottom = 8.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .clip(RoundedCornerShape(20.dp))
-                                .background(
-                                    brush = if (subscription.price > 0)
-                                        GradientUtils.purpleGradient
-                                    else
-                                        Brush.verticalGradient(listOf(Color.Gray.copy(alpha = 0.2f), Color.Gray.copy(alpha = 0.2f)))
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = if (subscription.price > 0)
-                                    Icons.Default.Star
-                                else
-                                    Icons.Default.StarBorder,
-                                contentDescription = "Plan",
-                                tint = if (subscription.price > 0) Color.White else Color.Gray
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.width(12.dp))
-
-                        Column {
-                            Text(
-                                text = "Piano ${subscription.planName}",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-
-                            Text(
-                                text = if (subscription.price > 0)
-                                    "Piano a pagamento: ${subscription.price}€"
-                                else
-                                    "Piano gratuito",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-
-                    // Manage Subscription Button
-                    FilledTonalButton(
-                        onClick = { /* Naviga alla gestione abbonamento */ },
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.filledTonalButtonColors(
-                            containerColor = if (subscription.price > 0)
-                                Indigo600.copy(alpha = 0.15f)
-                            else
-                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                        )
-                    ) {
-                        Text(
-                            "Gestisci",
-                            color = if (subscription.price > 0) Indigo600 else MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-
-                // Limiti Piano Free
-                if (subscription.price == 0.0) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
                     Text(
-                        text = "Limiti Piano Free:",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(bottom = 8.dp)
+                        text = "Allenamenti:",
+                        fontSize = 14.sp
                     )
-
-                    // Allenamenti
-                    Column(modifier = Modifier.padding(bottom = 8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Allenamenti:")
-                            Text(
-                                text = if (subscription.maxWorkouts == null)
-                                    "Illimitati"
-                                else
-                                    "${subscription.currentCount}/${subscription.maxWorkouts}"
-                            )
-                        }
-
-                        if (subscription.maxWorkouts != null) {
-                            LinearProgressIndicator(
-                                progress = (subscription.currentCount.toFloat() /
-                                        subscription.maxWorkouts.toFloat()).coerceIn(0f, 1f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .padding(top = 4.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = Indigo600,
-                                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                            )
-                        }
-                    }
-
-                    // Esercizi personalizzati
-                    Column {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Esercizi personalizzati:")
-                            Text(
-                                text = if (subscription.maxCustomExercises == null)
-                                    "Illimitati"
-                                else
-                                    "${subscription.currentCustomExercises}/${subscription.maxCustomExercises}"
-                            )
-                        }
-
-                        if (subscription.maxCustomExercises != null) {
-                            LinearProgressIndicator(
-                                progress = (subscription.currentCustomExercises.toFloat() /
-                                        subscription.maxCustomExercises.toFloat()).coerceIn(0f, 1f),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(8.dp)
-                                    .padding(top = 4.dp)
-                                    .clip(RoundedCornerShape(4.dp)),
-                                color = Indigo600,
-                                trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
-                            )
-                        }
-                    }
-
-                    // Call to action for premium plan
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Button(
-                        onClick = { /* Navigate to subscription upgrade */ },
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(8.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Indigo600
-                        )
-                    ) {
-                        Text("Passa al piano Premium", fontWeight = FontWeight.Medium)
-                    }
+                    Text(
+                        text = "${subscription.currentCount}/${subscription.maxWorkouts ?: "∞"}",
+                        fontSize = 14.sp
+                    )
                 }
+
+                LinearProgressIndicator(
+                    progress = if (subscription.maxWorkouts != null)
+                        (subscription.currentCount.toFloat() / subscription.maxWorkouts.toFloat()).coerceIn(0f, 1f)
+                    else 0f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .padding(top = 4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = Indigo600,
+                    trackColor = Color.LightGray.copy(alpha = 0.3f)
+                )
+            }
+
+            // Esercizi personalizzati
+            Column(modifier = Modifier.padding(bottom = 12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "Esercizi personalizzati:",
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "${subscription.currentCustomExercises}/${subscription.maxCustomExercises ?: "∞"}",
+                        fontSize = 14.sp
+                    )
+                }
+
+                LinearProgressIndicator(
+                    progress = if (subscription.maxCustomExercises != null)
+                        (subscription.currentCustomExercises.toFloat() / subscription.maxCustomExercises.toFloat()).coerceIn(0f, 1f)
+                    else 0f,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp)
+                        .padding(top = 4.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = Indigo600,
+                    trackColor = Color.LightGray.copy(alpha = 0.3f)
+                )
+            }
+
+            // Upgrade button
+            Button(
+                onClick = onUpgradeClick,
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Indigo600
+                )
+            ) {
+                Text(
+                    text = "Passa al piano Premium",
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                )
             }
         }
     }
