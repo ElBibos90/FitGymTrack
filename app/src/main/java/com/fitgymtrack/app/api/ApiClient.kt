@@ -18,9 +18,9 @@ import com.google.gson.Gson
 
 object ApiClient {
 
-    //private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
+    private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
     // oppure
-    private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
+    //private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
@@ -102,33 +102,29 @@ object ApiClient {
     private val retrofit by lazy {
         // Crea un Gson più permissivo
         val gson = GsonBuilder()
-            .setLenient()  // Aggiunta questa riga
+            .setLenient()
             .create()
 
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create(gson))  // Usa il gson modificato
-            // La SafeConverterFactory è già implementata sopra ma non la utilizziamo
-            // perché potrebbe causare problemi di compatibilità
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
+    // Servizi API disponibili
     val apiService: ApiService by lazy {
         retrofit.create(ApiService::class.java)
     }
 
-    // Aggiungiamo l'accesso al WorkoutApiService
     val workoutApiService: WorkoutApiService by lazy {
         retrofit.create(WorkoutApiService::class.java)
     }
 
-    // Aggiungiamo l'accesso al ActiveWorkoutApiService
     val activeWorkoutApiService: ActiveWorkoutApiService by lazy {
         retrofit.create(ActiveWorkoutApiService::class.java)
     }
 
-    // Aggiungiamo l'accesso al UserExerciseApiService
     val userExerciseApiService: UserExerciseApiService by lazy {
         retrofit.create(UserExerciseApiService::class.java)
     }
@@ -139,5 +135,15 @@ object ApiClient {
 
     val workoutHistoryApiService: WorkoutHistoryApiService by lazy {
         retrofit.create(WorkoutHistoryApiService::class.java)
+    }
+
+    // Aggiungiamo il servizio per i pagamenti
+    val paymentApiService: PaymentApiService by lazy {
+        retrofit.create(PaymentApiService::class.java)
+    }
+
+    // Aggiungiamo il servizio per gli abbonamenti
+    val subscriptionApiService: SubscriptionApiService by lazy {
+        retrofit.create(SubscriptionApiService::class.java)
     }
 }

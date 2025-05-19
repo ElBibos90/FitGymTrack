@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permessi necessari -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -16,6 +18,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FitGymTrack"
         tools:targetApi="31">
+
+        <!-- Activity principale -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -23,10 +27,132 @@
             android:theme="@style/Theme.FitGymTrack">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Activity per gli abbonamenti -->
+        <activity
+            android:name=".ui.subscription.SubscriptionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Activity per i pagamenti PayPal -->
+        <activity
+            android:name=".ui.payment.PayPalPaymentActivity"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Activity per gestire i risultati del pagamento via deep link -->
+        <activity
+            android:name=".ui.payment.PaymentResultActivity"
+            android:exported="true"
+            android:theme="@style/Theme.FitGymTrack">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="fitgymtrack"
+                    android:host="payment"
+                    android:pathPrefix="/success" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="fitgymtrack"
+                    android:host="payment"
+                    android:pathPrefix="/cancel" />
+            </intent-filter>
+        </activity>
+
+        <!-- Altre Activity della tua app -->
+        <!-- Profilo utente -->
+        <activity
+            android:name=".ui.screens.UserProfileScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Login -->
+        <activity
+            android:name=".ui.screens.LoginScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Registrazione -->
+        <activity
+            android:name=".ui.screens.RegisterScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Password dimenticata -->
+        <activity
+            android:name=".ui.screens.ForgotPasswordScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Reset password -->
+        <activity
+            android:name=".ui.screens.SimpleResetPasswordScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Dashboard -->
+        <activity
+            android:name=".ui.Dashboard"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Piani di allenamento -->
+        <activity
+            android:name=".ui.screens.WorkoutPlansScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Creazione allenamento -->
+        <activity
+            android:name=".ui.screens.CreateWorkoutScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Modifica allenamento -->
+        <activity
+            android:name=".ui.screens.EditWorkoutScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Allenamenti -->
+        <activity
+            android:name=".ui.screens.WorkoutsScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Storico allenamenti -->
+        <activity
+            android:name=".ui.screens.WorkoutHistoryScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Allenamento attivo -->
+        <activity
+            android:name=".ui.screens.ActiveWorkoutScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Esercizi utente -->
+        <activity
+            android:name=".ui.screens.UserExerciseScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
+        <!-- Notifiche -->
+        <activity
+            android:name=".ui.screens.NotificationsScreen"
+            android:exported="false"
+            android:theme="@style/Theme.FitGymTrack" />
+
     </application>
 
 </manifest>
