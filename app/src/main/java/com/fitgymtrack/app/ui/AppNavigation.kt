@@ -118,11 +118,7 @@ fun AppNavigation(
                 },
                 onNavigateToWorkouts = {
                     navController.navigate("workouts")
-                },
-                onNavigateToSubscription = {
-                    navController.navigate("subscription")
                 }
-
             )
         }
 

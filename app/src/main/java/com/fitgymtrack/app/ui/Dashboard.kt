@@ -45,7 +45,6 @@ fun Dashboard(
     onNavigateToWorkoutPlans: () -> Unit,
     onNavigateToUserExercises: () -> Unit,
     onNavigateToWorkouts: () -> Unit,
-    onNavigateToSubscription: () -> Unit = {},
     viewModel: DashboardViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -126,10 +125,7 @@ fun Dashboard(
                         )
 
                         // Subscription Card
-                        SimplifiedSubscriptionCard(
-                            subscription = subscription,
-                            onUpgradeClick = onNavigateToSubscription
-                        )
+                        SimplifiedSubscriptionCard(subscription = subscription)
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -539,7 +535,7 @@ fun SimplifiedSubscriptionCard(
                 Spacer(modifier = Modifier.weight(1f))
 
                 Button(
-                    onClick = onUpgradeClick,
+                    onClick = {},
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFFEAE6FF)
                     ),

@@ -30,23 +30,14 @@ class SubscriptionRepository {
                     val planName = subscription["plan_name"] as? String ?: "Free"
                     val price = (subscription["price"] as? Number)?.toDouble() ?: 0.0
                     val maxWorkouts = (subscription["max_workouts"] as? Number)?.toInt()
-
-                    // Conteggio schede: recuperiamo il valore attuale
-                    val limitCheckResult = apiService.checkResourceLimits("max_workouts")
-                    val currentCount = (limitCheckResult["current_count"] as? Number)?.toInt() ?: 0
-
+                    val currentCount = (subscription["current_count"] as? Number)?.toInt() ?: 0
                     val maxCustomExercises = (subscription["max_custom_exercises"] as? Number)?.toInt()
-
-                    // Conteggio esercizi personalizzati: recuperiamo il valore attuale
-                    val exerciseLimitResult = apiService.checkResourceLimits("max_custom_exercises")
-                    val currentCustomExercises = (exerciseLimitResult["current_count"] as? Number)?.toInt() ?: 0
+                    val currentCustomExercises = (subscription["current_custom_exercises"] as? Number)?.toInt() ?: 0
 
                     // Aggiungi proprietà avanzate
                     val advancedStats = (subscription["advanced_stats"] as? Number)?.toInt() == 1
                     val cloudBackup = (subscription["cloud_backup"] as? Number)?.toInt() == 1
                     val noAds = (subscription["no_ads"] as? Number)?.toInt() == 1
-
-                    Log.d(TAG, "Abbonamento recuperato: Piano=$planName, Schede=$currentCount/$maxWorkouts, Esercizi=$currentCustomExercises/$maxCustomExercises")
 
                     Result.success(Subscription(
                         planId = (subscription["plan_id"] as? Number)?.toInt() ?: 0,
@@ -90,7 +81,7 @@ class SubscriptionRepository {
     }
 
     /**
-     * Aggiorna il piano di abbonamento
+     * Aggiorna il piano di abbonamento (solo per piano gratuito)
      */
     suspend fun updatePlan(planId: Int): Result<Map<String, Any>> {
         return withContext(Dispatchers.IO) {
