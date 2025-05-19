@@ -353,7 +353,6 @@ fun SupersetGroupCard(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
     ) {
         // Header del superset - cliccabile per espandere/comprimere
         Surface(
@@ -467,14 +466,6 @@ fun SupersetGroupCard(
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        // Nome esercizio
-                        Text(
-                            text = selectedExercise.nome,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface // Usa il colore del tema
-                        )
-
                         Spacer(modifier = Modifier.height(12.dp))
 
                         // Exercise progress indicator
@@ -524,7 +515,7 @@ fun SupersetGroupCard(
                                     text = "$completedSeriesCount/$totalSeries",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSurface // Usa il colore del tema
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                         }
@@ -830,15 +821,16 @@ fun SupersetExerciseTabs(
             val completedSeries = serieCompletate[exercise.id] ?: emptyList()
             val isCompleted = completedSeries.size >= exercise.serie
 
+            // Colore diverso per tab completate (verde)
             val backgroundColor = when {
-                isSelected -> BluePrimary
-                isCompleted -> MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                isSelected -> if (isCompleted) Color(0xFF4CAF50) else BluePrimary // Verde quando è selezionato E completato
+                isCompleted -> Color(0xFF4CAF50).copy(alpha = 0.6f) // Verde più chiaro quando è solo completato
                 else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
             }
 
             val textColor = when {
                 isSelected -> Color.White
-                isCompleted -> MaterialTheme.colorScheme.primary
+                isCompleted -> Color.White
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             }
 

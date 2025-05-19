@@ -1234,6 +1234,23 @@ class ActiveWorkoutViewModel : ViewModel() {
 
             // Aggiorna lo stato
             _seriesState.value = CompletedSeriesState.Success(updatedMap)
+
+            // Ora verifica se tutte le serie per questo esercizio sono state completate
+            val exercise = when (val state = _workoutState.value) {
+                is ActiveWorkoutState.Success -> state.workout.esercizi.find { it.id == exerciseId }
+                else -> null
+            }
+
+            // Se l'esercizio ha completato tutte le serie richieste, e fa parte di un gruppo,
+            // verifica se dobbiamo passare al prossimo esercizio del gruppo
+            exercise?.let {
+                if (exerciseSeries.size >= it.serie && (it.setType == "superset" || it.setType == "circuit")) {
+                    // Trova il prossimo esercizio nel gruppo e selezionalo
+                    findNextExerciseInSuperset(exerciseId)?.let { nextExerciseId ->
+                        selectExercise(nextExerciseId)
+                    }
+                }
+            }
         }
     }
 

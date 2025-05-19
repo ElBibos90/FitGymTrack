@@ -491,6 +491,7 @@ private fun ModernActiveWorkoutContent(
                         },
                         // Passa un colore di tema diverso in base al tipo di gruppo
                         accentColor = groupColor
+
                     )
                 } else {
                     // Esercizio singolo
