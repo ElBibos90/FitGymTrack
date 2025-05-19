@@ -44,20 +44,27 @@ fun RecoveryTimer(
     // Effetto per gestire il countdown
     LaunchedEffect(key1 = timerRunning) {
         if (timerRunning) {
-            while (timeLeft > 0) {
-                delay(1000L)
-                timeLeft--
+            val startTime = System.currentTimeMillis()
+            while (timeLeft > 0 && timerRunning) {
+                // Calcola il tempo rimanente basandosi sul timestamp di inizio
+                val elapsedSeconds = ((System.currentTimeMillis() - startTime) / 1000).toInt()
+                timeLeft = seconds - elapsedSeconds
+                delay(100) // Aggiornamento più frequente per maggiore fluidità
             }
             timerRunning = false
-            onFinish()
+            if (timeLeft <= 0) {
+                onFinish()
+            }
         }
     }
 
     // Formatta il tempo in formato mm:ss
-    val formattedTime = remember(timeLeft) {
-        val minutes = timeLeft / 60
-        val seconds = timeLeft % 60
-        String.format("%02d:%02d", minutes, seconds)
+    val formattedTime by remember(timeLeft) {
+        derivedStateOf {
+            val minutes = timeLeft / 60
+            val remainingSeconds = timeLeft % 60
+            String.format("%02d:%02d", minutes, remainingSeconds)
+        }
     }
 
     Surface(
