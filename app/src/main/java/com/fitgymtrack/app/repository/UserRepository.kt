@@ -71,15 +71,20 @@ class UserRepository {
                     val currentCount = (subscription["current_count"] as? Number)?.toInt() ?: 0
                     val maxCustomExercises = (subscription["max_custom_exercises"] as? Number)?.toInt()
                     val currentCustomExercises = (subscription["current_custom_exercises"] as? Number)?.toInt() ?: 0
+                    val planId = (subscription["plan_id"] as? Number)?.toInt() ?: 0
 
+                    // Adattato per la nuova struttura della classe Subscription
                     Result.success(Subscription(
-                        planId = (subscription["plan_id"] as? Number)?.toInt() ?: 0,
+                        plan_id = planId,
                         planName = planName,
                         price = price,
                         maxWorkouts = maxWorkouts,
                         currentCount = currentCount,
                         maxCustomExercises = maxCustomExercises,
-                        currentCustomExercises = currentCustomExercises
+                        currentCustomExercises = currentCustomExercises,
+                        advancedStats = false,  // Valori predefiniti per i nuovi campi
+                        cloudBackup = false,
+                        noAds = false
                     ))
                 } else {
                     Result.failure(Exception("Dati abbonamento non disponibili"))

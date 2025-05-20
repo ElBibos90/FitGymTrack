@@ -2,19 +2,17 @@ package com.fitgymtrack.app.api
 
 import com.fitgymtrack.app.models.ApiResponse
 import com.fitgymtrack.app.models.ResourceLimits
-import com.fitgymtrack.app.models.SubscriptionPlan
-import com.fitgymtrack.app.models.Subscription
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Query
 
 /**
- * Interfaz para las API relacionadas con suscripciones
+ * Interfaccia per le API relative agli abbonamenti
  */
 interface SubscriptionApiService {
     /**
-     * Obtiene todos los planes de suscripción disponibles
+     * Ottiene tutti i piani di abbonamento disponibili
      */
     @GET("android_subscription_api.php")
     suspend fun getAvailablePlans(
@@ -22,7 +20,7 @@ interface SubscriptionApiService {
     ): ApiResponse<PlansResponse>
 
     /**
-     * Obtiene la suscripción actual del usuario
+     * Ottiene l'abbonamento attuale dell'utente
      */
     @GET("android_subscription_api.php")
     suspend fun getCurrentSubscription(
@@ -30,41 +28,84 @@ interface SubscriptionApiService {
     ): ApiResponse<SubscriptionResponse>
 
     /**
-     * Verifica los límites para un tipo de recurso
+     * Verifica i limiti per un tipo di risorsa
      */
-    @GET("android_subscription_api.php")
+    @GET("android_resource_limits_api.php")
     suspend fun checkResourceLimits(
-        @Query("action") action: String = "check_limits",
         @Query("resource_type") resourceType: String
     ): ApiResponse<ResourceLimits>
 
     /**
-     * Actualiza el plan de suscripción
+     * Aggiorna il piano di abbonamento
      */
-    @POST("android_subscription_api.php")
+    @POST("android_update_plan_api.php")
     suspend fun updatePlan(
-        @Body request: UpdatePlanRequest,
-        @Query("action") action: String = "update_plan"
-    ): ApiResponse<SubscriptionResponse>
+        @Body request: UpdatePlanRequest
+    ): ApiResponse<UpdatePlanResponse>
 }
 
 /**
- * Modelo para la respuesta de planes
+ * Modello per la risposta di piani
  */
 data class PlansResponse(
-    val plans: List<SubscriptionPlan>
+    val plans: List<SubscriptionPlanResponse>
 )
 
 /**
- * Modelo para la respuesta de suscripción
+ * Modello per piano di abbonamento (risposta API)
+ */
+data class SubscriptionPlanResponse(
+    val id: Int,
+    val name: String,
+    val price: Double,
+    val billing_cycle: String,
+    val max_workouts: Int? = null,
+    val max_custom_exercises: Int? = null,
+    val advanced_stats: Int = 0,
+    val cloud_backup: Int = 0,
+    val no_ads: Int = 0
+)
+
+/**
+ * Modello per la risposta di abbonamento
  */
 data class SubscriptionResponse(
-    val subscription: Subscription
+    val subscription: ApiSubscription
 )
 
 /**
- * Modelo para la solicitud de actualización de plan
+ * Modello per l'abbonamento (risposta API)
+ */
+data class ApiSubscription(
+    val id: Int? = null,
+    val user_id: Int? = null,
+    val plan_id: Int,
+    val plan_name: String,
+    val status: String = "active",
+    val price: Double,
+    val max_workouts: Int? = null,
+    val max_custom_exercises: Int? = null,
+    val current_count: Int = 0,
+    val current_custom_exercises: Int = 0,
+    val advanced_stats: Int = 0,
+    val cloud_backup: Int = 0,
+    val no_ads: Int = 0,
+    val start_date: String? = null,
+    val end_date: String? = null
+)
+
+/**
+ * Modello per la richiesta di aggiornamento piano
  */
 data class UpdatePlanRequest(
     val plan_id: Int
+)
+
+/**
+ * Modello per la risposta di aggiornamento piano
+ */
+data class UpdatePlanResponse(
+    val success: Boolean,
+    val message: String,
+    val plan_name: String
 )

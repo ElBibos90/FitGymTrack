@@ -18,9 +18,9 @@ import com.google.gson.Gson
 
 object ApiClient {
 
-    private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
+    //private const val BASE_URL = "http://192.168.1.113/api/" // Per emulatore che punta a localhost
     // oppure
-    //private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
+    private const val BASE_URL = "https://fitgymtrack.com/api/" // Per il server remoto
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

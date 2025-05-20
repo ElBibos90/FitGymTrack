@@ -1,10 +1,8 @@
-// File: app/src/main/java/com/fitgymtrack/app/viewmodel/SubscriptionViewModel.kt
 package com.fitgymtrack.app.viewmodel
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fitgymtrack.app.models.PaymentRequest
 import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.repository.SubscriptionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -127,19 +125,12 @@ class SubscriptionViewModel(
 
         viewModelScope.launch {
             try {
-                val paymentRequest = PaymentRequest(
-                    amount = amount,
-                    type = "subscription",
-                    plan_id = planId,
-                    description = "FitGymTrack - Piano Premium"
-                )
+                // Qui dovresti chiamare il repository per inizializzare il pagamento
+                // Ma per ora lo simuliamo
+                Log.d("SubscriptionViewModel", "Inizializzazione pagamento: $amount, piano: $planId")
 
-                // Qui dovresti chiamare il servizio API per inizializzare il pagamento
-                // Questo è un esempio, ma la vera implementazione dipende dalla tua API
-                Log.d("SubscriptionViewModel", "Inizializzazione pagamento: $paymentRequest")
-
-                // In un caso reale, qui chiameresti l'API e riceveresti un URL di approvazione
-                val approvalUrl = "https://paypal.com/esempio-approvazione"
+                // In un caso reale, qui chiameresti il PaymentRepository
+                val approvalUrl = "fitgymtrack://payment/success"
 
                 _paymentState.value = PaymentState.Success(approvalUrl)
             } catch (e: Exception) {

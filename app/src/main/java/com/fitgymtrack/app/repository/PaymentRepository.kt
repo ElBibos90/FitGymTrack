@@ -2,38 +2,32 @@ package com.fitgymtrack.app.repository
 
 import android.util.Log
 import com.fitgymtrack.app.api.ApiClient
-import com.fitgymtrack.app.models.PaymentRequest
-import com.fitgymtrack.app.models.PaymentResponse
-import com.fitgymtrack.app.models.PaymentStatus
+import com.fitgymtrack.app.api.PaymentRequest
+import com.fitgymtrack.app.api.PaymentResponse
+import com.fitgymtrack.app.api.PaymentStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 /**
- * Repository para la gestión de pagos
+ * Repository per la gestione dei pagamenti
  */
 class PaymentRepository {
-    private val TAG = "PaymentRepository"
     private val apiService = ApiClient.paymentApiService
+    private val TAG = "PaymentRepository"
 
     /**
-     * Inicializa un pago PayPal
-     * @param amount Importe del pago
-     * @param type Tipo de pago ("subscription" o "donation")
-     * @param planId ID del plan para suscripciones
-     * @param message Mensaje para donaciones
-     * @param displayName Mostrar nombre para donaciones
-     * @return Resultado con URL de aprobación PayPal e ID del pedido
+     * Inizializza un pagamento PayPal
      */
     suspend fun initializePayment(
         amount: Double,
-        type: String,
+        type: String = "subscription",
         planId: Int? = null,
         message: String? = null,
         displayName: Boolean = true
     ): Result<PaymentResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Inicialización pago: $amount EUR, tipo: $type")
+                Log.d(TAG, "Inizializzazione pagamento: $amount, tipo: $type, piano: $planId")
 
                 val paymentRequest = PaymentRequest(
                     amount = amount,
@@ -46,42 +40,38 @@ class PaymentRepository {
                 val response = apiService.initializePayment(paymentRequest)
 
                 if (response.success && response.data != null) {
-                    Log.d(TAG, "Pago inicializado con éxito: ${response.data.order_id}")
+                    Log.d(TAG, "Pagamento inizializzato con successo: ${response.data.order_id}")
                     Result.success(response.data)
                 } else {
-                    val errorMsg = response.message ?: "Error desconocido"
-                    Log.e(TAG, "Error en la inicialización del pago: $errorMsg")
-                    Result.failure(Exception(errorMsg))
+                    Log.e(TAG, "Errore nell'inizializzazione del pagamento: ${response.message}")
+                    Result.failure(Exception(response.message ?: "Errore sconosciuto"))
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción durante la inicialización del pago", e)
+                Log.e(TAG, "Eccezione nell'inizializzazione del pagamento: ${e.message}", e)
                 Result.failure(e)
             }
         }
     }
 
     /**
-     * Verifica el estado de un pago
-     * @param orderId ID del pedido a verificar
-     * @return Resultado con el estado del pago
+     * Verifica lo stato di un pagamento
      */
     suspend fun checkPaymentStatus(orderId: String): Result<PaymentStatus> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d(TAG, "Verificación estado pago: $orderId")
+                Log.d(TAG, "Verifica stato pagamento: $orderId")
 
                 val response = apiService.checkPaymentStatus(orderId)
 
                 if (response.success && response.data != null) {
-                    Log.d(TAG, "Estado pago: ${response.data.status}")
+                    Log.d(TAG, "Stato pagamento: ${response.data.status}")
                     Result.success(response.data)
                 } else {
-                    val errorMsg = response.message ?: "Error desconocido"
-                    Log.e(TAG, "Error en la verificación del estado: $errorMsg")
-                    Result.failure(Exception(errorMsg))
+                    Log.e(TAG, "Errore nella verifica dello stato: ${response.message}")
+                    Result.failure(Exception(response.message ?: "Errore sconosciuto"))
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Excepción durante la verificación del estado", e)
+                Log.e(TAG, "Eccezione nella verifica dello stato: ${e.message}", e)
                 Result.failure(e)
             }
         }

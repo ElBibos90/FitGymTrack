@@ -128,7 +128,7 @@ fun Dashboard(
                         SimplifiedSubscriptionCard(subscription = subscription)
 
                         Spacer(modifier = Modifier.height(24.dp))
-
+                        SubscriptionTestButton()
                         // Profilo Utente Card
                         Card(
                             modifier = Modifier

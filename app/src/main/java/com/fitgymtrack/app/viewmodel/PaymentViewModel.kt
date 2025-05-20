@@ -1,18 +1,16 @@
 package com.fitgymtrack.app.viewmodel
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fitgymtrack.app.models.PaymentResponse
-import com.fitgymtrack.app.models.PaymentStatus
+import com.fitgymtrack.app.api.PaymentResponse
+import com.fitgymtrack.app.api.PaymentStatus
 import com.fitgymtrack.app.repository.PaymentRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/**
- * ViewModel para la gestión de pagos
- */
 class PaymentViewModel(
     private val repository: PaymentRepository = PaymentRepository()
 ) : ViewModel() {
@@ -24,11 +22,11 @@ class PaymentViewModel(
     val paymentStatusState: StateFlow<PaymentStatusState> = _paymentStatusState.asStateFlow()
 
     /**
-     * Inicializa un pago PayPal
+     * Inizializza un pagamento PayPal
      */
     fun initializePayment(
         amount: Double,
-        type: String,
+        type: String = "subscription",
         planId: Int? = null,
         message: String? = null,
         displayName: Boolean = true
@@ -38,7 +36,11 @@ class PaymentViewModel(
         viewModelScope.launch {
             try {
                 val result = repository.initializePayment(
-                    amount, type, planId, message, displayName
+                    amount = amount,
+                    type = type,
+                    planId = planId,
+                    message = message,
+                    displayName = displayName
                 )
 
                 result.fold(
@@ -46,17 +48,17 @@ class PaymentViewModel(
                         _paymentInitState.value = PaymentInitState.Success(response)
                     },
                     onFailure = { error ->
-                        _paymentInitState.value = PaymentInitState.Error(error.message ?: "Error desconocido")
+                        _paymentInitState.value = PaymentInitState.Error(error.message ?: "Errore sconosciuto")
                     }
                 )
             } catch (e: Exception) {
-                _paymentInitState.value = PaymentInitState.Error(e.message ?: "Error desconocido")
+                _paymentInitState.value = PaymentInitState.Error(e.message ?: "Errore sconosciuto")
             }
         }
     }
 
     /**
-     * Verifica el estado de un pago
+     * Verifica lo stato di un pagamento
      */
     fun checkPaymentStatus(orderId: String) {
         _paymentStatusState.value = PaymentStatusState.Loading
@@ -70,30 +72,24 @@ class PaymentViewModel(
                         _paymentStatusState.value = PaymentStatusState.Success(status)
                     },
                     onFailure = { error ->
-                        _paymentStatusState.value = PaymentStatusState.Error(error.message ?: "Error desconocido")
+                        _paymentStatusState.value = PaymentStatusState.Error(error.message ?: "Errore sconosciuto")
                     }
                 )
             } catch (e: Exception) {
-                _paymentStatusState.value = PaymentStatusState.Error(e.message ?: "Error desconocido")
+                _paymentStatusState.value = PaymentStatusState.Error(e.message ?: "Errore sconosciuto")
             }
         }
     }
 
-    /**
-     * Resetea el estado de inicialización de pago
-     */
     fun resetPaymentInitState() {
         _paymentInitState.value = PaymentInitState.Initial
     }
 
-    /**
-     * Resetea el estado de verificación de pago
-     */
     fun resetPaymentStatusState() {
         _paymentStatusState.value = PaymentStatusState.Initial
     }
 
-    // Estados para la inicialización del pago
+    // Stati per le diverse operazioni
     sealed class PaymentInitState {
         object Initial : PaymentInitState()
         object Loading : PaymentInitState()
@@ -101,7 +97,6 @@ class PaymentViewModel(
         data class Error(val message: String) : PaymentInitState()
     }
 
-    // Estados para la verificación del estado del pago
     sealed class PaymentStatusState {
         object Initial : PaymentStatusState()
         object Loading : PaymentStatusState()

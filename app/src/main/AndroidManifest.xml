@@ -67,91 +67,21 @@
                     android:pathPrefix="/cancel" />
             </intent-filter>
         </activity>
-
-        <!-- Altre Activity della tua app -->
-        <!-- Profilo utente -->
         <activity
-            android:name=".ui.screens.UserProfileScreen"
-            android:exported="false"
+            android:name=".ui.test.TestActivity"
+            android:exported="true"
             android:theme="@style/Theme.FitGymTrack" />
 
-        <!-- Login -->
+        <!-- Aggiungi la TestLauncherActivity -->
         <activity
-            android:name=".ui.screens.LoginScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Registrazione -->
-        <activity
-            android:name=".ui.screens.RegisterScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Password dimenticata -->
-        <activity
-            android:name=".ui.screens.ForgotPasswordScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Reset password -->
-        <activity
-            android:name=".ui.screens.SimpleResetPasswordScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Dashboard -->
-        <activity
-            android:name=".ui.Dashboard"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Piani di allenamento -->
-        <activity
-            android:name=".ui.screens.WorkoutPlansScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Creazione allenamento -->
-        <activity
-            android:name=".ui.screens.CreateWorkoutScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Modifica allenamento -->
-        <activity
-            android:name=".ui.screens.EditWorkoutScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Allenamenti -->
-        <activity
-            android:name=".ui.screens.WorkoutsScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Storico allenamenti -->
-        <activity
-            android:name=".ui.screens.WorkoutHistoryScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Allenamento attivo -->
-        <activity
-            android:name=".ui.screens.ActiveWorkoutScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Esercizi utente -->
-        <activity
-            android:name=".ui.screens.UserExerciseScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
-        <!-- Notifiche -->
-        <activity
-            android:name=".ui.screens.NotificationsScreen"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
+            android:name=".ui.TestLauncherActivity"
+            android:exported="true"
+            android:theme="@style/Theme.FitGymTrack">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
 
     </application>
 
