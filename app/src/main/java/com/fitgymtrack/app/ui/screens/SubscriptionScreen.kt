@@ -1,8 +1,7 @@
-// File: app/src/main/java/com/fitgymtrack/app/ui/screens/SubscriptionScreen.kt
 package com.fitgymtrack.app.ui.screens
 
-import android.content.Intent
-import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,8 +25,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.ui.components.SnackbarMessage
+import com.fitgymtrack.app.ui.payment.PaymentHelper
 import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +38,7 @@ fun SubscriptionScreen(
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
+    val coroutineScope = rememberCoroutineScope()
 
     // Stati del ViewModel
     val subscriptionState by viewModel.subscriptionState.collectAsState()
@@ -47,6 +49,34 @@ fun SubscriptionScreen(
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(true) }
+
+    // Activity Result Launcher per pagamenti PayPal
+    val paymentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        PaymentHelper.processPaymentResult(
+            resultCode = result.resultCode,
+            data = result.data,
+            onSuccess = { orderId ->
+                // Pagamento completato con successo
+                coroutineScope.launch {
+                    snackbarMessage = "Pagamento completato con successo"
+                    isSuccess = true
+                    showSnackbar = true
+                    // Ricarica l'abbonamento
+                    viewModel.loadSubscription()
+                }
+            },
+            onFailure = { errorMessage ->
+                // Pagamento fallito
+                coroutineScope.launch {
+                    snackbarMessage = "Errore nel pagamento: $errorMessage"
+                    isSuccess = false
+                    showSnackbar = true
+                }
+            }
+        )
+    }
 
     // Carica l'abbonamento all'avvio
     LaunchedEffect(key1 = Unit) {
@@ -60,30 +90,13 @@ fun SubscriptionScreen(
                 snackbarMessage = (updatePlanState as SubscriptionViewModel.UpdatePlanState.Success).message
                 isSuccess = true
                 showSnackbar = true
+                viewModel.resetUpdatePlanState()
             }
             is SubscriptionViewModel.UpdatePlanState.Error -> {
                 snackbarMessage = (updatePlanState as SubscriptionViewModel.UpdatePlanState.Error).message
                 isSuccess = false
                 showSnackbar = true
-            }
-            else -> {}
-        }
-    }
-
-    // Gestisce gli stati di pagamento
-    LaunchedEffect(paymentState) {
-        when (paymentState) {
-            is SubscriptionViewModel.PaymentState.Success -> {
-                // Apre l'URL di PayPal nel browser
-                val url = (paymentState as SubscriptionViewModel.PaymentState.Success).approvalUrl
-                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                context.startActivity(intent)
-                viewModel.resetPaymentState()
-            }
-            is SubscriptionViewModel.PaymentState.Error -> {
-                snackbarMessage = (paymentState as SubscriptionViewModel.PaymentState.Error).message
-                isSuccess = false
-                showSnackbar = true
+                viewModel.resetUpdatePlanState()
             }
             else -> {}
         }
@@ -186,15 +199,30 @@ fun SubscriptionScreen(
                             ),
                             isCurrentPlan = subscription.price > 0.0,
                             onSubscribe = {
-                                // Per il piano Premium, inizializza il pagamento PayPal
-                                viewModel.initializePayment(4.99, 2) // Assumiamo che 2 sia l'ID del piano Premium
+                                // MODIFICATO: Usa PaymentHelper per avviare il pagamento
+                                PaymentHelper.startPayPalPayment(
+                                    context = context,
+                                    amount = 4.99,
+                                    planId = 2, // ID del piano Premium
+                                    resultLauncher = paymentLauncher
+                                )
                             }
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        // Banner donazione
-                        DonationBanner()
+                        // Banner donazione (modificato per usare PaymentHelper)
+                        DonationBanner(
+                            onDonate = {
+                                PaymentHelper.startPayPalPayment(
+                                    context = context,
+                                    amount = 5.0,
+                                    type = "donation",
+                                    message = "Grazie per il tuo supporto!",
+                                    resultLauncher = paymentLauncher
+                                )
+                            }
+                        )
                     }
 
                     else -> { /* Stato iniziale, non fare nulla */ }
@@ -307,17 +335,17 @@ fun CurrentSubscriptionCard(subscription: Subscription) {
 
             FeatureItem(
                 text = "Statistiche avanzate",
-                isIncluded = TODO()
+                isIncluded = subscription.advancedStats
             )
 
             FeatureItem(
                 text = "Backup cloud",
-                isIncluded = TODO()
+                isIncluded = subscription.cloudBackup
             )
 
             FeatureItem(
                 text = "Nessuna pubblicità",
-                isIncluded = TODO()
+                isIncluded = subscription.noAds
             )
         }
     }
@@ -409,13 +437,15 @@ fun FeatureItem(
 
         Text(
             text = text,
-            color = if (isIncluded) Color.Black else Color.Gray
+            color = if (isIncluded) MaterialTheme.colorScheme.onSurface else Color.Gray
         )
     }
 }
 
 @Composable
-fun DonationBanner() {
+fun DonationBanner(
+    onDonate: () -> Unit = {}
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -461,7 +491,7 @@ fun DonationBanner() {
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = { /* Implementare la donazione */ },
+                    onClick = onDonate,
                     modifier = Modifier.align(Alignment.End),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White

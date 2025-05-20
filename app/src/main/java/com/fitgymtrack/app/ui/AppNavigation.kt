@@ -118,6 +118,10 @@ fun AppNavigation(
                 },
                 onNavigateToWorkouts = {
                     navController.navigate("workouts")
+                },
+                onNavigateToSubscription = {
+                    // NUOVO: Naviga alla schermata di abbonamento
+                    navController.navigate("subscription")
                 }
             )
         }
@@ -148,6 +152,7 @@ fun AppNavigation(
             }
         }
 
+        // NUOVO: Schermata abbonamento
         composable("subscription") {
             SubscriptionScreen(
                 onBack = {
@@ -255,7 +260,7 @@ fun AppNavigation(
             )
         }
 
-// Aggiungiamo anche la rotta per lo storico degli allenamenti
+        // Aggiungiamo anche la rotta per lo storico degli allenamenti
         composable("workout_history") {
             WorkoutHistoryScreen(
                 onBack = {
