@@ -11,14 +11,13 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.fitgymtrack.app.ui.theme.FitGymTrackTheme
 import com.fitgymtrack.app.viewmodel.PaymentViewModel
@@ -51,7 +50,7 @@ class PayPalPaymentActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         // Inizializza il ViewModel
-        viewModel = ViewModelProvider(this)[PaymentViewModel::class.java]
+        viewModel = PaymentViewModel()
 
         // Recupera i dati dall'intent
         val amount = intent.getDoubleExtra("amount", 0.0)
@@ -241,18 +240,16 @@ class PayPalPaymentActivity : ComponentActivity() {
                                             Log.d(TAG, "URL: $url")
 
                                             // Gestisci il ritorno dal pagamento PayPal
-                                            if (url.contains("fitgymtrack.com/api/android_paypal_callback.php")) {
-                                                if (url.contains("action=success")) {
-                                                    // Il pagamento potrebbe essere completato, verifica lo stato
-                                                    paymentOrderId?.let {
-                                                        viewModel.checkPaymentStatus(it)
-                                                    }
-                                                    return true
-                                                } else if (url.contains("action=cancel")) {
-                                                    // Pagamento annullato
-                                                    finishWithCancellation()
-                                                    return true
+                                            if (url.contains("fitgymtrack://payment/success")) {
+                                                // Il pagamento potrebbe essere completato, verifica lo stato
+                                                paymentOrderId?.let {
+                                                    viewModel.checkPaymentStatus(it)
                                                 }
+                                                return true
+                                            } else if (url.contains("fitgymtrack://payment/cancel")) {
+                                                // Pagamento annullato
+                                                finishWithCancellation()
+                                                return true
                                             }
 
                                             // Lascia che il WebView gestisca gli altri URL

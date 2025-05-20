@@ -19,24 +19,6 @@
         android:theme="@style/Theme.FitGymTrack"
         tools:targetApi="31">
 
-        <!-- Activity principale -->
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.FitGymTrack">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-
-        <!-- Activity per gli abbonamenti -->
-        <activity
-            android:name=".ui.subscription.SubscriptionActivity"
-            android:exported="false"
-            android:theme="@style/Theme.FitGymTrack" />
-
         <!-- Activity per i pagamenti PayPal -->
         <activity
             android:name=".ui.payment.PayPalPaymentActivity"
@@ -67,20 +49,25 @@
                     android:pathPrefix="/cancel" />
             </intent-filter>
         </activity>
+
+        <!-- Activity di test -->
         <activity
             android:name=".ui.test.TestActivity"
             android:exported="true"
             android:theme="@style/Theme.FitGymTrack" />
 
-        <!-- Aggiungi la TestLauncherActivity -->
+        <!-- TestLauncherActivity - Rimuovi questa se non necessaria in produzione -->
         <activity
             android:name=".ui.TestLauncherActivity"
             android:exported="true"
             android:theme="@style/Theme.FitGymTrack">
+            <!-- Rimuovi l'intent-filter qui se non vuoi che sia l'activity di avvio -->
+            <!--
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            -->
         </activity>
 
     </application>

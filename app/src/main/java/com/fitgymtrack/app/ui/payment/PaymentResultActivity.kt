@@ -45,12 +45,12 @@ class PaymentResultActivity : ComponentActivity() {
             val orderId = data.getQueryParameter("order_id")
 
             if (orderId != null) {
-                when (path) {
-                    "/payment/success" -> {
+                when {
+                    path?.contains("success") == true -> {
                         // Verifica lo stato del pagamento
                         checkPaymentStatus(orderId)
                     }
-                    "/payment/cancel" -> {
+                    path?.contains("cancel") == true -> {
                         // Pagamento annullato
                         Log.d(TAG, "Pagamento annullato: $orderId")
                         navigateBack(false, null, "Pagamento annullato")
