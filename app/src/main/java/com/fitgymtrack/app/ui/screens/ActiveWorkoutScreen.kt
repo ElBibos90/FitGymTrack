@@ -350,7 +350,9 @@ fun ActiveWorkoutScreen(
             CompleteWorkoutDialog(
                 onDismiss = { showCompleteWorkoutDialog = false },
                 onConfirm = {
-                    viewModel.markWorkoutAsCompleted()
+                    // Chiama completeWorkout invece di markWorkoutAsCompleted
+                    viewModel.completeWorkout() // Questa salverà la durata nel DB
+                    viewModel.markWorkoutAsCompleted() // Questa aggiorna l'UI
                     showCompleteWorkoutDialog = false
                 }
             )

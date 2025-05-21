@@ -340,9 +340,8 @@ class ActiveWorkoutViewModel : ViewModel() {
 
                 // FASE 1: Controlla allenamenti con la stessa scheda (priorità)
                 val sameSchemaWorkouts = allenamenti.filter {
-                    it["scheda_id"]?.toString()?.toIntOrNull() == schedaId
-                }.sortedByDescending {
-                    it["data_allenamento"]?.toString() ?: ""
+                    val schemaId = it["scheda_id"]?.toString()?.toDoubleOrNull()?.toInt()
+                    schemaId == schedaId
                 }
 
                 Log.d("WorkoutHistory", "Allenamenti con scheda $schedaId: ${sameSchemaWorkouts.size}")
@@ -350,62 +349,82 @@ class ActiveWorkoutViewModel : ViewModel() {
                 // Variabile per tracciare se abbiamo trovato dati utili
                 var foundUsefulData = false
 
-                // FASE 2: Per ogni allenamento con la stessa scheda, controlla le serie
-                for (workout in sameSchemaWorkouts) {
-                    val workoutId = workout["id"]?.toString()?.toIntOrNull() ?: continue
+// FASE 2: Per ogni allenamento con la stessa scheda, controlla le serie
+                Log.d("WorkoutHistory", "Inizio elaborazione di ${sameSchemaWorkouts.size} allenamenti trovati per la scheda $schedaId")
 
-                    Log.d("WorkoutHistory", "Controllo serie in allenamento $workoutId")
+// Ordina gli allenamenti dal più recente al più vecchio
+                val sortedWorkouts = sameSchemaWorkouts.sortedByDescending {
+                    it["data_allenamento"]?.toString() ?: ""
+                }
+                Log.d("WorkoutHistory", "Allenamenti ordinati dal più recente al più vecchio")
+
+// Mappa combinata per raccogliere dati storici da più allenamenti
+                val allHistoricData = mutableMapOf<Int, MutableList<CompletedSeries>>()
+// Usa la variabile foundUsefulData già dichiarata sopra, NON dichiarare una nuova variabile
+
+// Tiene traccia degli esercizi per cui abbiamo già trovato dati storici
+                val exercisesWithHistory = mutableSetOf<Int>()
+
+                for (workout in sortedWorkouts) {
+                    // Estrai e converti ID allenamento in modo robusto
+                    val workoutIdValue = workout["id"]
+                    Log.d("WorkoutHistory", "Elaborazione allenamento: ID raw=${workoutIdValue}, tipo=${workoutIdValue?.javaClass?.simpleName}")
+
+                    // Conversione robusta dell'ID
+                    val workoutId = when (workoutIdValue) {
+                        is Double -> workoutIdValue.toInt()
+                        is Float -> workoutIdValue.toInt()
+                        is Int -> workoutIdValue
+                        is String -> workoutIdValue.toDoubleOrNull()?.toInt()
+                        else -> null
+                    }
+
+                    if (workoutId == null) {
+                        Log.e("WorkoutHistory", "ID allenamento non valido o null: $workoutIdValue - passo al successivo")
+                        continue
+                    }
+
+                    val workoutDate = workout["data_allenamento"]?.toString() ?: "data sconosciuta"
+                    Log.d("WorkoutHistory", "ID allenamento convertito: $workoutId, data: $workoutDate")
 
                     try {
+                        // Skip se già abbiamo dati per tutti gli esercizi
+                        if (exercisesWithHistory.containsAll(exerciseIds)) {
+                            Log.d("WorkoutHistory", "Già trovati dati per tutti gli esercizi (${exerciseIds.size}), saltando allenamento $workoutId")
+                            break
+                        }
+
                         // Ottieni le serie completate per questo allenamento
                         Log.d("WorkoutHistory", "CHIAMATA API: getWorkoutSeriesDetail($workoutId)")
                         val seriesResponse = workoutHistoryApiService.getWorkoutSeriesDetail(workoutId)
 
-                        Log.d("WorkoutHistory", "RISPOSTA API: success=${seriesResponse.success}, " +
-                                "serie=${seriesResponse.serie.size}")
+                        Log.d("WorkoutHistory", "RISPOSTA API: success=${seriesResponse.success}, serie=${seriesResponse.serie.size}")
 
                         if (seriesResponse.success && seriesResponse.serie.isNotEmpty()) {
-                            // Ci sono serie! Log delle prime 5 serie
-                            seriesResponse.serie.take(5).forEach { serie ->
-                                Log.d("WorkoutHistory", "Serie trovata: id=${serie.id}, " +
-                                        "schedaEsercizioId=${serie.schedaEsercizioId}, " +
-                                        "peso=${serie.peso}, rip=${serie.ripetizioni}, " +
-                                        "serieNumber=${serie.serieNumber}, " +
-                                        "esercizioId=${serie.esercizioId}, " +
-                                        "realSerieNumber=${serie.realSerieNumber}")
-                            }
-                            if (seriesResponse.serie.size > 5) {
-                                Log.d("WorkoutHistory", "... e altre ${seriesResponse.serie.size - 5} serie")
-                            }
-
-                            // Verifica quali serie sono rilevanti per gli esercizi che ci interessano
+                            // Filtra per esercizi che ci interessano E per cui non abbiamo ancora trovato dati
                             val relevantSeries = seriesResponse.serie.filter { serie ->
-                                // L'ID dell'esercizio è memorizzato in schedaEsercizioId
                                 val exerciseId = serie.schedaEsercizioId
-                                exerciseId in exerciseIds
+                                val isRelevant = exerciseId in exerciseIds && exerciseId !in exercisesWithHistory
+                                Log.d("WorkoutHistory", "Serie ${serie.id}: exerciseId=$exerciseId, rilevante=${isRelevant}")
+                                isRelevant
                             }
 
-                            Log.d("WorkoutHistory", "Serie rilevanti per gli esercizi correnti: ${relevantSeries.size}")
+                            Log.d("WorkoutHistory", "Serie rilevanti per esercizi senza dati: ${relevantSeries.size}")
 
                             if (relevantSeries.isNotEmpty()) {
-                                // Raggruppare le serie per esercizio
+                                // Raggruppa per esercizio
                                 val seriesByExercise = relevantSeries.groupBy { it.schedaEsercizioId }
+                                Log.d("WorkoutHistory", "Nuovi esercizi trovati: ${seriesByExercise.keys}")
 
-                                // Creare un nuovo storico
-                                val historicData = mutableMapOf<Int, MutableList<CompletedSeries>>()
-
-                                // Per ogni esercizio, convertire le serie in CompletedSeries
+                                // Per ogni esercizio, converti le serie in CompletedSeries
                                 seriesByExercise.forEach { (exerciseId, series) ->
+                                    Log.d("WorkoutHistory", "Aggiungendo dati per esercizio $exerciseId da allenamento $workoutId")
                                     val completedSeries = mutableListOf<CompletedSeries>()
 
                                     series.forEach { serie ->
-                                        // Il numero di serie è in realSerieNumber o calcolato da serieNumber
                                         val serieNumber = serie.realSerieNumber ?:
                                         (serie.serieNumber?.rem(100)) ?:
                                         (completedSeries.size + 1)
-
-                                        Log.d("WorkoutHistory", "Creando CompletedSeries: exerciseId=$exerciseId, " +
-                                                "serieNumber=$serieNumber, peso=${serie.peso}, rip=${serie.ripetizioni}")
 
                                         val completed = CompletedSeries(
                                             id = serie.id,
@@ -420,20 +439,16 @@ class ActiveWorkoutViewModel : ViewModel() {
                                         completedSeries.add(completed)
                                     }
 
-                                    historicData[exerciseId] = completedSeries.sortedBy { it.serieNumber }.toMutableList()
+                                    // Aggiungi alla mappa combinata solo se non abbiamo già dati per questo esercizio
+                                    if (!allHistoricData.containsKey(exerciseId)) {
+                                        allHistoricData[exerciseId] = completedSeries.sortedBy { it.serieNumber }.toMutableList()
+                                        exercisesWithHistory.add(exerciseId)
+                                        foundUsefulData = true
+                                        Log.d("WorkoutHistory", "✓ Aggiunto esercizio $exerciseId da allenamento $workoutId (${workout["data_allenamento"]})")
+                                    }
                                 }
-
-                                // Aggiorna lo stato con i dati storici
-                                _historicWorkoutData.value = historicData
-
-                                Log.d("WorkoutHistory", "Storico aggiornato con ${historicData.size} esercizi da allenamento $workoutId")
-
-                                // Aggiorna i valori iniziali per gli esercizi
-                                preloadExerciseValues(currentExercises)
-
-                                // Abbiamo trovato dati utili!
-                                foundUsefulData = true
-                                break
+                            } else {
+                                Log.d("WorkoutHistory", "Nessuna serie rilevante per esercizi mancanti nell'allenamento $workoutId")
                             }
                         } else {
                             Log.d("WorkoutHistory", "Nessuna serie trovata nell'allenamento $workoutId")
@@ -444,7 +459,25 @@ class ActiveWorkoutViewModel : ViewModel() {
                     }
                 }
 
-                // Se non abbiamo trovato dati, usa i valori di default
+                Log.d("WorkoutHistory", "Analisi allenamenti completata - Esercizi con dati storici: ${exercisesWithHistory.size}/${exerciseIds.size}")
+
+// Aggiorna lo stato solo se abbiamo trovato dati utili
+                if (allHistoricData.isNotEmpty()) {
+                    _historicWorkoutData.value = allHistoricData
+
+                    Log.d("WorkoutHistory", "STORICO FINALE con dati da multiple allenamenti:")
+                    allHistoricData.forEach { (exId, series) ->
+                        Log.d("WorkoutHistory", "Esercizio $exId: ${series.size} serie")
+                        series.forEach { serie ->
+                            Log.d("WorkoutHistory", "  Serie ${serie.serieNumber}: peso=${serie.peso}, rip=${serie.ripetizioni}")
+                        }
+                    }
+
+                    // Aggiorna i valori iniziali per gli esercizi
+                    preloadExerciseValues(currentExercises)
+                }
+
+// Se non abbiamo trovato dati, usa i valori di default
                 if (!foundUsefulData) {
                     Log.d("WorkoutHistory", "Nessun dato storico trovato per gli esercizi richiesti, uso i valori di default")
                     preloadExerciseValues(currentExercises)
@@ -1289,7 +1322,7 @@ class ActiveWorkoutViewModel : ViewModel() {
      */
     fun completeWorkout(note: String? = null) {
         val currentAllenamentoId = allenamentoId ?: return
-        val durataTotale = _elapsedTime.value
+        val durataTotaleMinuti = _elapsedTime.value / 60
 
         _completeWorkoutState.value = CompleteWorkoutState.Loading
 
@@ -1297,7 +1330,7 @@ class ActiveWorkoutViewModel : ViewModel() {
             try {
                 val result = repository.completeWorkout(
                     allenamentoId = currentAllenamentoId,
-                    durataTotale = durataTotale,
+                    durataTotale = durataTotaleMinuti,
                     note = note
                 )
 
