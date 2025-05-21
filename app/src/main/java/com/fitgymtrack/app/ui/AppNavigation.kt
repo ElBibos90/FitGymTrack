@@ -155,6 +155,7 @@ fun AppNavigation(
         // NUOVO: Schermata abbonamento
         composable("subscription") {
             SubscriptionScreen(
+                themeManager = themeManager,
                 onBack = {
                     navController.popBackStack()
                 }

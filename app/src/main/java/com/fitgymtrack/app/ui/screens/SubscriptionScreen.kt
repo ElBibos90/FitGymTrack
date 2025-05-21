@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,11 +25,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.FitGymTrackApplication
 import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.ui.components.DonationDialog
 import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.payment.PaymentHelper
 import com.fitgymtrack.app.ui.theme.*
+import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
 import kotlinx.coroutines.launch
 
@@ -36,11 +39,28 @@ import kotlinx.coroutines.launch
 @Composable
 fun SubscriptionScreen(
     onBack: () -> Unit,
-    viewModel: SubscriptionViewModel = viewModel()
+    viewModel: SubscriptionViewModel = viewModel(),
+    themeManager: ThemeManager? = null // Aggiungiamo il parametro ThemeManager
 ) {
     val context = LocalContext.current
     val scrollState = rememberScrollState()
     val coroutineScope = rememberCoroutineScope()
+
+    val appThemeManager = themeManager ?: remember {
+        (context.applicationContext as? FitGymTrackApplication)?.themeManager
+    }
+
+    // Collezioniamo il tema corrente
+    val themeMode by appThemeManager?.themeFlow?.collectAsState(initial = ThemeManager.ThemeMode.SYSTEM)
+        ?: remember { mutableStateOf(ThemeManager.ThemeMode.SYSTEM) }
+
+    // Determiniamo se il tema è dark
+    val isDarkTheme = when (themeMode) {
+        ThemeManager.ThemeMode.LIGHT -> false
+        ThemeManager.ThemeMode.DARK -> true
+        ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
+        else -> isSystemInDarkTheme()
+    }
 
     // Stati del ViewModel
     val subscriptionState by viewModel.subscriptionState.collectAsState()
@@ -154,7 +174,7 @@ fun SubscriptionScreen(
                         val subscription = (subscriptionState as SubscriptionViewModel.SubscriptionState.Success).subscription
 
                         // Abbonamento corrente
-                        CurrentSubscriptionCard(subscription)
+                        CurrentSubscriptionCard(subscription, isDarkTheme)
 
                         Spacer(modifier = Modifier.height(24.dp))
 
@@ -168,6 +188,8 @@ fun SubscriptionScreen(
 
                         Spacer(modifier = Modifier.height(16.dp))
 
+                        CurrentSubscriptionCard(subscription = subscription, isDarkTheme = isDarkTheme)
+
                         // Piano Free
                         SubscriptionPlanCard(
                             name = "Free",
@@ -180,6 +202,7 @@ fun SubscriptionScreen(
                                 SubscriptionFeature("Nessuna pubblicità", false)
                             ),
                             isCurrentPlan = subscription.price == 0.0,
+                            isDarkTheme = isDarkTheme,
                             onSubscribe = {
                                 // Per il piano Free, aggiorna direttamente senza passare da PayPal
                                 viewModel.updatePlan(1) // Assumiamo che 1 sia l'ID del piano Free
@@ -200,6 +223,7 @@ fun SubscriptionScreen(
                                 SubscriptionFeature("Nessuna pubblicità", true)
                             ),
                             isCurrentPlan = subscription.price > 0.0,
+                            isDarkTheme = isDarkTheme,
                             onSubscribe = {
                                 // MODIFICATO: Usa PaymentHelper per avviare il pagamento
                                 PaymentHelper.startPayPalPayment(
@@ -245,15 +269,16 @@ fun SubscriptionScreen(
 }
 
 @Composable
-fun CurrentSubscriptionCard(subscription: Subscription) {
+fun CurrentSubscriptionCard(subscription: Subscription, isDarkTheme: Boolean) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (subscription.price > 0)
-                Color(0xFFEEF2FF)
-            else
-                Color(0xFFF8FAFC)
+            containerColor = if (subscription.price > 0) {
+                if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFEEF2FF)
+            } else {
+                if (isDarkTheme) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+            }
         )
     ) {
         Column(
@@ -359,13 +384,18 @@ fun SubscriptionPlanCard(
     price: Double,
     features: List<SubscriptionFeature>,
     isCurrentPlan: Boolean,
+    isDarkTheme: Boolean,
     onSubscribe: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (name == "Premium") Color(0xFFEEF2FF) else Color(0xFFF8FAFC)
+            containerColor = if (name == "Premium") {
+                if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFEEF2FF)
+            } else {
+                if (isDarkTheme) Color(0xFF0F172A) else Color(0xFFF8FAFC)
+            }
         )
     ) {
         Column(
@@ -407,18 +437,32 @@ fun SubscriptionPlanCard(
                 modifier = Modifier.fillMaxWidth(),
                 enabled = !isCurrentPlan,
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (name == "Premium") Indigo600 else Color.Gray,
-                    disabledContainerColor = Color.Gray.copy(alpha = 0.3f)
+                    containerColor = if (name == "Premium")
+                        Indigo600
+                    else if (isDarkTheme)
+                        Color.DarkGray
+                    else
+                        Color.Gray,
+                    disabledContainerColor = if (isDarkTheme)
+                        Color.DarkGray.copy(alpha = 0.3f)
+                    else
+                        Color.Gray.copy(alpha = 0.3f)
                 )
             ) {
                 Text(
-                    text = if (isCurrentPlan) "Piano attuale" else if (price > 0) "Abbonati" else "Passa a Free",
+                    text = if (isCurrentPlan)
+                        "Piano attuale"
+                    else if (price > 0)
+                        "Abbonati"
+                    else
+                        "Passa a Free",
                     modifier = Modifier.padding(vertical = 4.dp)
                 )
             }
         }
     }
 }
+
 
 @Composable
 fun FeatureItem(
@@ -446,6 +490,7 @@ fun FeatureItem(
 
 @Composable
 fun DonationBanner(
+    isDarkTheme: Boolean = false,
     onDonate: () -> Unit = {}
 ) {
     var showDonationDialog by remember { mutableStateOf(false) }
@@ -530,13 +575,11 @@ fun DonationBanner(
                     onClick = { showDonationDialog = true },
                     modifier = Modifier.align(Alignment.End),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.White
+                        containerColor = Color.White,
+                        contentColor = Color(0xFFEC4899)
                     )
                 ) {
-                    Text(
-                        text = "Dona",
-                        color = Color(0xFFEC4899)
-                    )
+                    Text(text = "Dona")
                 }
             }
         }

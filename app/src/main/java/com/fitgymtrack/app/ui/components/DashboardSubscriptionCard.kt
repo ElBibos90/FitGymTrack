@@ -25,6 +25,7 @@ import com.fitgymtrack.app.ui.theme.Indigo600
 @Composable
 fun DashboardSubscriptionCard(
     subscription: Subscription?,
+    isDarkTheme: Boolean = false, // Aggiungiamo questo parametro
     onViewDetails: () -> Unit
 ) {
     if (subscription == null) return
@@ -36,77 +37,87 @@ fun DashboardSubscriptionCard(
             .clickable(onClick = onViewDetails),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = if (subscription.price > 0)
-                Color(0xFFF7F5FF)  // Colore più chiaro per Premium
-            else
-                Color(0xFFF8FAFC)  // Colore neutro per Free
+            containerColor = if (subscription.price > 0) {
+                if (isDarkTheme) Color(0xFF1E293B) else Color(0xFFF7F5FF)  // Adattato per tema dark
+            } else {
+                if (isDarkTheme) Color(0xFF0F172A) else Color(0xFFF8FAFC)  // Adattato per tema dark
+            }
         )
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
             // Header con informazioni piano
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(bottom = 12.dp)
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
             ) {
-                // Icon
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(18.dp))
-                        .background(
-                            if (subscription.price > 0)
-                                Indigo600
-                            else
-                                Color.Gray.copy(alpha = 0.2f)
-                        ),
-                    contentAlignment = Alignment.Center
+                // Contenuto a sinistra: icona e info piano
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.align(Alignment.CenterStart)
                 ) {
-                    Icon(
-                        imageVector = if (subscription.price > 0)
-                            Icons.Default.Star
-                        else
-                            Icons.Default.StarBorder,
-                        contentDescription = "Piano",
-                        tint = if (subscription.price > 0) Color.White else Color.Gray
-                    )
+                    // Icon
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(RoundedCornerShape(18.dp))
+                            .background(
+                                if (subscription.price > 0)
+                                    Indigo600
+                                else
+                                    if (isDarkTheme) Color.DarkGray else Color.Gray.copy(alpha = 0.2f)
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = if (subscription.price > 0)
+                                Icons.Default.Star
+                            else
+                                Icons.Default.StarBorder,
+                            contentDescription = "Piano",
+                            tint = if (subscription.price > 0) Color.White else Color.Gray
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // Informazioni piano su due righe
+                    Column {
+                        Text(
+                            text = "Piano ${subscription.planName}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp,
+                            color = if (isDarkTheme) Color.White else Color.Black
+                        )
+
+                        Text(
+                            text = if (subscription.price > 0)
+                                "${subscription.price}€ al mese"
+                            else
+                                "Piano gratuito",
+                            color = if (isDarkTheme) Color.LightGray else Color.Gray,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
-
-                Column {
-                    Text(
-                        text = "Piano ${subscription.planName}",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 16.sp
-                    )
-
-                    Text(
-                        text = if (subscription.price > 0)
-                            "${subscription.price}€ al mese"
-                        else
-                            "Piano gratuito",
-                        color = Color.Gray,
-                        fontSize = 14.sp
-                    )
-                }
-
-                Spacer(modifier = Modifier.weight(1f))
-
+                // Pulsante "Dettagli" a destra
                 Button(
                     onClick = onViewDetails,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (subscription.price > 0)
                             Indigo600
                         else
-                            Color(0xFFEAE6FF)
+                            if (isDarkTheme) Color(0xFF312E81) else Color(0xFFEAE6FF)
                     ),
-                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp)
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 6.dp),
+                    modifier = Modifier.align(Alignment.CenterEnd)
                 ) {
                     Text(
                         text = "Dettagli",
-                        color = if (subscription.price > 0)
+                        color = if (subscription.price > 0 || isDarkTheme)
                             Color.White
                         else
                             Color(0xFF4F46E5),
@@ -116,52 +127,14 @@ fun DashboardSubscriptionCard(
                 }
             }
 
-            Divider(
-                color = Color.LightGray.copy(alpha = 0.5f),
-                modifier = Modifier.padding(vertical = 4.dp)
+            // Descrizione del piano sotto al layout principale
+            Text(
+                text = "Piano ${subscription.planName} con risorse illimitate",
+                color = if (isDarkTheme) Indigo600.copy(alpha = 0.8f) else Indigo600,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.padding(top = 4.dp)
             )
-
-            // Utilizo delle risorse
-            if (subscription.maxWorkouts != null || subscription.maxCustomExercises != null) {
-                // Mostra progress bars solo per piano Free con limiti
-                Column(modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)) {
-                    // Allenamenti
-                    if (subscription.maxWorkouts != null) {
-                        UsageProgressBar(
-                            label = "Schede di allenamento",
-                            current = subscription.currentCount,
-                            max = subscription.maxWorkouts,
-                            isPremium = subscription.price > 0
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                    }
-
-                    // Esercizi personalizzati
-                    if (subscription.maxCustomExercises != null) {
-                        UsageProgressBar(
-                            label = "Esercizi personalizzati",
-                            current = subscription.currentCustomExercises,
-                            max = subscription.maxCustomExercises,
-                            isPremium = subscription.price > 0
-                        )
-                    }
-                }
-            } else {
-                // Piano Premium senza limiti
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = "Piano Premium con risorse illimitate",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 14.sp,
-                        color = Indigo600
-                    )
-                }
-            }
         }
     }
 }

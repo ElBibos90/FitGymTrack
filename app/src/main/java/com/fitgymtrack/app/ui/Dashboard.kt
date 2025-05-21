@@ -33,6 +33,8 @@ import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import com.fitgymtrack.app.FitGymTrackApplication
+import com.fitgymtrack.app.utils.ThemeManager
 
 @Composable
 fun Dashboard(
@@ -41,14 +43,31 @@ fun Dashboard(
     onNavigateToWorkoutPlans: () -> Unit,
     onNavigateToUserExercises: () -> Unit,
     onNavigateToWorkouts: () -> Unit,
-    onNavigateToSubscription: () -> Unit = {},  // Nuovo parametro
+    onNavigateToSubscription: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = viewModel(),
-    subscriptionViewModel: SubscriptionViewModel = viewModel()  // Aggiunto ViewModel per abbonamenti
+    subscriptionViewModel: SubscriptionViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+
+    // Ottieni il tema direttamente dall'app
+    val themeManager = (context.applicationContext as FitGymTrackApplication).themeManager
+
+    // Ottieni la modalità del tema
+    val themeMode by themeManager.themeFlow.collectAsState(initial = ThemeManager.ThemeMode.SYSTEM)
+
+    // Determina se è dark theme
+    val isDarkTheme = when (themeMode) {
+        ThemeManager.ThemeMode.LIGHT -> false
+        ThemeManager.ThemeMode.DARK -> true
+        ThemeManager.ThemeMode.SYSTEM -> {
+            (context.resources.configuration.uiMode and
+                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                    android.content.res.Configuration.UI_MODE_NIGHT_YES)
+        }
+    }
 
     // Calcola se la schermata è stata scrollata
     val isScrolled = scrollState.value > 10
@@ -189,6 +208,7 @@ fun Dashboard(
                             if (subscription != null) {
                                 DashboardSubscriptionCard(
                                     subscription = subscription,
+                                    isDarkTheme = isDarkTheme,
                                     onViewDetails = onNavigateToSubscription
                                 )
                             } else if (subscriptionState is SubscriptionViewModel.SubscriptionState.Loading) {
