@@ -6,9 +6,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -41,6 +43,7 @@ fun LoginScreen(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
+    val scrollState = rememberScrollState()
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -66,59 +69,56 @@ fun LoginScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .verticalScroll(scrollState)
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App Logo e Titolo (30% dell'altezza schermo)
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(0.3f),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Logo dell'app (design simile alla web app)
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = "FitGymTrack",
-                            style = MaterialTheme.typography.headlineLarge,
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier,
-                            color = Indigo600
-                        )
-
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        // Pallino simile alla web app
-                        Box(
-                            modifier = Modifier
-                                .size(10.dp)
-                                .clip(CircleShape)
-                                .background(Indigo600)
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Text(
-                        text = "Accedi all'area riservata",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
-                    )
-                }
-            }
-
-            // Form sezione (70% dell'altezza schermo)
+            // Logo e Titolo (altezza fissa invece di peso)
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(0.7f),
+                    .padding(vertical = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Logo dell'app (design simile alla web app)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "FitGymTrack",
+                        style = MaterialTheme.typography.headlineLarge,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier,
+                        color = Indigo600
+                    )
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    // Pallino simile alla web app
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(Indigo600)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Accedi all'area riservata",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f)
+                )
+            }
+
+            // Form sezione (senza weight per permettere lo scroll)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Campo Username con Icona
@@ -340,6 +340,9 @@ fun LoginScreen(
                         }
                     }
                 }
+
+                // Spazio aggiuntivo in fondo per garantire che tutto sia visibile quando la tastiera è aperta
+                Spacer(modifier = Modifier.height(48.dp))
             }
         }
     }
