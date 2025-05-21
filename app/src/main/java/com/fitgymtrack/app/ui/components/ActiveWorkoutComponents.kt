@@ -139,6 +139,8 @@ fun RecoveryTimer(
 @Composable
 fun IsometricTimer(
     seconds: Int,
+    seriesNumber: Int,
+    onSeriesCompleted: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var timeLeft by remember { mutableStateOf(seconds) }
@@ -146,9 +148,10 @@ fun IsometricTimer(
     var isCompleted by remember { mutableStateOf(false) }
 
     // Aggiorna timeLeft quando cambia seconds
-    LaunchedEffect(seconds) {
+    LaunchedEffect(seconds, seriesNumber) {
         timeLeft = seconds
         isCompleted = false
+        timerRunning = false
     }
 
     // Effetto per gestire il countdown
@@ -160,6 +163,9 @@ fun IsometricTimer(
             }
             timerRunning = false
             isCompleted = true
+
+            // Completamento automatico della serie
+            onSeriesCompleted()
 
             // Reset automatico dopo 2 secondi
             delay(2000L)

@@ -34,6 +34,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.fitgymtrack.app.FitGymTrackApplication
 import com.fitgymtrack.app.utils.ThemeManager
+import com.fitgymtrack.app.ui.payment.PaymentHelper
 
 @Composable
 fun Dashboard(

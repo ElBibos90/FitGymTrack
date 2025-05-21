@@ -198,10 +198,16 @@ fun ExerciseProgressItem(
                     }
 
                     // Timer isometrico
-                    if (isIsometric) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        IsometricTimer(seconds = currentReps)
-                    }
+                    IsometricTimer(
+                        seconds = currentReps,
+                        seriesNumber = completedSeries.size + 1, // Passa il numero della serie corrente
+                        onSeriesCompleted = {
+                            if (!isCompleted && completedSeries.size < exercise.serie) {
+                                onAddSeries(currentWeight, currentReps)
+                            }
+                        }
+                    )
+
                 }
 
                 // Serie completate
