@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -524,9 +525,43 @@ fun CustomExercisesCard(onClick: () -> Unit) {
     }
 }
 
-// Aggiornato per sostenere onClick
 @Composable
 fun SupportBanner(onClick: () -> Unit = {}) {
+    var showDonationDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val paymentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        PaymentHelper.processPaymentResult(
+            resultCode = result.resultCode,
+            data = result.data,
+            onSuccess = { orderId ->
+                Toast.makeText(context, "Grazie per la tua donazione!", Toast.LENGTH_SHORT).show()
+            },
+            onFailure = { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    // Mostra il dialogo di donazione quando richiesto
+    if (showDonationDialog) {
+        DonationDialog(
+            onDismiss = { showDonationDialog = false },
+            onDonate = { amount, message, showName ->
+                PaymentHelper.startPayPalPayment(
+                    context = context,
+                    amount = amount,
+                    type = "donation",
+                    message = message,
+                    displayName = showName,
+                    resultLauncher = paymentLauncher
+                )
+                showDonationDialog = false
+            }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -583,7 +618,7 @@ fun SupportBanner(onClick: () -> Unit = {}) {
                 }
 
                 Button(
-                    onClick = onClick,
+                    onClick = { showDonationDialog = true },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White
                     ),

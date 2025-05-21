@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.ui.screens
 
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -24,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.Subscription
+import com.fitgymtrack.app.ui.components.DonationDialog
 import com.fitgymtrack.app.ui.components.SnackbarMessage
 import com.fitgymtrack.app.ui.payment.PaymentHelper
 import com.fitgymtrack.app.ui.theme.*
@@ -446,6 +448,40 @@ fun FeatureItem(
 fun DonationBanner(
     onDonate: () -> Unit = {}
 ) {
+    var showDonationDialog by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+    val paymentLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        PaymentHelper.processPaymentResult(
+            resultCode = result.resultCode,
+            data = result.data,
+            onSuccess = { orderId ->
+                Toast.makeText(context, "Grazie per la tua donazione!", Toast.LENGTH_SHORT).show()
+            },
+            onFailure = { errorMessage ->
+                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+            }
+        )
+    }
+
+    if (showDonationDialog) {
+        DonationDialog(
+            onDismiss = { showDonationDialog = false },
+            onDonate = { amount, message, showName ->
+                PaymentHelper.startPayPalPayment(
+                    context = context,
+                    amount = amount,
+                    type = "donation",
+                    message = message,
+                    displayName = showName,
+                    resultLauncher = paymentLauncher
+                )
+                showDonationDialog = false
+            }
+        )
+    }
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp)
@@ -491,7 +527,7 @@ fun DonationBanner(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Button(
-                    onClick = onDonate,
+                    onClick = { showDonationDialog = true },
                     modifier = Modifier.align(Alignment.End),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.White
