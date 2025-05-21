@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.ui.theme.Indigo600
 import kotlinx.coroutines.delay
+import androidx.compose.material.icons.filled.Info
 
 /**
  * Timer di recupero dopo una serie
@@ -147,7 +148,7 @@ fun IsometricTimer(
     var timerRunning by remember { mutableStateOf(false) }
     var isCompleted by remember { mutableStateOf(false) }
 
-    // Aggiorna timeLeft quando cambia seconds
+    // Aggiorna timeLeft quando cambia seconds o seriesNumber
     LaunchedEffect(seconds, seriesNumber) {
         timeLeft = seconds
         isCompleted = false
@@ -215,6 +216,35 @@ fun IsometricTimer(
                     else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 }
             )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Nota sul completamento automatico
+            if (!isCompleted) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier
+                        .background(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Serie completata automaticamente a fine timer",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
