@@ -31,6 +31,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.sp
+import com.fitgymtrack.app.ui.theme.Indigo600
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -271,7 +274,7 @@ fun WorkoutPlansScreen(
 
 @Composable
 fun WorkoutPlanCard(
-    workoutPlan: com.fitgymtrack.app.models.WorkoutPlan,
+    workoutPlan: WorkoutPlan,
     isExpanded: Boolean,
     exercises: List<com.fitgymtrack.app.models.WorkoutExercise>,
     onExpandClick: () -> Unit,
@@ -374,86 +377,117 @@ fun WorkoutPlanCard(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Pulsanti di azione con migliore contrasto
+                // Pulsanti di azione migliorati - stile chip
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Pulsante Esercizi (Più alto contrasto)
-                    OutlinedButton(
+                    // Pulsante Esercizi con stile chip
+                    ElevatedButton(
                         onClick = onExpandClick,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
+                        colors = ButtonDefaults.elevatedButtonColors(
                             containerColor = if (isExpanded)
-                                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.7f)
-                            else Color.Transparent,
+                                MaterialTheme.colorScheme.primaryContainer
+                            else Color(0xFFE6E1FF),  // Colore lilla chiaro
                             contentColor = if (isExpanded)
                                 MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.primary
+                            else Indigo600
                         ),
-                        border = if (isExpanded)
-                            ButtonDefaults.outlinedButtonBorder.copy(width = 0.dp)
-                        else ButtonDefaults.outlinedButtonBorder
+                        shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(16.dp),
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                            Icon(
-                                if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                contentDescription = if (isExpanded) "Nascondi" else "Mostra esercizi"
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            if (isLoading) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp
+                                )
+                            } else {
+                                Icon(
+                                    if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Esercizi",
+                                maxLines = 1,
+                                overflow = TextOverflow.Visible,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
                             )
                         }
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = if (isExpanded) "Nascondi" else "Esercizi",
-                            fontWeight = FontWeight.Medium
-                        )
                     }
 
-                    // Pulsante Modifica (Più alto contrasto)
-                    OutlinedButton(
+                    // Pulsante Modifica con stile chip
+                    ElevatedButton(
                         onClick = onEditClick,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            contentColor = MaterialTheme.colorScheme.primary
-                        )
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = Color(0xFFE8EAFF),  // Colore blu chiaro
+                            contentColor = Indigo600
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = "Modifica"
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Modifica",
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Edit,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Modifica",
+                                maxLines = 1,
+                                overflow = TextOverflow.Visible,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
 
-                    // Pulsante Elimina (Più alto contrasto)
-                    OutlinedButton(
+                    // Pulsante Elimina con stile chip
+                    ElevatedButton(
                         onClick = onDeleteClick,
                         modifier = Modifier.weight(1f),
-                        colors = ButtonDefaults.outlinedButtonColors(
+                        colors = ButtonDefaults.elevatedButtonColors(
+                            containerColor = Color(0xFFEF7070),  // Colore rosso molto chiaro
                             contentColor = MaterialTheme.colorScheme.error
-                        )
+                        ),
+                        shape = RoundedCornerShape(24.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp)
                     ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = "Elimina"
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = "Elimina",
-                            fontWeight = FontWeight.Medium
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(
+                                Icons.Default.Delete,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                "Elimina",
+                                maxLines = 1,
+                                overflow = TextOverflow.Visible,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
-
             }
 
             // Sezione esercizi espandibile

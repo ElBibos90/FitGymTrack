@@ -25,7 +25,6 @@ import com.fitgymtrack.app.models.Subscription
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.models.UserProfile
 import com.fitgymtrack.app.ui.components.*
-import com.fitgymtrack.app.ui.payment.PaymentHelper
 import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.DashboardViewModel
