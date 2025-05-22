@@ -16,7 +16,22 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import com.fitgymtrack.app.utils.ThemeManager
+import androidx.compose.foundation.isSystemInDarkTheme
+
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
+
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+
+
 
 private val DarkColorScheme = darkColorScheme(
     primary = Indigo600,
@@ -66,7 +81,14 @@ fun FitGymTrackTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+
+            // Rendi la status bar trasparente
+            window.statusBarColor = android.graphics.Color.TRANSPARENT
+
+            // Abilita il layout edge-to-edge
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+
+            // Gestisci l'aspetto delle icone della status bar
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

@@ -35,8 +35,8 @@ fun ImprovedTopBar(
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (isScrolled) {
-            if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
-            else MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)
+            if (isDarkTheme) MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
+            else MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
         } else {
             MaterialTheme.colorScheme.surface
         },
@@ -46,14 +46,16 @@ fun ImprovedTopBar(
 
     Surface(
         modifier = modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            // Aggiungi padding per la status bar
+            .statusBarsPadding(),
         color = backgroundColor,
         shadowElevation = if (isScrolled) 4.dp else 0.dp
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+                .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -106,7 +108,7 @@ fun ImprovedTopBar(
                     )
                 }
 
-                // User profile - with clickable navigation to profile
+                // User profile
                 if (user != null) {
                     Spacer(modifier = Modifier.width(8.dp))
 
