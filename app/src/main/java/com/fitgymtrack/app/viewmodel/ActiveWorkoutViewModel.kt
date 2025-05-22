@@ -8,7 +8,9 @@ import com.fitgymtrack.app.models.*
 import com.fitgymtrack.app.repository.ActiveWorkoutRepository
 import com.fitgymtrack.app.utils.PlateauDetector
 import com.fitgymtrack.app.utils.PlateauInfo
+import com.fitgymtrack.app.utils.PlateauType
 import com.fitgymtrack.app.utils.ProgressionSuggestion
+import com.fitgymtrack.app.utils.SuggestionType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -238,6 +240,7 @@ class ActiveWorkoutViewModel : ViewModel() {
 
             val plateau = PlateauDetector.detectPlateau(
                 exerciseId = exercise.id,
+                exerciseName = exercise.nome, // NUOVO: Passiamo il nome dell'esercizio
                 currentWeight = currentWeight,
                 currentReps = currentReps,
                 historicData = historicData,
@@ -245,10 +248,10 @@ class ActiveWorkoutViewModel : ViewModel() {
             )
 
             if (plateau != null) {
-                Log.d("PlateauCheck", "🚨 PLATEAU RILEVATO per esercizio ${exercise.id}!")
+                Log.d("PlateauCheck", "🚨 PLATEAU RILEVATO per esercizio ${exercise.id} (${exercise.nome})!")
                 currentPlateaus[exercise.id] = plateau
             } else {
-                Log.d("PlateauCheck", "✅ Nessun plateau per esercizio ${exercise.id}")
+                Log.d("PlateauCheck", "✅ Nessun plateau per esercizio ${exercise.id} (${exercise.nome})")
             }
         }
 
@@ -258,6 +261,9 @@ class ActiveWorkoutViewModel : ViewModel() {
         Log.d("PlateauCheck", "Totale plateau rilevati: ${currentPlateaus.size}")
         if (currentPlateaus.isNotEmpty()) {
             Log.d("PlateauCheck", "Plateau rilevati per esercizi: ${currentPlateaus.keys}")
+            currentPlateaus.forEach { (exerciseId, plateau) ->
+                Log.d("PlateauCheck", "  - Esercizio $exerciseId: ${plateau.exerciseName}")
+            }
         }
     }
 
@@ -265,7 +271,22 @@ class ActiveWorkoutViewModel : ViewModel() {
      * NUOVO: Applica un suggerimento di progressione
      */
     fun applyProgressionSuggestion(exerciseId: Int, suggestion: ProgressionSuggestion) {
-        Log.d("PlateauProgression", "Applicando suggerimento per esercizio $exerciseId: ${suggestion.description}")
+        Log.d("PlateauProgression", "🚀 Applicando suggerimento per esercizio $exerciseId:")
+        Log.d("PlateauProgression", "  - Descrizione: ${suggestion.description}")
+        Log.d("PlateauProgression", "  - Nuovo peso: ${suggestion.newWeight}")
+        Log.d("PlateauProgression", "  - Nuove reps: ${suggestion.newReps}")
+
+        // Controlla se l'esercizio è in un superset/circuit
+        val currentState = _workoutState.value
+        if (currentState is ActiveWorkoutState.Success) {
+            val exercise = currentState.workout.esercizi.find { it.id == exerciseId }
+            if (exercise != null) {
+                val isInGroup = exercise.setType == "superset" || exercise.setType == "circuit"
+                if (isInGroup) {
+                    Log.d("PlateauProgression", "  ⚡ Esercizio ${exercise.nome} è in un ${exercise.setType}!")
+                }
+            }
+        }
 
         // Aggiorna i valori dell'esercizio con i nuovi valori suggeriti
         val currentValues = _exerciseValues.value.toMutableMap()
@@ -277,7 +298,7 @@ class ActiveWorkoutViewModel : ViewModel() {
         currentPlateaus.remove(exerciseId)
         _plateauInfo.value = currentPlateaus
 
-        Log.d("PlateauProgression", "Nuovi valori applicati: peso=${suggestion.newWeight}, reps=${suggestion.newReps}")
+        Log.d("PlateauProgression", "✅ Nuovi valori applicati con successo!")
     }
 
     /**
@@ -313,6 +334,78 @@ class ActiveWorkoutViewModel : ViewModel() {
         if (currentState is ActiveWorkoutState.Success) {
             checkForPlateaus(currentState.workout.esercizi)
         }
+    }
+
+    /**
+     * NUOVO: Forza la creazione di plateau di test specifici per superset/circuit
+     */
+    fun forceCreateTestPlateausForGroups() {
+        Log.d("PlateauTest", "🧪 === FORZATO CREAZIONE PLATEAU TEST PER GRUPPI ===")
+
+        val currentState = _workoutState.value
+        if (currentState !is ActiveWorkoutState.Success) {
+            Log.d("PlateauTest", "❌ Stato workout non valido")
+            return
+        }
+
+        val exercises = currentState.workout.esercizi
+        val currentValues = _exerciseValues.value
+        val testPlateaus = mutableMapOf<Int, PlateauInfo>()
+
+        // Raggruppa gli esercizi per tipo
+        val exerciseGroups = groupExercisesByType()
+
+        Log.d("PlateauTest", "Trovati ${exerciseGroups.size} gruppi di esercizi")
+
+        exerciseGroups.forEachIndexed { groupIndex, group ->
+            if (group.size > 1) { // È un gruppo (superset o circuit)
+                val groupType = group.first().setType
+                Log.d("PlateauTest", "🔍 Gruppo $groupIndex ($groupType): ${group.size} esercizi")
+
+                // Forza plateau su ogni esercizio del gruppo
+                group.forEachIndexed { exerciseIndex, exercise ->
+                    val exerciseValues = currentValues[exercise.id]
+                    val currentWeight = exerciseValues?.first ?: exercise.peso.toFloat()
+                    val currentReps = exerciseValues?.second ?: exercise.ripetizioni
+
+                    val forcedPlateau = PlateauInfo(
+                        exerciseId = exercise.id,
+                        exerciseName = exercise.nome,
+                        plateauType = PlateauType.MODERATE,
+                        sessionsInPlateau = 3,
+                        currentWeight = currentWeight,
+                        currentReps = currentReps,
+                        suggestions = listOf(
+                            ProgressionSuggestion(
+                                type = SuggestionType.INCREASE_WEIGHT,
+                                description = "Aumenta il peso a ${currentWeight + 2.5f} kg",
+                                newWeight = currentWeight + 2.5f,
+                                newReps = currentReps,
+                                confidence = 0.8f
+                            ),
+                            ProgressionSuggestion(
+                                type = SuggestionType.INCREASE_REPS,
+                                description = "Aumenta le ripetizioni a ${currentReps + 2}",
+                                newWeight = currentWeight,
+                                newReps = currentReps + 2,
+                                confidence = 0.7f
+                            )
+                        )
+                    )
+
+                    testPlateaus[exercise.id] = forcedPlateau
+
+                    Log.d("PlateauTest", "  ⚡ Plateau forzato per ${exercise.nome} (${exercise.id})")
+                    Log.d("PlateauTest", "     Peso: ${currentWeight}kg, Reps: ${currentReps}")
+                }
+            }
+        }
+
+        // Applica i plateau di test
+        _plateauInfo.value = testPlateaus
+
+        Log.d("PlateauTest", "✅ Creati ${testPlateaus.size} plateau di test per gruppi")
+        Log.d("PlateauTest", "🏁 === FINE CREAZIONE PLATEAU TEST ===")
     }
 
     /**

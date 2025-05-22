@@ -12,6 +12,7 @@ object PlateauDetector {
     /**
      * Rileva se un esercizio è in plateau basandosi sullo storico
      * @param exerciseId ID dell'esercizio
+     * @param exerciseName Nome dell'esercizio
      * @param currentWeight Peso attuale che l'utente sta usando
      * @param currentReps Ripetizioni/secondi attuali
      * @param historicData Dati storici delle serie completate
@@ -20,6 +21,7 @@ object PlateauDetector {
      */
     fun detectPlateau(
         exerciseId: Int,
+        exerciseName: String,
         currentWeight: Float,
         currentReps: Int,
         historicData: Map<Int, List<CompletedSeries>>,
@@ -27,14 +29,14 @@ object PlateauDetector {
     ): PlateauInfo? {
         val exerciseHistory = historicData[exerciseId]
 
-        Log.d("PlateauDetector", "=== ANALISI PLATEAU ESERCIZIO $exerciseId ===")
+        Log.d("PlateauDetector", "=== ANALISI PLATEAU ESERCIZIO $exerciseId ($exerciseName) ===")
         Log.d("PlateauDetector", "Peso corrente: $currentWeight, Reps correnti: $currentReps")
         Log.d("PlateauDetector", "Dati storici disponibili: ${exerciseHistory?.size ?: 0} serie")
 
         // Se non ci sono dati storici, prova a rilevare plateau "simulato" per test
         if (exerciseHistory == null || exerciseHistory.isEmpty()) {
             Log.d("PlateauDetector", "Nessun dato storico - controllo plateau simulato")
-            return checkSimulatedPlateau(exerciseId, currentWeight, currentReps)
+            return checkSimulatedPlateau(exerciseId, exerciseName, currentWeight, currentReps)
         }
 
         // Raggruppa le serie per sessione di allenamento
@@ -43,7 +45,7 @@ object PlateauDetector {
 
         if (sessionGroups.size < minSessionsForPlateau) {
             Log.d("PlateauDetector", "Sessioni insufficienti: ${sessionGroups.size} < $minSessionsForPlateau")
-            return tryDetectWithLimitedData(exerciseId, currentWeight, currentReps, exerciseHistory)
+            return tryDetectWithLimitedData(exerciseId, exerciseName, currentWeight, currentReps, exerciseHistory)
         }
 
         // Prendi le ultime N sessioni per confronto serie per serie
@@ -53,6 +55,7 @@ object PlateauDetector {
         // NUOVA LOGICA: Confronto serie per serie
         return detectPlateauSeriesBySeries(
             exerciseId = exerciseId,
+            exerciseName = exerciseName,
             currentWeight = currentWeight,
             currentReps = currentReps,
             recentSessions = recentSessions,
@@ -65,6 +68,7 @@ object PlateauDetector {
      */
     private fun detectPlateauSeriesBySeries(
         exerciseId: Int,
+        exerciseName: String,
         currentWeight: Float,
         currentReps: Int,
         recentSessions: List<List<CompletedSeries>>,
@@ -151,7 +155,7 @@ object PlateauDetector {
         val plateauThreshold = kotlin.math.max(1, totalSeriesChecked / 2)
 
         if (plateauDetectedCount >= plateauThreshold) {
-            Log.d("PlateauDetector", "🚨 PLATEAU CONFERMATO per esercizio $exerciseId!")
+            Log.d("PlateauDetector", "🚨 PLATEAU CONFERMATO per esercizio $exerciseId ($exerciseName)!")
             Log.d("PlateauDetector", "   Serie in plateau: $plateauDetectedCount/$totalSeriesChecked (soglia: $plateauThreshold)")
 
             // Usa i valori della serie più rappresentativa (tipicamente la prima)
@@ -160,6 +164,7 @@ object PlateauDetector {
 
             return PlateauInfo(
                 exerciseId = exerciseId,
+                exerciseName = exerciseName,
                 plateauType = determinePlateauType(representativeSeries.peso, representativeSeries.ripetizioni),
                 sessionsInPlateau = sessionsCount,
                 currentWeight = representativeSeries.peso,
@@ -181,6 +186,7 @@ object PlateauDetector {
      */
     private fun tryDetectWithLimitedData(
         exerciseId: Int,
+        exerciseName: String,
         currentWeight: Float,
         currentReps: Int,
         exerciseHistory: List<CompletedSeries>
@@ -196,10 +202,11 @@ object PlateauDetector {
             Log.d("PlateauDetector", "Confronto con ultima serie: peso match=$weightMatch, reps match=$repsMatch")
 
             if (weightMatch && repsMatch) {
-                Log.d("PlateauDetector", "🚨 PLATEAU LIMITATO rilevato per esercizio $exerciseId!")
+                Log.d("PlateauDetector", "🚨 PLATEAU LIMITATO rilevato per esercizio $exerciseId ($exerciseName)!")
 
                 return PlateauInfo(
                     exerciseId = exerciseId,
+                    exerciseName = exerciseName,
                     plateauType = determinePlateauType(currentWeight, currentReps),
                     sessionsInPlateau = 1,
                     currentWeight = currentWeight,
@@ -221,6 +228,7 @@ object PlateauDetector {
      */
     private fun checkSimulatedPlateau(
         exerciseId: Int,
+        exerciseName: String,
         currentWeight: Float,
         currentReps: Int
     ): PlateauInfo? {
@@ -234,14 +242,40 @@ object PlateauDetector {
 
         Log.d("PlateauDetector", "Test plateau simulato: peso tipico=$isTypicalPlateauWeight, reps tipiche=$isTypicalePlateauReps")
 
-        // SOLO PER TESTING: rileva plateau simulato su alcuni esercizi
-        if (isTypicalPlateauWeight && isTypicalePlateauReps && exerciseId % 3 == 0) {
-            Log.d("PlateauDetector", "🚨 PLATEAU SIMULATO rilevato per esercizio $exerciseId (per testing)!")
+        // AUMENTATO PER TESTING: rileva plateau simulato su più esercizi
+        // Ora usa modulo 2 invece di 3 per avere più plateau di test
+        if (isTypicalPlateauWeight && isTypicalePlateauReps && exerciseId % 2 == 0) {
+            Log.d("PlateauDetector", "🚨 PLATEAU SIMULATO rilevato per esercizio $exerciseId ($exerciseName) (per testing)!")
 
             return PlateauInfo(
                 exerciseId = exerciseId,
+                exerciseName = exerciseName,
                 plateauType = determinePlateauType(currentWeight, currentReps),
                 sessionsInPlateau = 2,
+                currentWeight = currentWeight,
+                currentReps = currentReps,
+                suggestions = generateProgressionSuggestions(
+                    currentWeight = currentWeight,
+                    currentReps = currentReps,
+                    exerciseHistory = emptyList()
+                )
+            )
+        }
+
+        // NUOVO: Plateau specifico per superset/circuit (per testing)
+        // Forza plateau su alcuni esercizi che hanno nomi tipici di superset
+        val supersetKeywords = listOf("chest", "press", "fly", "curl", "extension", "raise", "squat", "lunge")
+        val exerciseNameLower = exerciseName.lowercase()
+        val hasKeyword = supersetKeywords.any { keyword -> exerciseNameLower.contains(keyword) }
+
+        if (hasKeyword && currentWeight >= 10f && exerciseId % 3 == 1) {
+            Log.d("PlateauDetector", "🚨 PLATEAU SIMULATO SUPERSET rilevato per $exerciseId ($exerciseName) (per testing superset/circuit)!")
+
+            return PlateauInfo(
+                exerciseId = exerciseId,
+                exerciseName = exerciseName,
+                plateauType = determinePlateauType(currentWeight, currentReps),
+                sessionsInPlateau = 3,
                 currentWeight = currentWeight,
                 currentReps = currentReps,
                 suggestions = generateProgressionSuggestions(
@@ -417,6 +451,7 @@ object PlateauDetector {
  */
 data class PlateauInfo(
     val exerciseId: Int,
+    val exerciseName: String, // NUOVO: Nome dell'esercizio
     val plateauType: PlateauType,
     val sessionsInPlateau: Int,
     val currentWeight: Float,
