@@ -105,6 +105,9 @@ fun Dashboard(
     var snackbarMessage by remember { mutableStateOf("") }
     var isSuccess by remember { mutableStateOf(true) }
 
+    // Dialog per upgrade Premium
+    var showPremiumDialog by remember { mutableStateOf(false) }
+
     // Activity Result Launcher per pagamenti PayPal
     val paymentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -140,23 +143,13 @@ fun Dashboard(
         subscriptionViewModel.loadSubscription()
     }
 
-    // NUOVO: Carica le statistiche quando abbonamento e utente sono disponibili
-    LaunchedEffect(subscription, user) {
-        val currentSubscription = subscription
+    // MODIFICATO: Carica le statistiche sempre (per tutti gli utenti)
+    LaunchedEffect(user) {
         val currentUser = user
-
-        if (currentSubscription != null && currentUser != null) {
-            Log.d("Dashboard", "Abbonamento e utente disponibili - Controllo caricamento statistiche")
-            Log.d("Dashboard", "Utente: ${currentUser.id}, Piano: ${currentSubscription.planName}, Prezzo: ${currentSubscription.price}")
-
-            if (currentSubscription.price > 0.0) {
-                Log.d("Dashboard", "🔄 Caricamento statistiche con StatsViewModel per utente Premium: ${currentUser.id}")
-                // Imposta il SessionManager e carica le statistiche
-                statsViewModel.setSessionManager(sessionManager)
-                statsViewModel.loadStats(currentUser.id, forceReload = true)
-            } else {
-                Log.d("Dashboard", "Utente Free - statistiche non caricate")
-            }
+        if (currentUser != null) {
+            Log.d("Dashboard", "🔄 Caricamento statistiche per utente: ${currentUser.id}")
+            statsViewModel.setSessionManager(sessionManager)
+            statsViewModel.loadStats(currentUser.id, forceReload = true)
         }
     }
 
@@ -177,6 +170,62 @@ fun Dashboard(
             }
             else -> {}
         }
+    }
+
+    // Dialog per upgrade Premium
+    if (showPremiumDialog) {
+        AlertDialog(
+            onDismissRequest = { showPremiumDialog = false },
+            title = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Star,
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700),
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Upgrade a Premium")
+                }
+            },
+            text = {
+                Column {
+                    Text("Le statistiche dettagliate sono disponibili solo per gli utenti Premium.")
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Passa a Premium per sbloccare:",
+                        fontWeight = FontWeight.Medium
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("• Statistiche dettagliate e grafici")
+                    Text("• Analisi dei progressi")
+                    Text("• Record personali")
+                    Text("• E molto altro...")
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showPremiumDialog = false
+                        onNavigateToSubscription()
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Indigo600
+                    )
+                ) {
+                    Text("Upgrade Now")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showPremiumDialog = false }
+                ) {
+                    Text("Più tardi")
+                }
+            }
+        )
     }
 
     val logoutAction: () -> Unit = {
@@ -266,19 +315,25 @@ fun Dashboard(
                                 }
                             }
 
-                            // NUOVO: Preview Statistiche Premium con StatsViewModel condiviso
-                            subscription?.takeIf { it.price > 0.0 }?.let {
-                                Log.d("Dashboard", "Mostrando preview statistiche - Loading: $statsLoading, Stats: ${userStats?.totalWorkouts ?: "null"}")
+                            // MODIFICATO: Preview Statistiche per TUTTI gli utenti
+                            Log.d("Dashboard", "Mostrando preview statistiche - Loading: $statsLoading, Stats: ${userStats?.totalWorkouts ?: "null"}")
 
-                                DashboardStatsPreview(
-                                    stats = userStats,
-                                    isLoading = statsLoading,
-                                    isDarkTheme = isDarkTheme,
-                                    onViewAllStats = onNavigateToStats
-                                )
-                            } ?: run {
-                                Log.d("Dashboard", "Preview statistiche non mostrata - Utente non Premium o subscription null")
-                            }
+                            DashboardStatsPreview(
+                                stats = userStats,
+                                isLoading = statsLoading,
+                                isDarkTheme = isDarkTheme,
+                                onViewAllStats = {
+                                    // NUOVO: Controlla se è Premium prima di navigare
+                                    val currentSubscription = subscription
+                                    if (currentSubscription != null && currentSubscription.price > 0.0) {
+                                        // È Premium, naviga alle statistiche
+                                        onNavigateToStats()
+                                    } else {
+                                        // Non è Premium, mostra dialog di upgrade
+                                        showPremiumDialog = true
+                                    }
+                                }
+                            )
 
                             // Profilo Utente Card
                             Card(

@@ -35,8 +35,7 @@ fun DashboardStatsPreview(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp)
-            .clickable { onViewAllStats() },
+            .padding(bottom = 16.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isDarkTheme)
@@ -97,7 +96,8 @@ fun DashboardStatsPreview(
                             Text(
                                 text = "Statistiche Premium",
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
+                                fontSize = 16.sp,
+                                color = if (isDarkTheme) Color.White else Color.Black
                             )
 
                             Text(
@@ -108,41 +108,60 @@ fun DashboardStatsPreview(
                         }
                     }
 
-                    // Badge Premium + Pulsante
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    // Badge Premium + Pulsante migliorato
+                    Column(
+                        horizontalAlignment = Alignment.End,
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(Indigo600)
-                                .padding(horizontal = 6.dp, vertical = 3.dp)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        colors = listOf(Color(0xFFFFD700), Color(0xFFFFA500))
+                                    )
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
                             Text(
                                 text = "PREMIUM",
-                                color = Color.White,
+                                color = Color.Black,
                                 fontSize = 9.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
 
-                        Button(
+                        // Pulsante migliorato e più visibile
+                        ElevatedButton(
                             onClick = onViewAllStats,
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = Indigo600
+                            colors = ButtonDefaults.elevatedButtonColors(
+                                containerColor = Indigo600,
+                                contentColor = Color.White
                             ),
-                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            elevation = ButtonDefaults.elevatedButtonElevation(
+                                defaultElevation = 6.dp,
+                                pressedElevation = 8.dp
+                            ),
+                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 10.dp),
                             modifier = Modifier
-                                .height(36.dp)
-                                .widthIn(min = 90.dp) // Larghezza minima garantita
+                                .height(40.dp)
+                                .widthIn(min = 100.dp)
                         ) {
-                            Text(
-                                text = "Visualizza",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Text(
+                                    text = "Visualizza",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.ArrowForward,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
                         }
                     }
                 }
@@ -163,6 +182,7 @@ fun DashboardStatsPreview(
                             value = "${stats.totalWorkouts}",
                             label = "Allenamenti",
                             color = BluePrimary,
+                            isDarkTheme = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
 
@@ -172,6 +192,7 @@ fun DashboardStatsPreview(
                             value = "${stats.currentStreak}",
                             label = "Streak giorni",
                             color = Color(0xFFFF6B35),
+                            isDarkTheme = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -188,6 +209,7 @@ fun DashboardStatsPreview(
                             value = "${stats.totalHours}h",
                             label = "Ore totali",
                             color = GreenPrimary,
+                            isDarkTheme = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
 
@@ -197,6 +219,7 @@ fun DashboardStatsPreview(
                             value = "${String.format("%.1f", stats.weeklyAverage)}",
                             label = "Media/sett.",
                             color = PurplePrimary,
+                            isDarkTheme = isDarkTheme,
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -211,7 +234,7 @@ fun DashboardStatsPreview(
                         Icon(
                             imageVector = Icons.Default.Analytics,
                             contentDescription = null,
-                            tint = Color.Gray,
+                            tint = if (isDarkTheme) Color.Gray else Color.DarkGray,
                             modifier = Modifier.size(32.dp)
                         )
 
@@ -219,9 +242,9 @@ fun DashboardStatsPreview(
 
                         Text(
                             text = "Inizia ad allenarti per vedere le tue statistiche!",
-                            color = Color.Gray,
+                            color = if (isDarkTheme) Color.Gray else Color.DarkGray,
                             fontSize = 12.sp,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
@@ -231,7 +254,7 @@ fun DashboardStatsPreview(
 }
 
 /**
- * Card mini per le statistiche nella preview
+ * Card mini per le statistiche nella preview - migliorata per leggibilità
  */
 @Composable
 fun MiniStatCard(
@@ -239,14 +262,20 @@ fun MiniStatCard(
     value: String,
     label: String,
     color: Color,
+    isDarkTheme: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier.height(60.dp),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = color.copy(alpha = 0.1f)
-        )
+            containerColor = if (isDarkTheme) {
+                color.copy(alpha = 0.2f)
+            } else {
+                color.copy(alpha = 0.1f)
+            }
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row(
             modifier = Modifier
@@ -265,13 +294,17 @@ fun MiniStatCard(
             Column {
                 Text(
                     text = value,
-                    color = color,
+                    color = if (isDarkTheme) color.copy(alpha = 0.9f) else color,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
                 Text(
                     text = label,
-                    color = color.copy(alpha = 0.7f),
+                    color = if (isDarkTheme) {
+                        color.copy(alpha = 0.6f)
+                    } else {
+                        color.copy(alpha = 0.7f)
+                    },
                     fontSize = 10.sp
                 )
             }

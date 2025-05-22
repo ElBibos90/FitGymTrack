@@ -28,7 +28,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.PersonalRecord
 import com.fitgymtrack.app.models.UserStats
 import com.fitgymtrack.app.ui.theme.*
-import com.fitgymtrack.app.ui.components.StatCard
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.StatsViewModel
 import kotlinx.coroutines.flow.first
@@ -146,7 +145,7 @@ fun StatsScreen(
 
                     Spacer(modifier = Modifier.height(16.dp))
 
-                    // Statistiche principali in griglia 2x2
+                    // Statistiche principali in griglia 2x2 - MIGLIORATA
                     Text(
                         text = "Statistiche Generali",
                         style = MaterialTheme.typography.titleLarge,
@@ -158,7 +157,7 @@ fun StatsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        StatCard(
+                        ImprovedStatCard(
                             icon = Icons.Default.FitnessCenter,
                             value = "${stats.totalWorkouts}",
                             label = "Allenamenti totali",
@@ -166,7 +165,7 @@ fun StatsScreen(
                             modifier = Modifier.weight(1f)
                         )
 
-                        StatCard(
+                        ImprovedStatCard(
                             icon = Icons.Default.Schedule,
                             value = "${stats.totalHours}h",
                             label = "Ore totali",
@@ -181,7 +180,7 @@ fun StatsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        StatCard(
+                        ImprovedStatCard(
                             icon = Icons.Default.LocalFireDepartment,
                             value = "${stats.currentStreak}",
                             label = "Streak attuale",
@@ -191,7 +190,7 @@ fun StatsScreen(
                             modifier = Modifier.weight(1f)
                         )
 
-                        StatCard(
+                        ImprovedStatCard(
                             icon = Icons.Default.TrendingUp,
                             value = "${String.format("%.1f", stats.weeklyAverage)}",
                             label = "Media settimanale",
@@ -221,6 +220,80 @@ fun StatsScreen(
 
                     // Informazioni aggiuntive
                     AdditionalInfoSection(stats)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Card migliorata per le statistiche principali - MASSIMA LEGGIBILITÀ
+ */
+@Composable
+fun ImprovedStatCard(
+    icon: ImageVector,
+    value: String,
+    label: String,
+    gradient: Brush,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier.height(120.dp), // Altezza ancora maggiore
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.Transparent
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp) // Elevazione maggiore
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(gradient)
+                .padding(16.dp) // Padding normale per avere spazio per il testo
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.Start
+            ) {
+                // Icona con background più prominente
+                Box(
+                    modifier = Modifier
+                        .size(40.dp) // Dimensione bilanciata
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(Color.White.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                // Valori con massima leggibilità
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = value,
+                        color = Color.White,
+                        fontWeight = FontWeight.ExtraBold, // Peso massimo
+                        fontSize = 22.sp, // Testo grande ma che lascia spazio
+                        lineHeight = 26.sp,
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+
+                    Text(
+                        text = label,
+                        color = Color.White.copy(alpha = 0.95f), // Alpha più alto
+                        fontSize = 13.sp, // Font bilanciato per il label
+                        fontWeight = FontWeight.SemiBold, // Peso maggiore
+                        lineHeight = 16.sp,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2 // Permette al testo di andare su 2 righe se necessario
+                    )
                 }
             }
         }
