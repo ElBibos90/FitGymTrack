@@ -34,6 +34,9 @@ import com.fitgymtrack.app.utils.PlateauInfo
 import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
 import android.util.Log
+import android.app.Activity
+import android.view.WindowManager
+import androidx.compose.ui.platform.LocalContext
 
 private fun isCircuit(exercise: WorkoutExercise): Boolean {
     return exercise.setType == "circuit"
@@ -84,6 +87,17 @@ fun ActiveWorkoutScreen(
 
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
     val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
+
+    val context = LocalContext.current
+
+    DisposableEffect(Unit) {
+        val window = (context as Activity).window
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        onDispose {
+            window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     // Gestisce la navigazione indietro
     BackHandler(workoutCompleted) {
