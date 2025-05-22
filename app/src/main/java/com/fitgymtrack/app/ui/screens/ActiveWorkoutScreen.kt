@@ -31,7 +31,6 @@ import com.fitgymtrack.app.ui.components.*
 import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.utils.PlateauInfo
-import com.fitgymtrack.app.utils.ProgressionSuggestion
 import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -76,6 +75,9 @@ fun ActiveWorkoutScreen(
 
     // NUOVO: Dialog per dettagli plateau
     var showPlateauDetailDialog by remember { mutableStateOf<PlateauInfo?>(null) }
+
+    // NUOVO: Dialog per plateau di gruppo
+    var showGroupPlateauDialog by remember { mutableStateOf<Pair<String, List<PlateauInfo>>?>(null) }
 
     // Stato per tenere traccia della modalità di visualizzazione
     var useModernUI by remember { mutableStateOf(true) }
@@ -313,11 +315,11 @@ fun ActiveWorkoutScreen(
                                 onDismissPlateau = { exerciseId ->
                                     viewModel.dismissPlateau(exerciseId)
                                 },
-                                onApplyPlateauSuggestion = { exerciseId, suggestion ->
-                                    viewModel.applyProgressionSuggestion(exerciseId, suggestion)
-                                },
                                 onShowPlateauDetails = { plateau ->
                                     showPlateauDetailDialog = plateau
+                                },
+                                onShowGroupPlateauDetails = { groupTitle, plateauList ->
+                                    showGroupPlateauDialog = Pair(groupTitle, plateauList)
                                 }
                             )
                         } else {
@@ -382,11 +384,16 @@ fun ActiveWorkoutScreen(
         showPlateauDetailDialog?.let { plateau ->
             PlateauDetailDialog(
                 plateauInfo = plateau,
-                onDismiss = { showPlateauDetailDialog = null },
-                onApplySuggestion = { suggestion ->
-                    viewModel.applyProgressionSuggestion(plateau.exerciseId, suggestion)
-                    showPlateauDetailDialog = null
-                }
+                onDismiss = { showPlateauDetailDialog = null }
+            )
+        }
+
+        // NUOVO: Dialog plateau di gruppo
+        showGroupPlateauDialog?.let { (groupTitle, plateauList) ->
+            GroupPlateauDialog(
+                groupTitle = groupTitle,
+                plateauList = plateauList,
+                onDismiss = { showGroupPlateauDialog = null }
             )
         }
     }
@@ -410,8 +417,8 @@ private fun ModernActiveWorkoutContent(
     onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> },
     // NUOVI callbacks per plateau
     onDismissPlateau: (Int) -> Unit = {},
-    onApplyPlateauSuggestion: (Int, ProgressionSuggestion) -> Unit = { _, _ -> },
-    onShowPlateauDetails: (PlateauInfo) -> Unit = {}
+    onShowPlateauDetails: (PlateauInfo) -> Unit = {},
+    onShowGroupPlateauDetails: (String, List<PlateauInfo>) -> Unit = { _, _ -> }
 ) {
     Log.d("ActiveWorkout", "ModernActiveWorkoutContent: numero esercizi=${workout.esercizi.size}")
 
@@ -469,36 +476,6 @@ private fun ModernActiveWorkoutContent(
                 progress = progress,
                 modifier = Modifier.fillMaxWidth()
             )
-        }
-
-        // NUOVO: Sezione plateau se ne sono rilevati
-        if (plateauInfo.isNotEmpty()) {
-            item {
-                Text(
-                    text = "⚡ Plateau Rilevati",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFFF5722),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
-            // Mostra gli indicatori plateau per esercizi attivi
-            activeGroups.forEachIndexed { groupIndex, group ->
-                group.forEach { exercise ->
-                    plateauInfo[exercise.id]?.let { plateau ->
-                        item {
-                            PlateauIndicator(
-                                plateauInfo = plateau,
-                                onDismiss = { onDismissPlateau(exercise.id) },
-                                onApplySuggestion = { suggestion ->
-                                    onApplyPlateauSuggestion(exercise.id, suggestion)
-                                }
-                            )
-                        }
-                    }
-                }
-            }
         }
 
         if (activeGroups.isNotEmpty()) {
@@ -560,10 +537,18 @@ private fun ModernActiveWorkoutContent(
                                     .align(Alignment.TopEnd)
                                     .padding(8.dp),
                                 onClick = {
-                                    // Trova il primo plateau nel gruppo e mostra i dettagli
-                                    group.firstOrNull { plateauInfo.containsKey(it.id) }?.let { exercise ->
-                                        plateauInfo[exercise.id]?.let { plateau ->
-                                            onShowPlateauDetails(plateau)
+                                    // Raccogli TUTTI i plateau del gruppo
+                                    val groupPlateaus = group.mapNotNull { exercise ->
+                                        plateauInfo[exercise.id]
+                                    }
+
+                                    if (groupPlateaus.isNotEmpty()) {
+                                        // Se ci sono più plateau, mostra il dialog di gruppo
+                                        if (groupPlateaus.size > 1) {
+                                            onShowGroupPlateauDetails(groupTitle, groupPlateaus)
+                                        } else {
+                                            // Se c'è solo un plateau, mostra il dialog singolo
+                                            onShowPlateauDetails(groupPlateaus.first())
                                         }
                                     }
                                 }

@@ -40,7 +40,6 @@ import com.fitgymtrack.app.utils.WeightFormatter
 fun PlateauIndicator(
     plateauInfo: PlateauInfo,
     onDismiss: () -> Unit = {},
-    onApplySuggestion: (ProgressionSuggestion) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -166,8 +165,7 @@ fun PlateauIndicator(
                     plateauInfo.suggestions.take(2).forEach { suggestion ->
                         ProgressionSuggestionCard(
                             suggestion = suggestion,
-                            plateauColor = plateauColor,
-                            onApply = { onApplySuggestion(suggestion) }
+                            plateauColor = plateauColor
                         )
 
                         Spacer(modifier = Modifier.height(8.dp))
@@ -286,13 +284,12 @@ private fun CurrentValueItem(
 }
 
 /**
- * Card per un suggerimento di progressione
+ * Card per un suggerimento di progressione - SENZA pulsante applica
  */
 @Composable
 private fun ProgressionSuggestionCard(
     suggestion: ProgressionSuggestion,
-    plateauColor: Color,
-    onApply: () -> Unit
+    plateauColor: Color
 ) {
     val suggestionIcon = when (suggestion.type) {
         SuggestionType.INCREASE_WEIGHT -> Icons.Default.ArrowUpward
@@ -320,60 +317,45 @@ private fun ProgressionSuggestionCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = suggestionIcon,
-                    contentDescription = null,
-                    tint = plateauColor,
-                    modifier = Modifier.size(20.dp)
-                )
+            Icon(
+                imageVector = suggestionIcon,
+                contentDescription = null,
+                tint = plateauColor,
+                modifier = Modifier.size(20.dp)
+            )
 
-                Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-                Column {
-                    Text(
-                        text = suggestion.description,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // Indicatore di confidenza
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "Confidenza: ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-
-                        Text(
-                            text = "${(suggestion.confidence * 100).toInt()}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = confidenceColor
-                        )
-                    }
-                }
-            }
-
-            Button(
-                onClick = onApply,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = plateauColor
-                ),
-                shape = RoundedCornerShape(6.dp)
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Applica",
-                    style = MaterialTheme.typography.bodySmall
+                    text = suggestion.description,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Indicatore di confidenza
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Confidenza: ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = "${(suggestion.confidence * 100).toInt()}%",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = confidenceColor
+                    )
+                }
             }
         }
     }
@@ -418,13 +400,12 @@ fun PlateauBadge(
 }
 
 /**
- * Dialog dettagliato per plateau con più opzioni
+ * Dialog dettagliato per plateau con SOLO visualizzazione dei suggerimenti
  */
 @Composable
 fun PlateauDetailDialog(
     plateauInfo: PlateauInfo,
-    onDismiss: () -> Unit,
-    onApplySuggestion: (ProgressionSuggestion) -> Unit
+    onDismiss: () -> Unit
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -444,6 +425,16 @@ fun PlateauDetailDialog(
         },
         text = {
             Column {
+                // Nome dell'esercizio
+                Text(
+                    text = "Esercizio: ${plateauInfo.exerciseName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFFFF5722)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
                 Text(
                     text = "Hai usato gli stessi valori per ${plateauInfo.sessionsInPlateau} allenamenti consecutivi. È il momento di progredire!",
                     style = MaterialTheme.typography.bodyMedium
@@ -470,36 +461,160 @@ fun PlateauDetailDialog(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = "Suggerimenti:",
+                    text = "Suggerimenti per progredire:",
                     style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.Bold
                 )
 
-                plateauInfo.suggestions.take(2).forEach { suggestion ->
+                plateauInfo.suggestions.take(3).forEach { suggestion ->
                     Text(
                         text = "• ${suggestion.description}",
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(vertical = 2.dp)
                     )
                 }
-            }
-        },
-        confirmButton = {
-            val bestSuggestion = plateauInfo.suggestions.firstOrNull()
-            if (bestSuggestion != null) {
-                Button(
-                    onClick = {
-                        onApplySuggestion(bestSuggestion)
-                        onDismiss()
-                    }
-                ) {
-                    Text("Applica Migliore")
+
+                if (plateauInfo.suggestions.size > 3) {
+                    Text(
+                        text = "• E altri ${plateauInfo.suggestions.size - 3} suggerimenti...",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 2.dp)
+                    )
                 }
             }
         },
+        confirmButton = {
+            // Nessun pulsante di conferma/applica
+        },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Più Tardi")
+                Text("Indietro")
+            }
+        }
+    )
+}
+
+/**
+ * Dialog specifico per plateau nei gruppi (superset/circuit)
+ */
+@Composable
+fun GroupPlateauDialog(
+    groupTitle: String,
+    plateauList: List<PlateauInfo>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = {
+            Icon(
+                imageVector = Icons.Default.TrendingFlat,
+                contentDescription = "Plateau Gruppo",
+                tint = Color(0xFFFF5722)
+            )
+        },
+        title = {
+            Text(
+                text = "Plateau nel $groupTitle",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Sono stati rilevati ${plateauList.size} plateau in questo gruppo:",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                plateauList.forEach { plateau ->
+                    // Card per ogni plateau
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = Color(0xFFFF5722).copy(alpha = 0.1f),
+                        border = androidx.compose.foundation.BorderStroke(
+                            width = 1.dp,
+                            color = Color(0xFFFF5722).copy(alpha = 0.3f)
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(12.dp)
+                        ) {
+                            // Nome dell'esercizio
+                            Text(
+                                text = plateau.exerciseName,
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF5722)
+                            )
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Valori attuali
+                            Row(
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Peso: ${WeightFormatter.formatWeight(plateau.currentWeight)} kg",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = "Reps: ${plateau.currentReps}",
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Miglior suggerimento
+                            val bestSuggestion = plateau.suggestions.firstOrNull()
+                            if (bestSuggestion != null) {
+                                Text(
+                                    text = "💡 ${bestSuggestion.description}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+
+                            // Indicatore sessioni
+                            Text(
+                                text = "${plateau.sessionsInPlateau} allenamenti con stessi valori",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
+
+                // Suggerimento generale
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                ) {
+                    Text(
+                        text = "💪 Considera di variare i carichi e le ripetizioni per superare questi plateau!",
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            // Nessun pulsante di conferma/applica
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Indietro")
             }
         }
     )
