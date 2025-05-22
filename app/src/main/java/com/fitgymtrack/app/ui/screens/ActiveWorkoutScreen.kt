@@ -30,6 +30,8 @@ import com.fitgymtrack.app.models.*
 import com.fitgymtrack.app.ui.components.*
 import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.PurplePrimary
+import com.fitgymtrack.app.utils.PlateauInfo
+import com.fitgymtrack.app.utils.ProgressionSuggestion
 import com.fitgymtrack.app.viewmodel.ActiveWorkoutViewModel
 import kotlinx.coroutines.launch
 import android.util.Log
@@ -37,6 +39,7 @@ import android.util.Log
 private fun isCircuit(exercise: WorkoutExercise): Boolean {
     return exercise.setType == "circuit"
 }
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ActiveWorkoutScreen(
@@ -56,11 +59,14 @@ fun ActiveWorkoutScreen(
     val isTimerRunning by viewModel.isTimerRunning.collectAsState()
     val currentRecoveryExerciseId by viewModel.currentRecoveryExerciseId.collectAsState()
 
-    // NUOVO: Osserva l'esercizio selezionato per superset/circuit
+    // Osserva l'esercizio selezionato per superset/circuit
     val currentSelectedExerciseId by viewModel.currentSelectedExerciseId.collectAsState()
 
-    // NUOVO: Mappa dei valori di peso e ripetizioni per esercizio
+    // Mappa dei valori di peso e ripetizioni per esercizio
     val exerciseValues by viewModel.exerciseValues.collectAsState()
+
+    // NUOVO: Stati per il plateau
+    val plateauInfo by viewModel.plateauInfo.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -68,9 +74,10 @@ fun ActiveWorkoutScreen(
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
 
+    // NUOVO: Dialog per dettagli plateau
+    var showPlateauDetailDialog by remember { mutableStateOf<PlateauInfo?>(null) }
+
     // Stato per tenere traccia della modalità di visualizzazione
-    // true = visualizzazione moderna (nuova UI come nelle immagini)
-    // false = visualizzazione classica (UI esistente)
     var useModernUI by remember { mutableStateOf(true) }
 
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
@@ -78,16 +85,13 @@ fun ActiveWorkoutScreen(
 
     // Gestisce la navigazione indietro
     BackHandler(workoutCompleted) {
-        // Se siamo nella schermata di riepilogo, torniamo alla home
         onWorkoutCompleted()
     }
 
     // Gestisce il completamento dell'allenamento
     LaunchedEffect(completeWorkoutState) {
         if (completeWorkoutState is CompleteWorkoutState.Success) {
-            // Se l'allenamento è già stato salvato, non mostrare più snackbar
             if (!workoutCompleted) {
-                // Mostra un messaggio di successo
                 snackbarHostState.showSnackbar(
                     message = "Allenamento salvato con successo!",
                     duration = SnackbarDuration.Short
@@ -135,7 +139,6 @@ fun ActiveWorkoutScreen(
                             },
                             style = MaterialTheme.typography.titleMedium
                         )
-                        // Make this a STATE - currently it only renders once
                         val elapsedTimeFormatted by remember(elapsedTime) {
                             derivedStateOf { viewModel.getFormattedElapsedTime() }
                         }
@@ -155,7 +158,21 @@ fun ActiveWorkoutScreen(
                     }
                 },
                 actions = {
-                    // Aggiungiamo un toggle per cambiare la visualizzazione
+                    // NUOVO: Bottone di debug per testare plateau (solo in debug)
+                    IconButton(onClick = {
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Test: Forzando controllo plateau...")
+                        }
+                        // Forza il re-check dei plateau
+                        viewModel.resetDismissedPlateaus()
+                        viewModel.forceCheckPlateaus()
+                    }) {
+                        Icon(
+                            imageVector = Icons.Default.BugReport,
+                            contentDescription = "Test Plateau"
+                        )
+                    }
+
                     IconButton(onClick = { useModernUI = !useModernUI }) {
                         Icon(
                             imageVector = if (useModernUI) Icons.Default.ViewList else Icons.Default.ViewModule,
@@ -185,7 +202,6 @@ fun ActiveWorkoutScreen(
             // Contenuto principale
             when (workoutState) {
                 is ActiveWorkoutState.Loading -> {
-                    // Stato di caricamento, implementazione diretta invece di usare LoadingScreen
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -204,7 +220,6 @@ fun ActiveWorkoutScreen(
                 }
 
                 is ActiveWorkoutState.Error -> {
-                    // Stato di errore, implementazione diretta invece di usare ErrorScreen
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -257,7 +272,6 @@ fun ActiveWorkoutScreen(
                     val workout = (workoutState as ActiveWorkoutState.Success).workout
 
                     if (workoutCompleted) {
-                        // Utilizziamo la nuova schermata di successo
                         WorkoutSuccessScreen(
                             totalSeries = calculateTotalSeries(seriesState),
                             totalWeight = calculateTotalWeight(seriesState).toInt(),
@@ -275,8 +289,8 @@ fun ActiveWorkoutScreen(
                                 currentRecoveryExerciseId = currentRecoveryExerciseId,
                                 currentSelectedExerciseId = currentSelectedExerciseId,
                                 exerciseValues = exerciseValues,
+                                plateauInfo = plateauInfo, // NUOVO
                                 onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
-                                    // Log per debug
                                     Log.d("ActiveWorkout", "Completamento serie: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
                                     viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
                                 },
@@ -287,19 +301,26 @@ fun ActiveWorkoutScreen(
                                     showCompleteWorkoutDialog = true
                                 },
                                 onSelectExercise = { exerciseId ->
-                                    // Log per debug
                                     Log.d("ActiveWorkout", "Selezionato esercizio: $exerciseId")
                                     viewModel.selectExercise(exerciseId)
                                 },
                                 expandedGroups = expandedModernGroups,
                                 onExerciseValuesChanged = { exerciseId, values ->
-                                    // Log per debug
                                     Log.d("ActiveWorkout", "Valori esercizio modificati: exerciseId=$exerciseId, weight=${values.first}, reps=${values.second}")
                                     viewModel.saveExerciseValues(exerciseId, values.first, values.second)
+                                },
+                                // NUOVO: Callbacks per plateau
+                                onDismissPlateau = { exerciseId ->
+                                    viewModel.dismissPlateau(exerciseId)
+                                },
+                                onApplyPlateauSuggestion = { exerciseId, suggestion ->
+                                    viewModel.applyProgressionSuggestion(exerciseId, suggestion)
+                                },
+                                onShowPlateauDetails = { plateau ->
+                                    showPlateauDetailDialog = plateau
                                 }
                             )
                         } else {
-                            // Versione classica: usa una visualizzazione semplificata invece di ActiveWorkoutContent
                             Text(
                                 text = "Modalità classica non disponibile in questa versione",
                                 modifier = Modifier
@@ -350,10 +371,21 @@ fun ActiveWorkoutScreen(
             CompleteWorkoutDialog(
                 onDismiss = { showCompleteWorkoutDialog = false },
                 onConfirm = {
-                    // Chiama completeWorkout invece di markWorkoutAsCompleted
-                    viewModel.completeWorkout() // Questa salverà la durata nel DB
-                    viewModel.markWorkoutAsCompleted() // Questa aggiorna l'UI
+                    viewModel.completeWorkout()
+                    viewModel.markWorkoutAsCompleted()
                     showCompleteWorkoutDialog = false
+                }
+            )
+        }
+
+        // NUOVO: Dialog dettagli plateau
+        showPlateauDetailDialog?.let { plateau ->
+            PlateauDetailDialog(
+                plateauInfo = plateau,
+                onDismiss = { showPlateauDetailDialog = null },
+                onApplySuggestion = { suggestion ->
+                    viewModel.applyProgressionSuggestion(plateau.exerciseId, suggestion)
+                    showPlateauDetailDialog = null
                 }
             )
         }
@@ -369,12 +401,17 @@ private fun ModernActiveWorkoutContent(
     currentRecoveryExerciseId: Int?,
     currentSelectedExerciseId: Int?,
     exerciseValues: Map<Int, Pair<Float, Int>>,
+    plateauInfo: Map<Int, PlateauInfo>, // NUOVO
     onSeriesCompleted: (Int, Float, Int, Int) -> Unit,
     onStopTimer: () -> Unit,
     onSaveWorkout: () -> Unit = {},
     onSelectExercise: (Int) -> Unit = {},
     expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() },
-    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> }
+    onExerciseValuesChanged: (Int, Pair<Float, Int>) -> Unit = { _, _ -> },
+    // NUOVI callbacks per plateau
+    onDismissPlateau: (Int) -> Unit = {},
+    onApplyPlateauSuggestion: (Int, ProgressionSuggestion) -> Unit = { _, _ -> },
+    onShowPlateauDetails: (PlateauInfo) -> Unit = {}
 ) {
     Log.d("ActiveWorkout", "ModernActiveWorkoutContent: numero esercizi=${workout.esercizi.size}")
 
@@ -422,7 +459,7 @@ private fun ModernActiveWorkoutContent(
             .fillMaxSize()
             .padding(horizontal = 16.dp),
         state = rememberLazyListState(),
-        verticalArrangement = Arrangement.spacedBy(16.dp) // Increased consistent spacing
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
             WorkoutProgressIndicator(
@@ -430,9 +467,38 @@ private fun ModernActiveWorkoutContent(
                 completedExercises = completedGroups.sumOf { it.size },
                 totalExercises = workout.esercizi.size,
                 progress = progress,
-                modifier = Modifier.fillMaxWidth() // remove the vertical padding
+                modifier = Modifier.fillMaxWidth()
             )
+        }
 
+        // NUOVO: Sezione plateau se ne sono rilevati
+        if (plateauInfo.isNotEmpty()) {
+            item {
+                Text(
+                    text = "⚡ Plateau Rilevati",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFFFF5722),
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+
+            // Mostra gli indicatori plateau per esercizi attivi
+            activeGroups.forEachIndexed { groupIndex, group ->
+                group.forEach { exercise ->
+                    plateauInfo[exercise.id]?.let { plateau ->
+                        item {
+                            PlateauIndicator(
+                                plateauInfo = plateau,
+                                onDismiss = { onDismissPlateau(exercise.id) },
+                                onApplySuggestion = { suggestion ->
+                                    onApplyPlateauSuggestion(exercise.id, suggestion)
+                                }
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if (activeGroups.isNotEmpty()) {
@@ -441,86 +507,109 @@ private fun ModernActiveWorkoutContent(
                     text = "Esercizi da completare",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 8.dp) // Rimosso padding verticale per consistenza
+                    modifier = Modifier.padding(bottom = 8.dp)
                 )
             }
 
             itemsIndexed(activeGroups) { index, group ->
-                // Verifica se il gruppo è un superset o un circuit
                 val isSuperset = group.size > 1 && isSuperset(group.first())
                 val isCircuit = group.size > 1 && isCircuit(group.first())
 
-                // Se il gruppo è un superset o un circuit, usa una visualizzazione speciale
                 if (isSuperset || isCircuit) {
-                    // Trova l'esercizio da visualizzare nel gruppo
                     val selectedExerciseInGroup = if (currentSelectedExerciseId != null && group.any { it.id == currentSelectedExerciseId }) {
-                        // Se c'è un esercizio selezionato nel gruppo corrente, mostra quello
                         group.first { it.id == currentSelectedExerciseId }
                     } else {
-                        // Altrimenti mostra il primo esercizio del gruppo
                         group.first()
                     }
 
-                    // Gestisci lo stato di espansione per questo gruppo specifico
                     val isGroupExpanded = expandedGroups[index] ?: false
-
-                    // Determina il titolo in base al tipo di gruppo
                     val groupTitle = if (isSuperset) "Superset ${index + 1}" else "Circuit ${index + 1}"
-
-                    // Colore del tema in base al tipo di gruppo
                     val groupColor = if (isSuperset) BluePrimary else PurplePrimary
+
+                    // NUOVO: Verifica se il gruppo contiene plateau
+                    val hasPlateauInGroup = group.any { plateauInfo.containsKey(it.id) }
 
                     Log.d("ActiveWorkout", "Rendering ${if (isSuperset) "superset" else "circuit"} gruppo $index: expanded=$isGroupExpanded, " +
                             "exerciseId=${selectedExerciseInGroup.id}, nome=${selectedExerciseInGroup.nome}")
 
-                    SupersetGroupCard(
-                        title = groupTitle,
-                        exercises = group,
-                        selectedExerciseId = selectedExerciseInGroup.id,
-                        serieCompletate = seriesMap,
-                        onExerciseSelected = { onSelectExercise(it) },
-                        onAddSeries = { exerciseId, weight, reps, serieNumber ->
-                            Log.d("ActiveWorkout", "AddSeries da gruppo: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
-                            onSeriesCompleted(exerciseId, weight, reps, serieNumber)
-                        },
-                        isTimerRunning = isTimerRunning,
-                        exerciseValues = exerciseValues,
-                        // Passa lo stato di espansione e la callback per aggiornarlo
-                        isExpanded = isGroupExpanded,
-                        onExpandToggle = {
-                            Log.d("ActiveWorkout", "Toggle espansione gruppo $index: ${!isGroupExpanded}")
-                            expandedGroups[index] = !isGroupExpanded
-                        },
-                        // Passa un colore di tema diverso in base al tipo di gruppo
-                        accentColor = groupColor
-                    )
+                    Box {
+                        SupersetGroupCard(
+                            title = groupTitle,
+                            exercises = group,
+                            selectedExerciseId = selectedExerciseInGroup.id,
+                            serieCompletate = seriesMap,
+                            onExerciseSelected = { onSelectExercise(it) },
+                            onAddSeries = { exerciseId, weight, reps, serieNumber ->
+                                Log.d("ActiveWorkout", "AddSeries da gruppo: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
+                                onSeriesCompleted(exerciseId, weight, reps, serieNumber)
+                            },
+                            isTimerRunning = isTimerRunning,
+                            exerciseValues = exerciseValues,
+                            isExpanded = isGroupExpanded,
+                            onExpandToggle = {
+                                Log.d("ActiveWorkout", "Toggle espansione gruppo $index: ${!isGroupExpanded}")
+                                expandedGroups[index] = !isGroupExpanded
+                            },
+                            accentColor = groupColor
+                        )
+
+                        // NUOVO: Badge plateau se presente nel gruppo
+                        if (hasPlateauInGroup) {
+                            PlateauBadge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp),
+                                onClick = {
+                                    // Trova il primo plateau nel gruppo e mostra i dettagli
+                                    group.firstOrNull { plateauInfo.containsKey(it.id) }?.let { exercise ->
+                                        plateauInfo[exercise.id]?.let { plateau ->
+                                            onShowPlateauDetails(plateau)
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
                 } else {
                     // Esercizio singolo
                     val exercise = group.first()
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
                     val values = exerciseValues[exercise.id]
+                    val exercisePlateau = plateauInfo[exercise.id]
 
                     Log.d("ActiveWorkout", "Rendering esercizio singolo: id=${exercise.id}, " +
                             "nome=${exercise.nome}, completedSeries=${completedSeries.size}/${exercise.serie}")
 
-                    ExerciseProgressItem(
-                        exercise = exercise,
-                        completedSeries = completedSeries,
-                        isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
-                        onAddSeries = { weight, reps ->
-                            Log.d("ActiveWorkout", "AddSeries da elemento singolo: exerciseId=${exercise.id}, weight=$weight, reps=$reps")
-                            onSeriesCompleted(
-                                exercise.id,
-                                weight,
-                                reps,
-                                completedSeries.size + 1
+                    Box {
+                        ExerciseProgressItem(
+                            exercise = exercise,
+                            completedSeries = completedSeries,
+                            isTimerRunning = isTimerRunning && (currentRecoveryExerciseId == exercise.id || currentRecoveryExerciseId == null),
+                            onAddSeries = { weight, reps ->
+                                Log.d("ActiveWorkout", "AddSeries da elemento singolo: exerciseId=${exercise.id}, weight=$weight, reps=$reps")
+                                onSeriesCompleted(
+                                    exercise.id,
+                                    weight,
+                                    reps,
+                                    completedSeries.size + 1
+                                )
+                            },
+                            isLastExercise = false,
+                            isCompleted = false,
+                            initialWeight = values?.first,
+                            initialReps = values?.second
+                        )
+
+                        // NUOVO: Badge plateau se presente
+                        if (exercisePlateau != null) {
+                            PlateauBadge(
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .padding(8.dp),
+                                onClick = { onShowPlateauDetails(exercisePlateau) }
                             )
-                        },
-                        isLastExercise = false,
-                        isCompleted = false,
-                        initialWeight = values?.first,
-                        initialReps = values?.second
-                    )
+                        }
+                    }
                 }
             }
         }
@@ -538,7 +627,6 @@ private fun ModernActiveWorkoutContent(
 
             itemsIndexed(completedGroups) { index, group ->
                 if (group.size > 1 && isSuperset(group.first())) {
-                    // Superset completato
                     Log.d("ActiveWorkout", "Rendering superset completato $index: ${group.size} esercizi")
 
                     CompletedSupersetCard(
@@ -547,7 +635,6 @@ private fun ModernActiveWorkoutContent(
                         serieCompletate = seriesMap
                     )
                 } else {
-                    // Esercizio singolo completato
                     val exercise = group.first()
                     val completedSeries = seriesMap[exercise.id] ?: emptyList()
 
@@ -558,7 +645,7 @@ private fun ModernActiveWorkoutContent(
                         exercise = exercise,
                         completedSeries = completedSeries,
                         isTimerRunning = false,
-                        onAddSeries = { _, _ -> /* Non dovrebbe essere chiamato */ },
+                        onAddSeries = { _, _ -> },
                         isCompleted = true
                     )
                 }
@@ -614,27 +701,21 @@ private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<Wo
 
     exercises.forEach { exercise ->
         if (currentGroup.isEmpty()) {
-            // First exercise always starts a new group
             currentGroup.add(exercise)
         } else {
             val prevExercise = currentGroup.last()
 
-            // Check if current exercise is linked to previous
             if (exercise.linkedToPrevious &&
                 (exercise.setType == prevExercise.setType) &&
                 (exercise.setType == "superset" || exercise.setType == "circuit")) {
-                // This exercise belongs to the same group
                 currentGroup.add(exercise)
             } else {
-                // This exercise starts a new group
-                // Save the current group and start a new one
                 result.add(currentGroup.toList())
                 currentGroup = mutableListOf(exercise)
             }
         }
     }
 
-    // Add the last group if not empty
     if (currentGroup.isNotEmpty()) {
         result.add(currentGroup)
     }
