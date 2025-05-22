@@ -60,21 +60,8 @@ fun ExerciseProgressItem(
     var showWeightPicker by remember { mutableStateOf(false) }
     var showRepsPicker by remember { mutableStateOf(false) }
 
-    // Determina se l'esercizio è isometrico
-    val isIsometric = remember(exercise) {
-        // Utilizza direttamente la proprietà isIsometric che è già un Boolean
-        val isIsometricFromField = exercise.isIsometric
-
-        // Manteniamo anche il rilevamento basato sul nome come fallback
-        val isIsometricByName = exercise.nome.lowercase().contains("isometrico") ||
-                exercise.nome.lowercase().contains("camminata") ||
-                exercise.nome.lowercase().contains("plank") ||
-                exercise.nome.lowercase().contains("wall sit") ||
-                exercise.nome.lowercase().contains("tenuta") ||
-                exercise.nome.lowercase().contains("(sec)")
-
-        isIsometricFromField || isIsometricByName
-    }
+    // Determina se l'esercizio è isometrico basandosi SOLO sul campo del database
+    val isIsometric = exercise.isIsometric
 
     // Animazione per la rotazione dell'icona di espansione
     val rotationState by animateFloatAsState(
@@ -197,17 +184,18 @@ fun ExerciseProgressItem(
                         )
                     }
 
-                    // Timer isometrico
-                    IsometricTimer(
-                        seconds = currentReps,
-                        seriesNumber = completedSeries.size + 1, // Passa il numero della serie corrente
-                        onSeriesCompleted = {
-                            if (!isCompleted && completedSeries.size < exercise.serie) {
-                                onAddSeries(currentWeight, currentReps)
+                    // Timer isometrico - SOLO se l'esercizio è isometrico
+                    if (isIsometric) {
+                        IsometricTimer(
+                            seconds = currentReps,
+                            seriesNumber = completedSeries.size + 1, // Passa il numero della serie corrente
+                            onSeriesCompleted = {
+                                if (!isCompleted && completedSeries.size < exercise.serie) {
+                                    onAddSeries(currentWeight, currentReps)
+                                }
                             }
-                        }
-                    )
-
+                        )
+                    }
                 }
 
                 // Serie completate
