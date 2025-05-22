@@ -1,5 +1,6 @@
 package com.fitgymtrack.app.ui.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,13 +30,13 @@ import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.DashboardViewModel
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
+import com.fitgymtrack.app.viewmodel.StatsViewModel
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.fitgymtrack.app.FitGymTrackApplication
 import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.ui.payment.PaymentHelper
-import com.fitgymtrack.app.ui.components.DashboardStatsCard
 
 @Composable
 fun Dashboard(
@@ -45,8 +46,10 @@ fun Dashboard(
     onNavigateToUserExercises: () -> Unit,
     onNavigateToWorkouts: () -> Unit,
     onNavigateToSubscription: () -> Unit = {},
+    onNavigateToStats: () -> Unit = {}, // NUOVO: Navigazione alle statistiche
     dashboardViewModel: DashboardViewModel = viewModel(),
-    subscriptionViewModel: SubscriptionViewModel = viewModel()
+    subscriptionViewModel: SubscriptionViewModel = viewModel(),
+    statsViewModel: StatsViewModel = viewModel() // NUOVO: Aggiungiamo StatsViewModel condiviso
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -87,6 +90,16 @@ fun Dashboard(
         } else null
     }}
 
+    // NUOVO: Stati del StatsViewModel condiviso
+    val statsState by statsViewModel.statsState.collectAsState()
+    val userStats by remember { derivedStateOf {
+        when (val state = statsState) {
+            is StatsViewModel.StatsState.Success -> state.stats
+            else -> null
+        }
+    }}
+    val statsLoading = statsState is StatsViewModel.StatsState.Loading
+
     // Messaggi Snackbar
     var showSnackbar by remember { mutableStateOf(false) }
     var snackbarMessage by remember { mutableStateOf("") }
@@ -122,8 +135,29 @@ fun Dashboard(
 
     // Carica i dati all'avvio della composable
     LaunchedEffect(Unit) {
+        Log.d("Dashboard", "=== INIZIO CARICAMENTO DASHBOARD ===")
         dashboardViewModel.loadDashboardData(sessionManager)
-        subscriptionViewModel.loadSubscription()  // Carica l'abbonamento
+        subscriptionViewModel.loadSubscription()
+    }
+
+    // NUOVO: Carica le statistiche quando abbonamento e utente sono disponibili
+    LaunchedEffect(subscription, user) {
+        val currentSubscription = subscription
+        val currentUser = user
+
+        if (currentSubscription != null && currentUser != null) {
+            Log.d("Dashboard", "Abbonamento e utente disponibili - Controllo caricamento statistiche")
+            Log.d("Dashboard", "Utente: ${currentUser.id}, Piano: ${currentSubscription.planName}, Prezzo: ${currentSubscription.price}")
+
+            if (currentSubscription.price > 0.0) {
+                Log.d("Dashboard", "🔄 Caricamento statistiche con StatsViewModel per utente Premium: ${currentUser.id}")
+                // Imposta il SessionManager e carica le statistiche
+                statsViewModel.setSessionManager(sessionManager)
+                statsViewModel.loadStats(currentUser.id, forceReload = true)
+            } else {
+                Log.d("Dashboard", "Utente Free - statistiche non caricate")
+            }
+        }
     }
 
     // Osserva gli stati di aggiornamento piano
@@ -205,7 +239,7 @@ fun Dashboard(
                                 modifier = Modifier.padding(bottom = 16.dp)
                             )
 
-                            // NUOVO: Card Abbonamento nella Dashboard
+                            // Card Abbonamento nella Dashboard
                             if (subscription != null) {
                                 DashboardSubscriptionCard(
                                     subscription = subscription,
@@ -213,9 +247,6 @@ fun Dashboard(
                                     onViewDetails = onNavigateToSubscription
                                 )
                             } else if (subscriptionState is SubscriptionViewModel.SubscriptionState.Loading) {
-
-
-
                                 // Mostra placeholder durante il caricamento
                                 Card(
                                     modifier = Modifier
@@ -235,16 +266,18 @@ fun Dashboard(
                                 }
                             }
 
-                            // NUOVO: Card Statistiche Premium - Versione corretta
+                            // NUOVO: Preview Statistiche Premium con StatsViewModel condiviso
                             subscription?.takeIf { it.price > 0.0 }?.let {
-                                val userStatsData by dashboardViewModel.userStats.collectAsState()
-                                val statsLoading by dashboardViewModel.statsLoading.collectAsState()
+                                Log.d("Dashboard", "Mostrando preview statistiche - Loading: $statsLoading, Stats: ${userStats?.totalWorkouts ?: "null"}")
 
-                                DashboardStatsCard(
-                                    stats = userStatsData,
+                                DashboardStatsPreview(
+                                    stats = userStats,
                                     isLoading = statsLoading,
-                                    isDarkTheme = isDarkTheme
+                                    isDarkTheme = isDarkTheme,
+                                    onViewAllStats = onNavigateToStats
                                 )
+                            } ?: run {
+                                Log.d("Dashboard", "Preview statistiche non mostrata - Utente non Premium o subscription null")
                             }
 
                             // Profilo Utente Card

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,6 +17,7 @@ import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.screens.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
+import com.fitgymtrack.app.viewmodel.StatsViewModel
 import kotlinx.coroutines.launch
 
 @Composable
@@ -48,7 +50,8 @@ fun AppNavigation(
             !currentRoute.toString().startsWith("create_workout") &&
             !currentRoute.toString().startsWith("edit_workout") &&
             !currentRoute.toString().startsWith("user_exercises") &&
-            !currentRoute.toString().startsWith("active_workout") // Aggiungiamo anche la nuova rotta
+            !currentRoute.toString().startsWith("active_workout") &&
+            currentRoute != "stats" // NUOVO: Aggiungiamo anche la rotta stats
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -98,6 +101,9 @@ fun AppNavigation(
         }
 
         composable("dashboard") {
+            // NUOVO: Crea un'istanza condivisa di StatsViewModel
+            val sharedStatsViewModel: StatsViewModel = viewModel()
+
             Dashboard(
                 onLogout = {
                     coroutineScope.launch {
@@ -120,9 +126,13 @@ fun AppNavigation(
                     navController.navigate("workouts")
                 },
                 onNavigateToSubscription = {
-                    // NUOVO: Naviga alla schermata di abbonamento
                     navController.navigate("subscription")
-                }
+                },
+                onNavigateToStats = {
+                    // NUOVO: Navigazione alle statistiche con ViewModel condiviso
+                    navController.navigate("stats")
+                },
+                statsViewModel = sharedStatsViewModel // NUOVO: Passa il ViewModel condiviso
             )
         }
 
@@ -152,10 +162,19 @@ fun AppNavigation(
             }
         }
 
-        // NUOVO: Schermata abbonamento
+        // Schermata abbonamento
         composable("subscription") {
             SubscriptionScreen(
                 themeManager = themeManager,
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // NUOVO: Schermata statistiche
+        composable("stats") {
+            StatsScreen(
                 onBack = {
                     navController.popBackStack()
                 }
