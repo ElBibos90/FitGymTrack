@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.fitgymtrack.app.models.CompletedSeries
@@ -467,15 +468,6 @@ fun SupersetGroupCard(
                     Column(
                         modifier = Modifier.padding(16.dp)
                     ) {
-                        // Nome esercizio
-                        Text(
-                            text = selectedExercise.nome,
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface // Usa il colore del tema
-                        )
-
-                        Spacer(modifier = Modifier.height(12.dp))
 
                         // Exercise progress indicator
                         Row(
@@ -673,7 +665,37 @@ fun SupersetGroupCard(
                                     }
                                 }
                             }
-
+                            if (completedSeries.size < selectedExercise.serie) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp),
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = accentColor.copy(alpha = 0.15f)
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Timer,
+                                            contentDescription = "Informazione sul timer",
+                                            tint = accentColor,
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = "Serie completata automaticamente a fine timer",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = accentColor,
+                                            textAlign = TextAlign.Center
+                                        )
+                                    }
+                                }
+                            }
                             Spacer(modifier = Modifier.height(8.dp))
                         }
 
