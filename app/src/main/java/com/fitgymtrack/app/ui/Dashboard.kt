@@ -35,6 +35,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.fitgymtrack.app.FitGymTrackApplication
 import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.ui.payment.PaymentHelper
+import com.fitgymtrack.app.ui.components.DashboardStatsCard
 
 @Composable
 fun Dashboard(
@@ -212,6 +213,9 @@ fun Dashboard(
                                     onViewDetails = onNavigateToSubscription
                                 )
                             } else if (subscriptionState is SubscriptionViewModel.SubscriptionState.Loading) {
+
+
+
                                 // Mostra placeholder durante il caricamento
                                 Card(
                                     modifier = Modifier
@@ -229,6 +233,18 @@ fun Dashboard(
                                         )
                                     }
                                 }
+                            }
+
+                            // NUOVO: Card Statistiche Premium - Versione corretta
+                            subscription?.takeIf { it.price > 0.0 }?.let {
+                                val userStatsData by dashboardViewModel.userStats.collectAsState()
+                                val statsLoading by dashboardViewModel.statsLoading.collectAsState()
+
+                                DashboardStatsCard(
+                                    stats = userStatsData,
+                                    isLoading = statsLoading,
+                                    isDarkTheme = isDarkTheme
+                                )
                             }
 
                             // Profilo Utente Card

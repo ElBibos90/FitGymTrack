@@ -146,4 +146,10 @@ object ApiClient {
     val subscriptionApiService: SubscriptionApiService by lazy {
         retrofit.create(SubscriptionApiService::class.java)
     }
+
+    // Aggiungiamo il servizio per le statistiche
+    val statsApiService: StatsApiService by lazy {
+        retrofit.create(StatsApiService::class.java)
+    }
+
 }
