@@ -71,7 +71,14 @@ class MainActivity : ComponentActivity() {
                 val showTopBar = currentRoute != null &&
                         currentRoute != "login" &&
                         currentRoute != "register" &&
-                        currentRoute != "profile"
+                        currentRoute != "profile" &&
+                        currentRoute != "forgot_password" &&
+                        !currentRoute.toString().startsWith("reset_password") &&
+                        !currentRoute.toString().startsWith("create_workout") &&
+                        !currentRoute.toString().startsWith("edit_workout") &&
+                        !currentRoute.toString().startsWith("user_exercises") &&
+                        !currentRoute.toString().startsWith("active_workout") &&
+                        currentRoute != "stats"
 
                 Scaffold(
                     topBar = {

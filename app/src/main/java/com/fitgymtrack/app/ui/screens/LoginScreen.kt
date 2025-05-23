@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,13 +19,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.ui.components.AutofillPasswordField
+import com.fitgymtrack.app.ui.components.AutofillUsernameField
 import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.AuthViewModel
@@ -47,18 +44,22 @@ fun LoginScreen(
 
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var showPassword by remember { mutableStateOf(false) }
 
     val loginState by viewModel.loginState.collectAsState()
 
+    // Gestione stato login
     LaunchedEffect(loginState) {
-        if (loginState is AuthViewModel.LoginState.Success) {
-            val success = loginState as AuthViewModel.LoginState.Success
-            coroutineScope.launch {
-                sessionManager.saveAuthToken(success.token)
-                sessionManager.saveUserData(success.user)
-                onLoginSuccess()
+        when (loginState) {
+            is AuthViewModel.LoginState.Success -> {
+                val success = loginState as AuthViewModel.LoginState.Success
+                coroutineScope.launch {
+                    sessionManager.saveAuthToken(success.token)
+                    sessionManager.saveUserData(success.user)
+                    onLoginSuccess()
+                }
             }
+
+            else -> {}
         }
     }
 
@@ -73,14 +74,14 @@ fun LoginScreen(
                 .padding(16.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Logo e Titolo (altezza fissa invece di peso)
+            // Logo e Titolo
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Logo dell'app (design simile alla web app)
+                // Logo dell'app
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.Center
@@ -90,7 +91,6 @@ fun LoginScreen(
                         style = MaterialTheme.typography.headlineLarge,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
-                        modifier = Modifier,
                         color = Indigo600
                     )
 
@@ -114,75 +114,33 @@ fun LoginScreen(
                 )
             }
 
-            // Form sezione (senza weight per permettere lo scroll)
+            // Form sezione
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Campo Username con Icona
-                OutlinedTextField(
+                // Campo Username
+                AutofillUsernameField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Username") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Username",
+                    placeholder = "Inserisci username",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Username",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 16.dp)
                 )
 
-                // Campo Password con Icona
-                OutlinedTextField(
+                // Campo Password
+                AutofillPasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Password",
+                    placeholder = "Inserisci la tua password",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Password",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    trailingIcon = {
-                        IconButton(onClick = { showPassword = !showPassword }) {
-                            Icon(
-                                imageVector = if (showPassword) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                contentDescription = if (showPassword) "Nascondi password" else "Mostra password",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Done
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 24.dp)
                 )
 
                 // Password dimenticata
@@ -222,7 +180,7 @@ fun LoginScreen(
                     }
                 }
 
-                // Pulsante di Login con gradiente
+                // Pulsante di Login
                 Button(
                     onClick = {
                         viewModel.login(username, password)
@@ -268,7 +226,7 @@ fun LoginScreen(
                         .fillMaxWidth()
                         .padding(top = 16.dp)
                 ) {
-                    Divider(
+                    HorizontalDivider(
                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.1f),
                         thickness = 1.dp,
                         modifier = Modifier.padding(bottom = 16.dp)
@@ -330,19 +288,20 @@ fun LoginScreen(
                                         color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.6f)
                                     )
                                 }
-                            }
 
-                            Icon(
-                                imageVector = Icons.Default.ChevronRight,
-                                contentDescription = "Go",
-                                tint = Indigo600
-                            )
+
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = "Go",
+                                    tint = Indigo600
+                                )
+                            }
                         }
                     }
-                }
 
-                // Spazio aggiuntivo in fondo per garantire che tutto sia visibile quando la tastiera è aperta
-                Spacer(modifier = Modifier.height(48.dp))
+                    // Spazio aggiuntivo in fondo
+                    Spacer(modifier = Modifier.height(48.dp))
+                }
             }
         }
     }

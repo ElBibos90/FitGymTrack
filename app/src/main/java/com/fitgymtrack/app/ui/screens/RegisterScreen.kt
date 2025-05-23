@@ -1,4 +1,3 @@
-// RegisterScreen.kt
 package com.fitgymtrack.app.ui.screens
 
 import androidx.compose.foundation.layout.*
@@ -16,6 +15,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.ui.components.AutofillEmailField
+import com.fitgymtrack.app.ui.components.AutofillNameField
+import com.fitgymtrack.app.ui.components.AutofillPasswordField
+import com.fitgymtrack.app.ui.components.AutofillUsernameField
 import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.viewmodel.AuthViewModel
 import androidx.compose.material3.Icon
@@ -38,9 +41,13 @@ fun RegisterScreen(
 
     val registerState by viewModel.registerState.collectAsState()
 
+    // Gestione stato registrazione
     LaunchedEffect(registerState) {
-        if (registerState is AuthViewModel.RegisterState.Success) {
-            navigateToLogin()
+        when (registerState) {
+            is AuthViewModel.RegisterState.Success -> {
+                navigateToLogin()
+            }
+            else -> {}
         }
     }
 
@@ -90,112 +97,52 @@ fun RegisterScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Username Field
-                OutlinedTextField(
+                AutofillUsernameField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Username") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Username",
+                    placeholder = "Scegli un username",
+                    imeAction = ImeAction.Next,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Username",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 16.dp)
                 )
 
                 // Password Field
-                OutlinedTextField(
+                AutofillPasswordField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Password",
+                    placeholder = "Crea una password sicura",
+                    isNewPassword = true,
+                    imeAction = ImeAction.Next,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Lock,
-                            contentDescription = "Password",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password,
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 16.dp)
                 )
 
                 // Email Field
-                OutlinedTextField(
+                AutofillEmailField(
                     value = email,
                     onValueChange = { email = it },
-                    label = { Text("Email") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Email",
+                    placeholder = "Inserisci la tua email",
+                    imeAction = ImeAction.Next,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Email,
-                            contentDescription = "Email",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Email,
-                        imeAction = ImeAction.Next
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 16.dp)
                 )
 
                 // Name Field
-                OutlinedTextField(
+                AutofillNameField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Nome completo") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
+                    label = "Nome completo",
+                    placeholder = "Inserisci il tuo nome completo",
+                    imeAction = ImeAction.Done,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 24.dp),
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.AccountCircle,
-                            contentDescription = "Name",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Done
-                    ),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Indigo600,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.2f)
-                    )
+                        .padding(bottom = 24.dp)
                 )
 
                 // Error Message
