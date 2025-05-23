@@ -17,7 +17,14 @@ import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.ui.theme.Indigo600
 import kotlinx.coroutines.delay
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.fitgymtrack.app.utils.SoundManager
+import kotlinx.coroutines.launch
 
+/**
+ * Timer di recupero dopo una serie
+ */
 /**
  * Timer di recupero dopo una serie
  */
@@ -37,6 +44,11 @@ fun RecoveryTimer(
     // quindi lo gestiamo separatamente
     var timerActive by remember { mutableStateOf(isRunning) }
 
+    // 🔊 Aggiungi per i suoni
+    val context = LocalContext.current
+    val soundManager = remember { SoundManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     // Aggiorniamo lo stato del timer quando cambia isRunning
     LaunchedEffect(isRunning) {
         timerActive = isRunning
@@ -52,6 +64,13 @@ fun RecoveryTimer(
 
         // Ogni secondo esatto, decrementa timeLeft di 1
         while (timeLeft > 0 && timerActive) {
+            // 🔊 BEEP PER GLI ULTIMI 3 SECONDI DEL RECUPERO
+            if (timeLeft <= 3 && timeLeft > 0) {
+                coroutineScope.launch {
+                    soundManager.playWorkoutSound(SoundManager.WorkoutSound.COUNTDOWN_BEEP)
+                }
+            }
+
             // Attendi un secondo esatto prima di decrementare
             delay(1000)
             timeLeft -= 1
@@ -59,6 +78,10 @@ fun RecoveryTimer(
 
         // Se il timer raggiunge 0, notifica il completamento
         if (timeLeft <= 0) {
+            // 🔊 SUONO FINALE RECUPERO COMPLETATO
+            coroutineScope.launch {
+                soundManager.playWorkoutSound(SoundManager.WorkoutSound.REST_COMPLETE)
+            }
             onFinish()
         }
     }
@@ -76,7 +99,11 @@ fun RecoveryTimer(
             .padding(vertical = 16.dp),
         shape = RoundedCornerShape(12.dp),
         tonalElevation = 2.dp,
-        color = MaterialTheme.colorScheme.surfaceVariant
+        color = when {
+            // 🎨 Cambia colore negli ultimi 3 secondi
+            timerActive && timeLeft <= 3 -> MaterialTheme.colorScheme.primaryContainer
+            else -> MaterialTheme.colorScheme.surfaceVariant
+        }
     ) {
         Row(
             modifier = Modifier
@@ -92,13 +119,22 @@ fun RecoveryTimer(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(Indigo600.copy(alpha = 0.1f)),
+                        .background(
+                            // 🎨 Icona colorata negli ultimi 3 secondi
+                            if (timerActive && timeLeft <= 3)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                            else
+                                Indigo600.copy(alpha = 0.1f)
+                        ),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Timer,
                         contentDescription = null,
-                        tint = Indigo600
+                        tint = if (timerActive && timeLeft <= 3)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            Indigo600
                     )
                 }
 
@@ -106,13 +142,21 @@ fun RecoveryTimer(
 
                 Column {
                     Text(
-                        text = "Recupero",
-                        style = MaterialTheme.typography.bodyMedium
+                        text = if (timerActive && timeLeft <= 3) "Recupero - QUASI FINITO!" else "Recupero",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (timerActive && timeLeft <= 3)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = formattedTime,
                         style = MaterialTheme.typography.titleLarge,
-                        fontSize = 20.sp
+                        fontSize = 20.sp,
+                        color = if (timerActive && timeLeft <= 3)
+                            MaterialTheme.colorScheme.primary
+                        else
+                            MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -124,11 +168,21 @@ fun RecoveryTimer(
                     onStop()
                 },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (timerActive) Indigo600 else MaterialTheme.colorScheme.errorContainer,
+                    containerColor = if (timerActive) {
+                        if (timeLeft <= 3) MaterialTheme.colorScheme.primary else Indigo600
+                    } else {
+                        MaterialTheme.colorScheme.errorContainer
+                    },
                     contentColor = if (timerActive) Color.White else MaterialTheme.colorScheme.error
                 )
             ) {
-                Text(if (timerActive) "Ferma" else "Salta")
+                Text(
+                    if (timerActive) {
+                        if (timeLeft <= 3) "Salta" else "Ferma"
+                    } else {
+                        "Salta"
+                    }
+                )
             }
         }
     }
@@ -148,6 +202,10 @@ fun IsometricTimer(
     var timerRunning by remember { mutableStateOf(false) }
     var isCompleted by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val soundManager = remember { SoundManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     // Aggiorna timeLeft quando cambia seconds o seriesNumber
     LaunchedEffect(seconds, seriesNumber) {
         timeLeft = seconds
@@ -159,23 +217,35 @@ fun IsometricTimer(
     LaunchedEffect(key1 = timerRunning) {
         if (timerRunning) {
             while (timeLeft > 0) {
+                // 🔊 BEEP PER GLI ULTIMI 3 SECONDI
+                if (timeLeft <= 3 && timeLeft > 0) {
+                    coroutineScope.launch {
+                        soundManager.playWorkoutSound(SoundManager.WorkoutSound.COUNTDOWN_BEEP)
+                    }
+                }
+
                 delay(1000L)
                 timeLeft--
             }
             timerRunning = false
             isCompleted = true
 
+            // 🔊 SUONO FINALE PIÙ FORTE
+            coroutineScope.launch {
+                soundManager.playWorkoutSound(SoundManager.WorkoutSound.TIMER_COMPLETE)
+            }
+
             // Completamento automatico della serie
             onSeriesCompleted()
 
-            // Reset automatico dopo 2 secondi
-            delay(2000L)
+            // Reset automatico dopo 3 secondi (più tempo per sentire il suono)
+            delay(3000L)
             timeLeft = seconds
             isCompleted = false
         }
     }
 
-    // Formatta il tempo in formato mm:ss
+    // Resto del codice UI rimane uguale...
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val seconds = timeLeft % 60
@@ -189,7 +259,7 @@ fun IsometricTimer(
         shape = RoundedCornerShape(8.dp),
         color = when {
             isCompleted -> MaterialTheme.colorScheme.primaryContainer
-            timerRunning -> MaterialTheme.colorScheme.surfaceVariant
+            timerRunning -> if (timeLeft <= 3) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.surfaceVariant
             else -> MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
         }
     ) {
@@ -212,6 +282,7 @@ fun IsometricTimer(
                 style = MaterialTheme.typography.titleLarge,
                 color = when {
                     isCompleted -> MaterialTheme.colorScheme.primary
+                    timerRunning && timeLeft <= 3 -> MaterialTheme.colorScheme.error // Rosso per ultimi 3 secondi
                     timerRunning -> MaterialTheme.colorScheme.onSurfaceVariant
                     else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                 }
@@ -226,7 +297,10 @@ fun IsometricTimer(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier
                         .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            color = if (timerRunning && timeLeft <= 3)
+                                MaterialTheme.colorScheme.error.copy(alpha = 0.1f)
+                            else
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(4.dp)
                         )
                         .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -234,14 +308,23 @@ fun IsometricTimer(
                     Icon(
                         imageVector = Icons.Default.Info,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (timerRunning && timeLeft <= 3)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Serie completata automaticamente a fine timer",
+                        text = if (timerRunning && timeLeft <= 3)
+                            "COUNTDOWN FINALE!"
+                        else
+                            "Serie completata automaticamente a fine timer",
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.primary
+                        color = if (timerRunning && timeLeft <= 3)
+                            MaterialTheme.colorScheme.error
+                        else
+                            MaterialTheme.colorScheme.primary
                     )
                 }
             }
@@ -258,6 +341,7 @@ fun IsometricTimer(
                 colors = ButtonDefaults.buttonColors(
                     containerColor = when {
                         isCompleted -> MaterialTheme.colorScheme.primary
+                        timerRunning && timeLeft <= 3 -> MaterialTheme.colorScheme.error
                         timerRunning -> MaterialTheme.colorScheme.primary
                         else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     }
@@ -444,6 +528,11 @@ fun CompleteWorkoutDialog(
     onDismiss: () -> Unit,
     onConfirm: () -> Unit
 ) {
+    // Aggiungi il suono per allenamento completato
+    val context = LocalContext.current
+    val soundManager = remember { SoundManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -456,7 +545,13 @@ fun CompleteWorkoutDialog(
         },
         confirmButton = {
             Button(
-                onClick = onConfirm,
+                onClick = {
+                    // 🔊 SUONO ALLENAMENTO COMPLETATO
+                    coroutineScope.launch {
+                        soundManager.playWorkoutSound(SoundManager.WorkoutSound.WORKOUT_COMPLETE)
+                    }
+                    onConfirm()
+                },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary
                 )

@@ -37,6 +37,11 @@ import android.util.Log
 import android.app.Activity
 import android.view.WindowManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import com.fitgymtrack.app.utils.SoundManager
+import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.VolumeUp
 
 private fun isCircuit(exercise: WorkoutExercise): Boolean {
     return exercise.setType == "circuit"
@@ -173,7 +178,9 @@ fun ActiveWorkoutScreen(
                         )
                     }
                 },
+
                 actions = {
+
                     // NUOVO: Bottone di debug per testare plateau (solo in debug)
                     IconButton(onClick = {
                         scope.launch {
@@ -436,6 +443,11 @@ private fun ModernActiveWorkoutContent(
 ) {
     Log.d("ActiveWorkout", "ModernActiveWorkoutContent: numero esercizi=${workout.esercizi.size}")
 
+    // Aggiungi per i suoni
+    val context = LocalContext.current
+    val soundManager = remember { SoundManager(context) }
+    val coroutineScope = rememberCoroutineScope()
+
     val seriesMap = when (seriesState) {
         is CompletedSeriesState.Success -> seriesState.series
         else -> emptyMap()
@@ -533,6 +545,11 @@ private fun ModernActiveWorkoutContent(
                             onAddSeries = { exerciseId, weight, reps, serieNumber ->
                                 Log.d("ActiveWorkout", "AddSeries da gruppo: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
                                 onSeriesCompleted(exerciseId, weight, reps, serieNumber)
+
+                                // 🔊 SUONO SERIE COMPLETATA
+                                coroutineScope.launch {
+                                    soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                                }
                             },
                             isTimerRunning = isTimerRunning,
                             exerciseValues = exerciseValues,
@@ -592,6 +609,11 @@ private fun ModernActiveWorkoutContent(
                                     reps,
                                     completedSeries.size + 1
                                 )
+
+                                // 🔊 SUONO SERIE COMPLETATA
+                                coroutineScope.launch {
+                                    soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                                }
                             },
                             isLastExercise = false,
                             isCompleted = false,
