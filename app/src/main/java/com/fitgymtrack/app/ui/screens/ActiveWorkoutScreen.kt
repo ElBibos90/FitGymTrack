@@ -94,7 +94,7 @@ fun ActiveWorkoutScreen(
     var showGroupPlateauDialog by remember { mutableStateOf<Pair<String, List<PlateauInfo>>?>(null) }
 
     // Stato per tenere traccia della modalità di visualizzazione
-    var viewMode by remember { mutableStateOf(ViewMode.MODERN) }
+    var viewMode by remember { mutableStateOf(ViewMode.FULLSCREEN) }
 
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
     val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
@@ -186,22 +186,7 @@ fun ActiveWorkoutScreen(
                 },
 
                 actions = {
-
-                    // NUOVO: Bottone di debug per testare plateau (solo in debug)
-                    IconButton(onClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Test: Forzando controllo plateau...")
-                        }
-                        // Forza il re-check dei plateau
-                        viewModel.resetDismissedPlateaus()
-                        viewModel.forceCheckPlateaus()
-                    }) {
-                        Icon(
-                            imageVector = Icons.Default.BugReport,
-                            contentDescription = "Test Plateau"
-                        )
-                    }
-
+                    // Pulsante per cambiare visualizzazione (più intuitivo)
                     IconButton(onClick = {
                         viewMode = when(viewMode) {
                             ViewMode.MODERN -> ViewMode.FULLSCREEN
@@ -210,17 +195,21 @@ fun ActiveWorkoutScreen(
                     }) {
                         Icon(
                             imageVector = when(viewMode) {
-                                ViewMode.MODERN -> Icons.Default.ViewModule
-                                ViewMode.FULLSCREEN -> Icons.Default.CropFree
-                               },
-                            contentDescription = "Cambia visualizzazione"
+                                ViewMode.MODERN -> Icons.Default.Fullscreen        // Icona schermo intero
+                                ViewMode.FULLSCREEN -> Icons.Default.ViewList     // Icona lista
+                            },
+                            contentDescription = when(viewMode) {
+                                ViewMode.MODERN -> "Visualizzazione fullscreen"
+                                ViewMode.FULLSCREEN -> "Visualizzazione lista"
+                            }
                         )
                     }
 
+                    // Pulsante completa allenamento (più chiaro)
                     if (!workoutCompleted) {
                         IconButton(onClick = { showCompleteWorkoutDialog = true }) {
                             Icon(
-                                imageVector = Icons.Default.Check,
+                                imageVector = Icons.Default.Done,              // Icona "fatto" più chiara della V
                                 contentDescription = "Completa allenamento"
                             )
                         }
