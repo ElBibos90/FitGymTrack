@@ -15,6 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
 import com.fitgymtrack.app.ui.screens.*
+import com.fitgymtrack.app.ui.theme.FitGymTrackTheme
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.viewmodel.StatsViewModel
@@ -75,29 +76,34 @@ fun AppNavigation(
         startDestination = startDestination
     ) {
         composable("login") {
-            LoginScreen(
-                onLoginSuccess = {
-                    navController.navigate("dashboard") {
-                        popUpTo("login") { inclusive = true }
+            // Forza tema chiaro solo per il login
+            FitGymTrackTheme(darkTheme = false) {
+                LoginScreen(
+                    onLoginSuccess = {
+                        navController.navigate("dashboard") {
+                            popUpTo("login") { inclusive = true }
+                        }
+                    },
+                    navigateToRegister = {
+                        navController.navigate("register")
+                    },
+                    navigateToForgotPassword = {
+                        navController.navigate("forgot_password")
                     }
-                },
-                navigateToRegister = {
-                    navController.navigate("register")
-                },
-                navigateToForgotPassword = {
-                    navController.navigate("forgot_password")
-                }
-            )
+                )
+            }
         }
 
         composable("register") {
-            RegisterScreen(
-                navigateToLogin = {
-                    navController.navigate("login") {
-                        popUpTo("register") { inclusive = true }
+            FitGymTrackTheme(darkTheme = false) {
+                RegisterScreen(
+                    navigateToLogin = {
+                        navController.navigate("login") {
+                            popUpTo("register") { inclusive = true }
+                        }
                     }
-                }
-            )
+                )
+            }
         }
 
         composable("dashboard") {
