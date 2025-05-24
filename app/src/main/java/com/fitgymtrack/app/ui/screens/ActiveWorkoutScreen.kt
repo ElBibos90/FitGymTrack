@@ -43,6 +43,12 @@ import com.fitgymtrack.app.utils.SoundManager
 import kotlinx.coroutines.launch
 import androidx.compose.material.icons.filled.VolumeUp
 
+enum class ViewMode {
+    MODERN,     // Lista con card espandibili (attuale)
+    FULLSCREEN // Un esercizio alla volta fullscreen (nuovo)
+
+}
+
 private fun isCircuit(exercise: WorkoutExercise): Boolean {
     return exercise.setType == "circuit"
 }
@@ -88,7 +94,7 @@ fun ActiveWorkoutScreen(
     var showGroupPlateauDialog by remember { mutableStateOf<Pair<String, List<PlateauInfo>>?>(null) }
 
     // Stato per tenere traccia della modalità di visualizzazione
-    var useModernUI by remember { mutableStateOf(true) }
+    var viewMode by remember { mutableStateOf(ViewMode.MODERN) }
 
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
     val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
@@ -196,9 +202,17 @@ fun ActiveWorkoutScreen(
                         )
                     }
 
-                    IconButton(onClick = { useModernUI = !useModernUI }) {
+                    IconButton(onClick = {
+                        viewMode = when(viewMode) {
+                            ViewMode.MODERN -> ViewMode.FULLSCREEN
+                            ViewMode.FULLSCREEN -> ViewMode.MODERN
+                        }
+                    }) {
                         Icon(
-                            imageVector = if (useModernUI) Icons.Default.ViewList else Icons.Default.ViewModule,
+                            imageVector = when(viewMode) {
+                                ViewMode.MODERN -> Icons.Default.ViewModule
+                                ViewMode.FULLSCREEN -> Icons.Default.CropFree
+                               },
                             contentDescription = "Cambia visualizzazione"
                         )
                     }
@@ -303,54 +317,90 @@ fun ActiveWorkoutScreen(
                             }
                         )
                     } else {
-                        if (useModernUI) {
-                            ModernActiveWorkoutContent(
-                                workout = workout,
-                                seriesState = seriesState,
-                                isTimerRunning = isTimerRunning,
-                                recoveryTime = recoveryTime,
-                                currentRecoveryExerciseId = currentRecoveryExerciseId,
-                                currentSelectedExerciseId = currentSelectedExerciseId,
-                                exerciseValues = exerciseValues,
-                                plateauInfo = plateauInfo, // NUOVO
-                                onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
-                                    Log.d("ActiveWorkout", "Completamento serie: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
-                                    viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
-                                },
-                                onStopTimer = {
-                                    viewModel.stopRecoveryTimer()
-                                },
-                                onSaveWorkout = {
-                                    showCompleteWorkoutDialog = true
-                                },
-                                onSelectExercise = { exerciseId ->
-                                    Log.d("ActiveWorkout", "Selezionato esercizio: $exerciseId")
-                                    viewModel.selectExercise(exerciseId)
-                                },
-                                expandedGroups = expandedModernGroups,
-                                onExerciseValuesChanged = { exerciseId, values ->
-                                    Log.d("ActiveWorkout", "Valori esercizio modificati: exerciseId=$exerciseId, weight=${values.first}, reps=${values.second}")
-                                    viewModel.saveExerciseValues(exerciseId, values.first, values.second)
-                                },
-                                // NUOVO: Callbacks per plateau
-                                onDismissPlateau = { exerciseId ->
-                                    viewModel.dismissPlateau(exerciseId)
-                                },
-                                onShowPlateauDetails = { plateau ->
-                                    showPlateauDetailDialog = plateau
-                                },
-                                onShowGroupPlateauDetails = { groupTitle, plateauList ->
-                                    showGroupPlateauDialog = Pair(groupTitle, plateauList)
-                                }
-                            )
-                        } else {
-                            Text(
-                                text = "Modalità classica non disponibile in questa versione",
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                textAlign = TextAlign.Center
-                            )
+                        when (viewMode) {
+                            ViewMode.FULLSCREEN -> {
+                                FullscreenWorkoutContent(
+                                    workout = workout,
+                                    seriesState = seriesState,
+                                    isTimerRunning = isTimerRunning,
+                                    recoveryTime = recoveryTime,
+                                    currentRecoveryExerciseId = currentRecoveryExerciseId,
+                                    currentSelectedExerciseId = currentSelectedExerciseId,
+                                    exerciseValues = exerciseValues,
+                                    plateauInfo = plateauInfo,
+                                    elapsedTime = viewModel.getFormattedElapsedTime(), // AGGIUNTO
+                                    onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
+                                        Log.d("ActiveWorkout", "Completamento serie: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
+                                        viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
+                                    },
+                                    onStopTimer = {
+                                        viewModel.stopRecoveryTimer()
+                                    },
+                                    onSaveWorkout = {
+                                        showCompleteWorkoutDialog = true
+                                    },
+                                    onSelectExercise = { exerciseId ->
+                                        Log.d("ActiveWorkout", "Selezionato esercizio: $exerciseId")
+                                        viewModel.selectExercise(exerciseId)
+                                    },
+                                    onExerciseValuesChanged = { exerciseId, values ->
+                                        Log.d("ActiveWorkout", "Valori esercizio modificati: exerciseId=$exerciseId, weight=${values.first}, reps=${values.second}")
+                                        viewModel.saveExerciseValues(exerciseId, values.first, values.second)
+                                    },
+                                    onDismissPlateau = { exerciseId ->
+                                        viewModel.dismissPlateau(exerciseId)
+                                    },
+                                    onShowPlateauDetails = { plateau ->
+                                        showPlateauDetailDialog = plateau
+                                    },
+                                    onShowGroupPlateauDetails = { groupTitle, plateauList ->
+                                        showGroupPlateauDialog = Pair(groupTitle, plateauList)
+                                    },
+                                    onBack = { showExitConfirmDialog = true } // AGGIUNTO
+                                )
+                            }
+
+                            ViewMode.MODERN -> {
+                                ModernActiveWorkoutContent(
+                                    workout = workout,
+                                    seriesState = seriesState,
+                                    isTimerRunning = isTimerRunning,
+                                    recoveryTime = recoveryTime,
+                                    currentRecoveryExerciseId = currentRecoveryExerciseId,
+                                    currentSelectedExerciseId = currentSelectedExerciseId,
+                                    exerciseValues = exerciseValues,
+                                    plateauInfo = plateauInfo, // NUOVO
+                                    onSeriesCompleted = { exerciseId, weight, reps, serieNumber ->
+                                        Log.d("ActiveWorkout", "Completamento serie: exerciseId=$exerciseId, weight=$weight, reps=$reps, series=$serieNumber")
+                                        viewModel.addCompletedSeries(exerciseId, weight, reps, serieNumber)
+                                    },
+                                    onStopTimer = {
+                                        viewModel.stopRecoveryTimer()
+                                    },
+                                    onSaveWorkout = {
+                                        showCompleteWorkoutDialog = true
+                                    },
+                                    onSelectExercise = { exerciseId ->
+                                        Log.d("ActiveWorkout", "Selezionato esercizio: $exerciseId")
+                                        viewModel.selectExercise(exerciseId)
+                                    },
+                                    expandedGroups = expandedModernGroups,
+                                    onExerciseValuesChanged = { exerciseId, values ->
+                                        Log.d("ActiveWorkout", "Valori esercizio modificati: exerciseId=$exerciseId, weight=${values.first}, reps=${values.second}")
+                                        viewModel.saveExerciseValues(exerciseId, values.first, values.second)
+                                    },
+                                    // NUOVO: Callbacks per plateau
+                                    onDismissPlateau = { exerciseId ->
+                                        viewModel.dismissPlateau(exerciseId)
+                                    },
+                                    onShowPlateauDetails = { plateau ->
+                                        showPlateauDetailDialog = plateau
+                                    },
+                                    onShowGroupPlateauDetails = { groupTitle, plateauList ->
+                                        showGroupPlateauDialog = Pair(groupTitle, plateauList)
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -362,7 +412,7 @@ fun ActiveWorkoutScreen(
 
             // Timer di recupero
             AnimatedVisibility(
-                visible = recoveryTime > 0 && isTimerRunning,
+                visible = recoveryTime > 0 && isTimerRunning && viewMode != ViewMode.FULLSCREEN,
                 enter = fadeIn(animationSpec = tween(300)),
                 exit = fadeOut(animationSpec = tween(300)),
                 modifier = Modifier
