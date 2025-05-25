@@ -205,12 +205,13 @@ fun FullscreenWorkoutContent(
                 onBack = onBack
             )
 
-            // Contenuto principale - RIORGANIZZATO
+            // Contenuto principale con navigazione in fondo assoluto
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
             ) {
+                // Contenuto principale
                 FullscreenExerciseContentNew(
                     exercise = currentExercise,
                     group = currentGroup,
@@ -249,26 +250,27 @@ fun FullscreenWorkoutContent(
                         }
                     }
                 )
+
+                // MODIFICA: Navigazione posizionata in fondo assoluto
+                FullscreenNavigationBar(
+                    canGoPrev = currentGroupIndex > 0,
+                    canGoNext = currentGroupIndex < exerciseGroups.size - 1,
+                    currentIndex = currentGroupIndex,
+                    totalCount = exerciseGroups.size,
+                    exerciseGroups = exerciseGroups,
+                    onPrevious = navigateToPrevGroup,
+                    onNext = navigateToNextGroup,
+                    onJumpTo = { index ->
+                        currentGroupIndex = index
+
+                        val newGroup = exerciseGroups[index]
+                        if (newGroup.size > 1) {
+                            onSelectExercise(newGroup.first().id)
+                        }
+                    },
+                    modifier = Modifier.align(Alignment.BottomCenter) // AGGIUNTO: Allinea in fondo assoluto
+                )
             }
-
-            // Navigazione bottom
-            FullscreenNavigationBar(
-                canGoPrev = currentGroupIndex > 0,
-                canGoNext = currentGroupIndex < exerciseGroups.size - 1,
-                currentIndex = currentGroupIndex,
-                totalCount = exerciseGroups.size,
-                exerciseGroups = exerciseGroups,
-                onPrevious = navigateToPrevGroup,
-                onNext = navigateToNextGroup,
-                onJumpTo = { index ->
-                    currentGroupIndex = index
-
-                    val newGroup = exerciseGroups[index]
-                    if (newGroup.size > 1) {
-                        onSelectExercise(newGroup.first().id)
-                    }
-                }
-            )
         }
 
         // Timer di recupero overlay
@@ -351,11 +353,11 @@ private fun FullscreenExerciseContentNew(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(20.dp), // Riduciamo il padding da 24.dp
+            .padding(16.dp), // RIDOTTO: da 20.dp a 16.dp per recuperare più spazio
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(12.dp) // Riduciamo lo spacing
+        verticalArrangement = Arrangement.spacedBy(10.dp) // RIDOTTO: da 12.dp a 10.dp
     ) {
-        // Nome dell'esercizio con badge integrato - PIÙ COMPATTO
+        // Nome dell'esercizio con badge integrato - ULTRA COMPATTO
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -364,10 +366,10 @@ private fun FullscreenExerciseContentNew(
                 Text(
                     text = "${if (isSuperset) "Superset" else "Circuit"}: ${exercise.nome}",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 24.sp, // Riduciamo da 28.sp
+                    fontSize = 22.sp, // RIDOTTO: da 24.sp a 22.sp
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    lineHeight = 28.sp, // Riduciamo da 32.sp
+                    lineHeight = 26.sp, // RIDOTTO: da 28.sp a 26.sp
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -375,10 +377,10 @@ private fun FullscreenExerciseContentNew(
                 Text(
                     text = exercise.nome,
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 24.sp, // Riduciamo da 28.sp
+                    fontSize = 22.sp, // RIDOTTO: da 24.sp a 22.sp
                     fontWeight = FontWeight.Bold,
                     textAlign = TextAlign.Center,
-                    lineHeight = 28.sp, // Riduciamo da 32.sp
+                    lineHeight = 26.sp, // RIDOTTO: da 28.sp a 26.sp
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -402,10 +404,10 @@ private fun FullscreenExerciseContentNew(
             completedSeries = completedSeries.size
         )
 
-        // CONTROLLI PESO E RIPETIZIONI/SECONDI - PIÙ COMPATTI
+        // CONTROLLI PESO E RIPETIZIONI/SECONDI - ULTRA COMPATTI
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp) // Riduciamo da 16.dp
+            horizontalArrangement = Arrangement.spacedBy(10.dp) // RIDOTTO: da 12.dp a 10.dp
         ) {
             FullscreenValueCardCompact(
                 label = "Peso",
@@ -428,6 +430,7 @@ private fun FullscreenExerciseContentNew(
         if (isIsometric) {
             FullscreenIsometricTimerCompact(
                 seconds = currentReps,
+                currentSeriesNumber = currentSeriesNumber, // AGGIUNTO: numero serie per reset
                 onTimerComplete = onCompleteSeries,
                 isEnabled = completedSeries.size < exercise.serie,
                 modifier = Modifier.fillMaxWidth()
@@ -437,22 +440,22 @@ private fun FullscreenExerciseContentNew(
         // Spazio flessibile ma limitato
         Spacer(modifier = Modifier.weight(1f, fill = false))
 
-        // PULSANTE COMPLETA SERIE
+        // PULSANTE COMPLETA SERIE - PIÙ COMPATTO
         Button(
             onClick = onCompleteSeries,
             enabled = completedSeries.size < exercise.serie && !isTimerRunning,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp), // Riduciamo da 64.dp
+                .height(52.dp), // RIDOTTO: da 56.dp a 52.dp
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
             ),
-            shape = RoundedCornerShape(16.dp)
+            shape = RoundedCornerShape(14.dp) // RIDOTTO: da 16.dp a 14.dp
         ) {
             Text(
                 text = "Completa",
-                fontSize = 18.sp, // Riduciamo da 20.sp
+                fontSize = 17.sp, // RIDOTTO: da 18.sp a 17.sp
                 fontWeight = FontWeight.Bold
             )
         }
@@ -480,7 +483,7 @@ private fun SupersetNavigationTabsCompact(
 
     Row(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(3.dp) // Più compatto
+        horizontalArrangement = Arrangement.spacedBy(2.dp) // RIDOTTO: da 3.dp a 2.dp
     ) {
         exercises.forEach { exercise ->
             val isSelected = exercise.id == selectedExerciseId
@@ -506,7 +509,7 @@ private fun SupersetNavigationTabsCompact(
                     fontSize = 11.sp, // Più piccolo
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 8.dp), // Più piccolo
+                    modifier = Modifier.padding(horizontal = 5.dp, vertical = 6.dp), // RIDOTTO: padding più piccolo
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -516,7 +519,7 @@ private fun SupersetNavigationTabsCompact(
 }
 
 /**
- * COMPATTO: Card per il progresso delle serie
+ * COMPATTO: Card per il progresso delle serie - RIDOTTA ULTERIORMENTE
  */
 @Composable
 private fun SeriesProgressCardCompact(
@@ -525,39 +528,39 @@ private fun SeriesProgressCardCompact(
     completedSeries: Int
 ) {
     Surface(
-        shape = RoundedCornerShape(10.dp), // Più piccolo
+        shape = RoundedCornerShape(8.dp), // Riduciamo da 10.dp
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
-            modifier = Modifier.padding(12.dp), // Più piccolo
+            modifier = Modifier.padding(8.dp), // Riduciamo da 12.dp
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Serie $currentSeries",
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                fontSize = 12.sp // Più piccolo
+                fontSize = 11.sp // Riduciamo da 12.sp
             )
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(2.dp)) // Riduciamo da 4.dp
 
             Text(
                 text = "$completedSeries/$totalSeries",
                 color = MaterialTheme.colorScheme.onSurface,
-                fontSize = 20.sp, // Più piccolo
+                fontSize = 18.sp, // Riduciamo da 20.sp
                 fontWeight = FontWeight.Bold
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(6.dp)) // Riduciamo da 8.dp
 
             // Indicatori serie circolari compatti
             Row(
-                horizontalArrangement = Arrangement.spacedBy(4.dp) // Più piccolo
+                horizontalArrangement = Arrangement.spacedBy(3.dp) // Riduciamo da 4.dp
             ) {
                 repeat(totalSeries) { index ->
                     Box(
                         modifier = Modifier
-                            .size(8.dp) // Più piccolo
+                            .size(6.dp) // Riduciamo da 8.dp
                             .clip(CircleShape)
                             .background(
                                 when {
@@ -587,13 +590,13 @@ private fun FullscreenValueCardCompact(
     Surface(
         modifier = modifier
             .clickable { onTap() }
-            .height(110.dp), // Più piccolo da 120.dp
-        shape = RoundedCornerShape(14.dp), // Più piccolo
+            .height(100.dp), // RIDOTTO: da 110.dp a 100.dp
+        shape = RoundedCornerShape(12.dp), // RIDOTTO: da 14.dp a 12.dp
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
     ) {
         Column(
-            modifier = Modifier.padding(12.dp), // Più piccolo
+            modifier = Modifier.padding(10.dp), // RIDOTTO: da 12.dp a 10.dp
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
@@ -609,7 +612,7 @@ private fun FullscreenValueCardCompact(
             Text(
                 text = label,
                 color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                fontSize = 12.sp // Più piccolo
+                fontSize = 11.sp // RIDOTTO: da 12.sp a 11.sp
             )
 
             Spacer(modifier = Modifier.height(2.dp))
@@ -630,20 +633,21 @@ private fun FullscreenValueCardCompact(
 @Composable
 private fun FullscreenIsometricTimerCompact(
     seconds: Int,
+    currentSeriesNumber: Int, // AGGIUNTO: numero serie corrente
     onTimerComplete: () -> Unit,
     isEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var timeLeft by remember(seconds) { mutableStateOf(seconds) }
-    var isRunning by remember { mutableStateOf(false) }
-    var isCompleted by remember { mutableStateOf(false) }
+    var timeLeft by remember(seconds, currentSeriesNumber) { mutableStateOf(seconds) } // MODIFICATO: reset anche quando cambia serie
+    var isRunning by remember(currentSeriesNumber) { mutableStateOf(false) } // MODIFICATO: reset quando cambia serie
+    var isCompleted by remember(currentSeriesNumber) { mutableStateOf(false) } // MODIFICATO: reset quando cambia serie
 
     val context = LocalContext.current
     val soundManager = remember { SoundManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Reset quando cambiano i secondi
-    LaunchedEffect(seconds) {
+    // Reset quando cambiano i secondi O il numero della serie
+    LaunchedEffect(seconds, currentSeriesNumber) {
         timeLeft = seconds
         isCompleted = false
         isRunning = false
@@ -692,7 +696,7 @@ private fun FullscreenIsometricTimerCompact(
         }
     ) {
         Row( // Cambiamo da Column a Row per renderlo più compatto
-            modifier = Modifier.padding(16.dp), // Più piccolo
+            modifier = Modifier.padding(12.dp), // RIDOTTO: da 16.dp a 12.dp
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
@@ -710,7 +714,7 @@ private fun FullscreenIsometricTimerCompact(
                         timeLeft <= 3 && isRunning -> MaterialTheme.colorScheme.error
                         else -> MaterialTheme.colorScheme.onSurface
                     },
-                    fontSize = 28.sp, // Più piccolo da 64.sp
+                    fontSize = 24.sp, // RIDOTTO: da 28.sp a 24.sp
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -732,14 +736,14 @@ private fun FullscreenIsometricTimerCompact(
                         else
                             MaterialTheme.colorScheme.primary
                     ),
-                    modifier = Modifier.size(48.dp), // Più compatto
-                    shape = RoundedCornerShape(24.dp),
+                    modifier = Modifier.size(44.dp), // RIDOTTO: da 48.dp a 44.dp
+                    shape = RoundedCornerShape(22.dp), // AGGIORNATO: metà della size
                     contentPadding = PaddingValues(0.dp)
                 ) {
                     Icon(
                         imageVector = if (isRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = null,
-                        modifier = Modifier.size(20.dp)
+                        modifier = Modifier.size(18.dp) // RIDOTTO: da 20.dp a 18.dp
                     )
                 }
             } else if (isCompleted) {
@@ -747,7 +751,7 @@ private fun FullscreenIsometricTimerCompact(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = "Completato",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(22.dp) // RIDOTTO: da 24.dp a 22.dp
                 )
             }
         }
@@ -767,7 +771,7 @@ private fun PlateauBadgeCompact(
         modifier = Modifier.clickable { onClick() }
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), // Più piccolo
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp), // RIDOTTO: padding più piccolo
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Center
         ) {
@@ -775,10 +779,10 @@ private fun PlateauBadgeCompact(
                 imageVector = Icons.Default.TrendingFlat,
                 contentDescription = "Plateau",
                 tint = Color.White,
-                modifier = Modifier.size(14.dp) // Più piccolo
+                modifier = Modifier.size(12.dp) // RIDOTTO: da 14.dp a 12.dp
             )
 
-            Spacer(modifier = Modifier.width(6.dp))
+            Spacer(modifier = Modifier.width(5.dp)) // RIDOTTO: da 6.dp a 5.dp
 
             Text(
                 text = "Plateau",
@@ -848,20 +852,21 @@ private fun FullscreenValueCard(
 @Composable
 private fun FullscreenIsometricTimerNew(
     seconds: Int,
+    currentSeriesNumber: Int = 1, // AGGIUNTO: parametro opzionale
     onTimerComplete: () -> Unit,
     isEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var timeLeft by remember(seconds) { mutableStateOf(seconds) }
-    var isRunning by remember { mutableStateOf(false) }
-    var isCompleted by remember { mutableStateOf(false) }
+    var timeLeft by remember(seconds, currentSeriesNumber) { mutableStateOf(seconds) } // MODIFICATO
+    var isRunning by remember(currentSeriesNumber) { mutableStateOf(false) } // MODIFICATO
+    var isCompleted by remember(currentSeriesNumber) { mutableStateOf(false) } // MODIFICATO
 
     val context = LocalContext.current
     val soundManager = remember { SoundManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    // Reset quando cambiano i secondi
-    LaunchedEffect(seconds) {
+    // Reset quando cambiano i secondi O il numero della serie
+    LaunchedEffect(seconds, currentSeriesNumber) {
         timeLeft = seconds
         isCompleted = false
         isRunning = false
@@ -1093,7 +1098,7 @@ private fun FullscreenWorkoutHeader(
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp) // RIDOTTO: padding verticale da 16.dp a 8.dp
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -1103,25 +1108,19 @@ private fun FullscreenWorkoutHeader(
                 Text(
                     text = "Esercizio ${currentGroupIndex + 1} di $totalGroups",
                     color = MaterialTheme.colorScheme.onSurface,
-                    fontSize = 16.sp,
+                    fontSize = 14.sp, // RIDOTTO: da 16.sp a 14.sp
                     fontWeight = FontWeight.Medium
-                )
-
-                Text(
-                    text = "Durata: $elapsedTime",
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    fontSize = 14.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(6.dp)) // RIDOTTO: da 12.dp a 6.dp
 
             LinearProgressIndicator(
                 progress = { totalProgress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
-                    .clip(RoundedCornerShape(3.dp)),
+                    .height(4.dp) // RIDOTTO: da 6.dp a 4.dp
+                    .clip(RoundedCornerShape(2.dp)), // RIDOTTO: da 3.dp a 2.dp
                 color = MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             )
@@ -1129,6 +1128,9 @@ private fun FullscreenWorkoutHeader(
     }
 }
 
+/**
+ * MODIFICA: Navigation bar con padding ridotto per stare più in basso
+ */
 @Composable
 private fun FullscreenNavigationBar(
     canGoPrev: Boolean,
@@ -1138,16 +1140,17 @@ private fun FullscreenNavigationBar(
     exerciseGroups: List<List<WorkoutExercise>>,
     onPrevious: () -> Unit,
     onNext: () -> Unit,
-    onJumpTo: (Int) -> Unit
+    onJumpTo: (Int) -> Unit,
+    modifier: Modifier = Modifier // AGGIUNTO: parametro modifier
 ) {
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(), // MODIFICATO: usa il modifier passato
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f)
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(horizontal = 16.dp, vertical = 8.dp), // RIDOTTO: padding verticale da 16.dp a 8.dp
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -1158,24 +1161,24 @@ private fun FullscreenNavigationBar(
                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) // RIDOTTO: padding verticale
             ) {
                 Icon(
                     imageVector = Icons.Default.ChevronLeft,
                     contentDescription = "Precedente",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp) // RIDOTTO: dimensione icona
                 )
                 Spacer(modifier = Modifier.width(4.dp))
-                Text("Prec")
+                Text("Prec", fontSize = 14.sp) // RIDOTTO: dimensione testo
             }
 
             Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(6.dp) // RIDOTTO: spacing tra indicatori
             ) {
                 repeat(totalCount) { index ->
                     Box(
                         modifier = Modifier
-                            .size(if (index == currentIndex) 12.dp else 8.dp)
+                            .size(if (index == currentIndex) 10.dp else 6.dp) // RIDOTTO: dimensioni indicatori
                             .clip(CircleShape)
                             .background(
                                 when {
@@ -1196,14 +1199,14 @@ private fun FullscreenNavigationBar(
                     containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                     contentColor = MaterialTheme.colorScheme.primary
                 ),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 12.dp)
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp) // RIDOTTO: padding verticale
             ) {
-                Text("Succ")
+                Text("Succ", fontSize = 14.sp) // RIDOTTO: dimensione testo
                 Spacer(modifier = Modifier.width(4.dp))
                 Icon(
                     imageVector = Icons.Default.ChevronRight,
                     contentDescription = "Successivo",
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp) // RIDOTTO: dimensione icona
                 )
             }
         }
