@@ -1,3 +1,32 @@
+
+import java.util.*
+fun getGitCommitCount(): Int {
+    return try {
+        val output = "git rev-list --count HEAD".runCommand()
+        output.trim().toInt()
+    } catch (e: Exception) {
+        1
+    }
+}
+
+fun getGitSha(): String {
+    return try {
+        "git rev-parse --short HEAD".runCommand().trim()
+    } catch (e: Exception) {
+        "dev"
+    }
+}
+
+fun String.runCommand(): String {
+    return ProcessBuilder(*split(" ").toTypedArray())
+        .directory(rootDir)
+        .redirectErrorStream(true)
+        .start()
+        .inputStream
+        .bufferedReader()
+        .readText()
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -12,8 +41,8 @@ android {
         applicationId = "com.fitgymtrack.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 6
-        versionName = "0.12"
+        versionCode = getGitCommitCount()
+        versionName = "0.0.${getGitCommitCount()}-${getGitSha()}"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -126,4 +155,6 @@ dependencies {
 
 // Per il NumberPicker
     implementation("com.chargemap.compose:numberpicker:1.0.3")
+
 }
+
