@@ -844,7 +844,7 @@ private fun isSuperset(exercise: WorkoutExercise): Boolean {
 }
 
 /**
- * Raggruppa gli esercizi in base al tipo di set e alla connessione
+ * Raggruppa gli esercizi in base al tipo di set e alla connessionee
  */
 private fun groupExercisesByType(exercises: List<WorkoutExercise>): List<List<WorkoutExercise>> {
     val result = mutableListOf<List<WorkoutExercise>>()
