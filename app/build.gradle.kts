@@ -12,8 +12,8 @@ android {
         applicationId = "com.fitgymtrack.app"
         minSdk = 24
         targetSdk = 35
-        versionCode = 5
-        versionName = "1.11"
+        versionCode = 6
+        versionName = "0.12"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
