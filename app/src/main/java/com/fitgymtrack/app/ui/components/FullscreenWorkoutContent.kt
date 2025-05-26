@@ -6,6 +6,9 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -29,6 +32,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
@@ -229,7 +234,9 @@ fun FullscreenWorkoutContent(
     onDismissPlateau: (Int) -> Unit = {},
     onShowPlateauDetails: (PlateauInfo) -> Unit = {},
     onShowGroupPlateauDetails: (String, List<PlateauInfo>) -> Unit = { _, _ -> },
-    onBack: () -> Unit = {}
+    onBack: () -> Unit = {},
+    onNavigateToNext: () -> Unit = {},  // Callback per navigare al prossimo esercizio
+    onWorkoutComplete: () -> Unit = {}  // Callback quando l'allenamento è completato
 ) {
     val screenSize = rememberScreenSize()
 
@@ -256,7 +263,9 @@ fun FullscreenWorkoutContent(
             onDismissPlateau = onDismissPlateau,
             onShowPlateauDetails = onShowPlateauDetails,
             onShowGroupPlateauDetails = onShowGroupPlateauDetails,
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToNext = onNavigateToNext,
+            onWorkoutComplete = onWorkoutComplete
         )
 
         ScreenSize.Medium -> MediumScreenWorkoutLayout(
@@ -277,7 +286,9 @@ fun FullscreenWorkoutContent(
             onDismissPlateau = onDismissPlateau,
             onShowPlateauDetails = onShowPlateauDetails,
             onShowGroupPlateauDetails = onShowGroupPlateauDetails,
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToNext = onNavigateToNext,
+            onWorkoutComplete = onWorkoutComplete
         )
 
         ScreenSize.Large -> LargeScreenWorkoutLayout(
@@ -298,7 +309,9 @@ fun FullscreenWorkoutContent(
             onDismissPlateau = onDismissPlateau,
             onShowPlateauDetails = onShowPlateauDetails,
             onShowGroupPlateauDetails = onShowGroupPlateauDetails,
-            onBack = onBack
+            onBack = onBack,
+            onNavigateToNext = onNavigateToNext,
+            onWorkoutComplete = onWorkoutComplete
         )
     }
 }
@@ -325,7 +338,9 @@ private fun SmallScreenWorkoutLayout(
     onDismissPlateau: (Int) -> Unit,
     onShowPlateauDetails: (PlateauInfo) -> Unit,
     onShowGroupPlateauDetails: (String, List<PlateauInfo>) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNext: () -> Unit = {},
+    onWorkoutComplete: () -> Unit = {}
 ) {
     // Setup base come il layout originale
     val exerciseGroups = groupExercisesByType(workout.esercizi)
@@ -346,6 +361,30 @@ private fun SmallScreenWorkoutLayout(
     val completedSeries = seriesMap[currentExercise.id] ?: emptyList()
     val currentSeriesNumber = completedSeries.size + 1
 
+    // Controlla se l'esercizio corrente è completato
+    val isCurrentExerciseCompleted = completedSeries.size >= currentExercise.serie
+    val hasMoreExercises = currentGroupIndex < exerciseGroups.size - 1
+
+    // Controlla se TUTTI gli esercizi dell'allenamento sono completati
+    val isAllWorkoutCompleted = calculateAllExercisesCompleted(exerciseGroups, seriesMap)
+
+    // Funzione helper per auto-navigazione dopo timer
+    val onRecoveryTimerComplete = {
+        if (isCurrentExerciseCompleted && hasMoreExercises) {
+            // Passa automaticamente al prossimo esercizio
+            currentGroupIndex++
+            val newGroup = exerciseGroups[currentGroupIndex]
+            if (newGroup.size > 1) {
+                onSelectExercise(newGroup.first().id)
+            }
+            onNavigateToNext()
+        } else if (isCurrentExerciseCompleted && !hasMoreExercises) {
+            // Allenamento completato
+            onWorkoutComplete()
+        }
+        onStopTimer()
+    }
+
     // Valori peso e ripetizioni
     val values = exerciseValues[currentExercise.id]
     var currentWeight by remember(values) {
@@ -358,6 +397,7 @@ private fun SmallScreenWorkoutLayout(
     // Dialog states
     var showWeightPicker by remember { mutableStateOf(false) }
     var showRepsPicker by remember { mutableStateOf(false) }
+    var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
 
     // Plateau info
     val exercisePlateau = plateauInfo[currentExercise.id]
@@ -482,33 +522,26 @@ private fun SmallScreenWorkoutLayout(
 
                 // Pulsante completa serie
                 item {
-                    Button(
+                    WorkoutCompleteButton(
+                        isWorkoutCompleted = isAllWorkoutCompleted,
+                        currentSeriesNumber = currentSeriesNumber,
+                        isEnabled = completedSeries.size < currentExercise.serie && !isTimerRunning,
                         onClick = {
-                            onSeriesCompleted(
-                                currentExercise.id,
-                                currentWeight,
-                                currentReps,
-                                currentSeriesNumber
-                            )
-                            coroutineScope.launch {
-                                soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                            if (isAllWorkoutCompleted) {
+                                showCompleteWorkoutDialog = true
+                            } else {
+                                onSeriesCompleted(
+                                    currentExercise.id,
+                                    currentWeight,
+                                    currentReps,
+                                    currentSeriesNumber
+                                )
+                                coroutineScope.launch {
+                                    soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                                }
                             }
-                        },
-                        enabled = completedSeries.size < currentExercise.serie && !isTimerRunning,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(48.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(
-                            text = "Completa Serie ${currentSeriesNumber}",
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
+                        }
+                    )
                 }
 
                 // Badge plateau
@@ -549,7 +582,9 @@ private fun SmallScreenWorkoutLayout(
         ) {
             SmallScreenRecoveryTimer(
                 seconds = recoveryTime,
-                onStop = onStopTimer
+                isExerciseCompleted = isCurrentExerciseCompleted,
+                hasMoreExercises = hasMoreExercises,
+                onStop = onRecoveryTimerComplete
             )
         }
     }
@@ -586,6 +621,39 @@ private fun SmallScreenWorkoutLayout(
         PlateauDetailDialog(
             plateauInfo = plateau,
             onDismiss = { showPlateauDialog = null }
+        )
+    }
+
+    // Dialog completamento allenamento
+    if (showCompleteWorkoutDialog) {
+        CompleteWorkoutConfirmDialog(
+            onDismiss = { showCompleteWorkoutDialog = false },
+            onConfirm = {
+                showCompleteWorkoutDialog = false
+                onWorkoutComplete()
+            }
+        )
+    }
+
+    // Dialog completamento allenamento
+    if (showCompleteWorkoutDialog) {
+        CompleteWorkoutConfirmDialog(
+            onDismiss = { showCompleteWorkoutDialog = false },
+            onConfirm = {
+                showCompleteWorkoutDialog = false
+                onWorkoutComplete()
+            }
+        )
+    }
+
+    // Dialog completamento allenamento
+    if (showCompleteWorkoutDialog) {
+        CompleteWorkoutConfirmDialog(
+            onDismiss = { showCompleteWorkoutDialog = false },
+            onConfirm = {
+                showCompleteWorkoutDialog = false
+                onWorkoutComplete()
+            }
         )
     }
 }
@@ -941,6 +1009,8 @@ private fun SmallScreenMiniNavigation(
 @Composable
 private fun SmallScreenRecoveryTimer(
     seconds: Int,
+    isExerciseCompleted: Boolean = false,
+    hasMoreExercises: Boolean = true,
     onStop: () -> Unit
 ) {
     var timeLeft by remember(seconds) { mutableStateOf(seconds) }
@@ -969,6 +1039,7 @@ private fun SmallScreenRecoveryTimer(
             coroutineScope.launch {
                 soundManager.playWorkoutSound(SoundManager.WorkoutSound.REST_COMPLETE)
             }
+            onStop()
         }
     }
 
@@ -978,9 +1049,25 @@ private fun SmallScreenRecoveryTimer(
         String.format("%02d:%02d", minutes, secs)
     }
 
+    val (titleText, buttonText) = when {
+        isExerciseCompleted && hasMoreExercises -> {
+            "Prossimo Esercizio" to "Continua"
+        }
+        isExerciseCompleted && !hasMoreExercises -> {
+            "Quasi Finito!" to "Completa"
+        }
+        else -> {
+            "Recupero" to "Salta"
+        }
+    }
+
     Surface(
         shape = RoundedCornerShape(20.dp),
-        color = MaterialTheme.colorScheme.primary,
+        color = when {
+            isExerciseCompleted && hasMoreExercises -> MaterialTheme.colorScheme.secondary
+            isExerciseCompleted && !hasMoreExercises -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
+        },
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -992,7 +1079,11 @@ private fun SmallScreenRecoveryTimer(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Timer,
+                    imageVector = when {
+                        isExerciseCompleted && hasMoreExercises -> Icons.Default.NavigateNext
+                        isExerciseCompleted && !hasMoreExercises -> Icons.Default.Flag
+                        else -> Icons.Default.Timer
+                    },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(20.dp)
@@ -1002,9 +1093,10 @@ private fun SmallScreenRecoveryTimer(
 
                 Column {
                     Text(
-                        text = "Recupero",
-                        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                        fontSize = 12.sp
+                        text = titleText,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
                     )
                     Text(
                         text = formattedTime,
@@ -1026,7 +1118,7 @@ private fun SmallScreenRecoveryTimer(
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    "Salta",
+                    buttonText,
                     color = MaterialTheme.colorScheme.onPrimary,
                     fontSize = 12.sp
                 )
@@ -1056,7 +1148,9 @@ private fun MediumScreenWorkoutLayout(
     onDismissPlateau: (Int) -> Unit,
     onShowPlateauDetails: (PlateauInfo) -> Unit,
     onShowGroupPlateauDetails: (String, List<PlateauInfo>) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNext: () -> Unit = {},  // Callback per navigare al prossimo esercizio
+    onWorkoutComplete: () -> Unit = {}  // Callback quando l'allenamento è completato
 ) {
     // Per medium screen usiamo un layout simile al large ma leggermente più compatto
     LargeScreenWorkoutLayout(
@@ -1077,7 +1171,9 @@ private fun MediumScreenWorkoutLayout(
         onDismissPlateau = onDismissPlateau,
         onShowPlateauDetails = onShowPlateauDetails,
         onShowGroupPlateauDetails = onShowGroupPlateauDetails,
-        onBack = onBack
+        onBack = onBack,
+        onNavigateToNext = onNavigateToNext,
+        onWorkoutComplete = onWorkoutComplete
     )
 }
 
@@ -1100,7 +1196,9 @@ private fun LargeScreenWorkoutLayout(
     onDismissPlateau: (Int) -> Unit,
     onShowPlateauDetails: (PlateauInfo) -> Unit,
     onShowGroupPlateauDetails: (String, List<PlateauInfo>) -> Unit,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToNext: () -> Unit = {},  // Callback per navigare al prossimo esercizio
+    onWorkoutComplete: () -> Unit = {}  // Callback quando l'allenamento è completato
 ) {
     // Setup base come il layout originale
     val exerciseGroups = groupExercisesByType(workout.esercizi)
@@ -1133,6 +1231,7 @@ private fun LargeScreenWorkoutLayout(
     // Dialog states
     var showWeightPicker by remember { mutableStateOf(false) }
     var showRepsPicker by remember { mutableStateOf(false) }
+    var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
 
     // Plateau info
     val exercisePlateau = plateauInfo[currentExercise.id]
@@ -1145,6 +1244,30 @@ private fun LargeScreenWorkoutLayout(
 
     // Calcola progresso generale
     val totalProgress = calculateWorkoutProgress(exerciseGroups, seriesMap)
+
+    // Controlla se l'esercizio corrente è completato
+    val isCurrentExerciseCompleted = completedSeries.size >= currentExercise.serie
+    val hasMoreExercises = currentGroupIndex < exerciseGroups.size - 1
+
+    // Controlla se TUTTI gli esercizi dell'allenamento sono completati
+    val isAllWorkoutCompleted = calculateAllExercisesCompleted(exerciseGroups, seriesMap)
+
+    // Funzione helper per auto-navigazione dopo timer
+    val onRecoveryTimerComplete = {
+        if (isCurrentExerciseCompleted && hasMoreExercises) {
+            // Passa automaticamente al prossimo esercizio
+            currentGroupIndex++
+            val newGroup = exerciseGroups[currentGroupIndex]
+            if (newGroup.size > 1) {
+                onSelectExercise(newGroup.first().id)
+            }
+            onNavigateToNext()
+        } else if (isCurrentExerciseCompleted && !hasMoreExercises) {
+            // Allenamento completato
+            onWorkoutComplete()
+        }
+        onStopTimer()
+    }
 
     // Aggiorna i valori quando cambia l'esercizio
     LaunchedEffect(currentExercise.id, values) {
@@ -1210,6 +1333,7 @@ private fun LargeScreenWorkoutLayout(
                 totalGroups = exerciseGroups.size,
                 totalProgress = totalProgress,
                 elapsedTime = elapsedTime,
+                isAllWorkoutCompleted = isAllWorkoutCompleted,
                 onBack = onBack
             )
 
@@ -1229,6 +1353,7 @@ private fun LargeScreenWorkoutLayout(
                     currentReps = currentReps,
                     plateau = exercisePlateau,
                     isTimerRunning = isTimerRunning,
+                    isAllWorkoutCompleted = isAllWorkoutCompleted,
                     onWeightChange = { weight ->
                         currentWeight = weight
                         onExerciseValuesChanged(currentExercise.id, Pair(weight, currentReps))
@@ -1245,15 +1370,19 @@ private fun LargeScreenWorkoutLayout(
                     },
                     selectedExerciseId = currentSelectedExerciseId,
                     onCompleteSeries = {
-                        onSeriesCompleted(
-                            currentExercise.id,
-                            currentWeight,
-                            currentReps,
-                            currentSeriesNumber
-                        )
+                        if (isAllWorkoutCompleted) {
+                            showCompleteWorkoutDialog = true
+                        } else {
+                            onSeriesCompleted(
+                                currentExercise.id,
+                                currentWeight,
+                                currentReps,
+                                currentSeriesNumber
+                            )
 
-                        coroutineScope.launch {
-                            soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                            coroutineScope.launch {
+                                soundManager.playWorkoutSound(SoundManager.WorkoutSound.SERIES_COMPLETE)
+                            }
                         }
                     }
                 )
@@ -1290,7 +1419,9 @@ private fun LargeScreenWorkoutLayout(
         ) {
             FullscreenRecoveryTimer(
                 seconds = recoveryTime,
-                onStop = onStopTimer
+                isExerciseCompleted = isCurrentExerciseCompleted,
+                hasMoreExercises = hasMoreExercises,
+                onStop = onRecoveryTimerComplete
             )
         }
     }
@@ -1344,6 +1475,7 @@ private fun FullscreenExerciseContentNew(
     currentReps: Int,
     plateau: PlateauInfo?,
     isTimerRunning: Boolean,
+    isAllWorkoutCompleted: Boolean = false,
     onWeightChange: (Float) -> Unit,
     onRepsChange: (Int) -> Unit,
     onShowWeightPicker: () -> Unit,
@@ -1449,24 +1581,13 @@ private fun FullscreenExerciseContentNew(
         Spacer(modifier = Modifier.weight(1f, fill = false))
 
         // PULSANTE COMPLETA SERIE - PIÙ COMPATTO
-        Button(
+        WorkoutCompleteButton(
+            isWorkoutCompleted = isAllWorkoutCompleted,
+            currentSeriesNumber = currentSeriesNumber,
+            isEnabled = completedSeries.size < exercise.serie && !isTimerRunning,
             onClick = onCompleteSeries,
-            enabled = completedSeries.size < exercise.serie && !isTimerRunning,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
-            ),
-            shape = RoundedCornerShape(14.dp)
-        ) {
-            Text(
-                text = "Completa",
-                fontSize = 17.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
+            modifier = Modifier.fillMaxWidth()
+        )
 
         // BADGE PLATEAU - COMPATTO
         if (plateau != null) {
@@ -1809,7 +1930,9 @@ private fun FullscreenWorkoutHeader(
     totalGroups: Int,
     totalProgress: Float,
     elapsedTime: String,
-    onBack: () -> Unit
+    isAllWorkoutCompleted: Boolean = false,
+    onBack: () -> Unit,
+    onCompleteWorkout: () -> Unit = {}
 ) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -1829,6 +1952,21 @@ private fun FullscreenWorkoutHeader(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium
                 )
+
+                if (isAllWorkoutCompleted) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = Color(0xFF4CAF50).copy(alpha = 0.2f)
+                    ) {
+                        Text(
+                            text = "🎉 Completato!",
+                            color = Color(0xFF4CAF50),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(6.dp))
@@ -1839,7 +1977,7 @@ private fun FullscreenWorkoutHeader(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = MaterialTheme.colorScheme.primary,
+                color = if (isAllWorkoutCompleted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
                 trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
             )
         }
@@ -1934,6 +2072,8 @@ private fun FullscreenNavigationBar(
 @Composable
 private fun FullscreenRecoveryTimer(
     seconds: Int,
+    isExerciseCompleted: Boolean = false,
+    hasMoreExercises: Boolean = true,
     onStop: () -> Unit
 ) {
     var timeLeft by remember(seconds) { mutableStateOf(seconds) }
@@ -1962,6 +2102,8 @@ private fun FullscreenRecoveryTimer(
             coroutineScope.launch {
                 soundManager.playWorkoutSound(SoundManager.WorkoutSound.REST_COMPLETE)
             }
+            // Auto-navigazione gestita dal callback onStop
+            onStop()
         }
     }
 
@@ -1971,9 +2113,26 @@ private fun FullscreenRecoveryTimer(
         String.format("%02d:%02d", minutes, secs)
     }
 
+    // Messaggi dinamici basati sullo stato
+    val (titleText, descriptionText) = when {
+        isExerciseCompleted && hasMoreExercises -> {
+            "Esercizio Completato!" to "Passaggio al prossimo esercizio..."
+        }
+        isExerciseCompleted && !hasMoreExercises -> {
+            "Allenamento Quasi Finito!" to "Preparati per il completamento..."
+        }
+        else -> {
+            "Recupero" to "Riposa tra le serie"
+        }
+    }
+
     Surface(
         shape = RoundedCornerShape(16.dp),
-        color = MaterialTheme.colorScheme.primary,
+        color = when {
+            isExerciseCompleted && hasMoreExercises -> MaterialTheme.colorScheme.secondary
+            isExerciseCompleted && !hasMoreExercises -> MaterialTheme.colorScheme.tertiary
+            else -> MaterialTheme.colorScheme.primary
+        },
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(
@@ -1985,7 +2144,11 @@ private fun FullscreenRecoveryTimer(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    imageVector = Icons.Default.Timer,
+                    imageVector = when {
+                        isExerciseCompleted && hasMoreExercises -> Icons.Default.NavigateNext
+                        isExerciseCompleted && !hasMoreExercises -> Icons.Default.Flag
+                        else -> Icons.Default.Timer
+                    },
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(24.dp)
@@ -1995,9 +2158,15 @@ private fun FullscreenRecoveryTimer(
 
                 Column {
                     Text(
-                        text = "Recupero",
+                        text = titleText,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = descriptionText,
                         color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.8f),
-                        fontSize = 14.sp
+                        fontSize = 12.sp
                     )
                     Text(
                         text = formattedTime,
@@ -2018,7 +2187,7 @@ private fun FullscreenRecoveryTimer(
                 )
             ) {
                 Text(
-                    "Salta",
+                    text = if (isExerciseCompleted) "Continua" else "Salta",
                     color = MaterialTheme.colorScheme.onPrimary
                 )
             }
@@ -2027,6 +2196,151 @@ private fun FullscreenRecoveryTimer(
 }
 
 // ======== FUNZIONI HELPER ========
+
+/**
+ * Calcola se tutti gli esercizi dell'allenamento sono completati
+ */
+private fun calculateAllExercisesCompleted(
+    exerciseGroups: List<List<WorkoutExercise>>,
+    seriesMap: Map<Int, List<CompletedSeries>>
+): Boolean {
+    return exerciseGroups.all { group ->
+        group.all { exercise ->
+            val completedSeries = seriesMap[exercise.id] ?: emptyList()
+            completedSeries.size >= exercise.serie
+        }
+    }
+}
+
+/**
+ * Pulsante intelligente che lampeggia quando l'allenamento è completato
+ */
+@Composable
+private fun WorkoutCompleteButton(
+    isWorkoutCompleted: Boolean,
+    currentSeriesNumber: Int,
+    isEnabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Animazione lampeggiante solo quando l'allenamento è completato
+    val blinkAnimation by animateFloatAsState(
+        targetValue = if (isWorkoutCompleted && isEnabled) 1f else 0f,
+        animationSpec = if (isWorkoutCompleted && isEnabled) {
+            infiniteRepeatable(
+                animation = tween(600, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        },
+        label = "blink"
+    )
+
+    val buttonColor = when {
+        isWorkoutCompleted && isEnabled -> {
+            lerp(
+                Color(0xFF4CAF50), // Verde brillante
+                Color(0xFF81C784), // Verde più chiaro
+                blinkAnimation
+            )
+        }
+        else -> MaterialTheme.colorScheme.primary
+    }
+
+    val buttonText = when {
+        isWorkoutCompleted -> "🏁 Completa Allenamento!"
+        else -> "Completa Serie $currentSeriesNumber"
+    }
+
+    Button(
+        onClick = onClick,
+        enabled = isEnabled,
+        modifier = modifier.height(if (isWorkoutCompleted) 56.dp else 52.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = buttonColor,
+            disabledContainerColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)
+        ),
+        shape = RoundedCornerShape(14.dp)
+    ) {
+        Text(
+            text = buttonText,
+            fontSize = if (isWorkoutCompleted) 18.sp else 17.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White
+        )
+    }
+}
+
+/**
+ * Dialog di conferma per completare l'allenamento
+ */
+@Composable
+private fun CompleteWorkoutConfirmDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Flag,
+                    contentDescription = null,
+                    tint = Color(0xFF4CAF50),
+                    modifier = Modifier.size(28.dp)
+                )
+                Text(
+                    text = "Completa l'allenamento?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column {
+                Text(
+                    text = "🎉 Fantastico! Hai completato tutti gli esercizi!",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Vuoi finalizzare l'allenamento? Potrai visualizzarlo nello storico e vedere i tuoi progressi.",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF4CAF50)
+                )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("Completa", fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            OutlinedButton(
+                onClick = onDismiss
+            ) {
+                Text("Continua")
+            }
+        }
+    )
+}
 
 private fun truncateExerciseName(name: String, maxLength: Int = 12): String {
     return if (name.length <= maxLength) {

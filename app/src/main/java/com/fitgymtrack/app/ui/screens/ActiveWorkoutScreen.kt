@@ -3,6 +3,10 @@ package com.fitgymtrack.app.ui.screens
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
@@ -21,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -98,6 +103,54 @@ fun ActiveWorkoutScreen(
 
     // Stato per tenere traccia dei gruppi espansi nella visualizzazione moderna
     val expandedModernGroups = remember { mutableStateMapOf<Int, Boolean>() }
+
+    // NUOVO: Calcola se tutti gli esercizi sono completati
+    val isAllWorkoutCompleted = remember(workoutState, seriesState) {
+        val currentWorkoutState = workoutState
+        val currentSeriesState = seriesState
+
+        if (currentWorkoutState is ActiveWorkoutState.Success) {
+            val workout = currentWorkoutState.workout
+            val seriesMap = when (currentSeriesState) {
+                is CompletedSeriesState.Success -> currentSeriesState.series
+                else -> emptyMap()
+            }
+
+            workout.esercizi.all { exercise ->
+                val completedSeries = seriesMap[exercise.id] ?: emptyList()
+                completedSeries.size >= exercise.serie
+            }
+        } else {
+            false
+        }
+    }
+
+    // NUOVO: Animazioni per l'icona di completamento
+    val checkIconAlpha by animateFloatAsState(
+        targetValue = if (isAllWorkoutCompleted) 1f else 0.7f,
+        animationSpec = if (isAllWorkoutCompleted) {
+            infiniteRepeatable(
+                animation = tween(800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        },
+        label = "checkIconBlink"
+    )
+
+    val checkIconScale by animateFloatAsState(
+        targetValue = if (isAllWorkoutCompleted) 1.2f else 1f,
+        animationSpec = if (isAllWorkoutCompleted) {
+            infiniteRepeatable(
+                animation = tween(800, easing = LinearEasing),
+                repeatMode = RepeatMode.Reverse
+            )
+        } else {
+            tween(300)
+        },
+        label = "checkIconScale"
+    )
 
     val context = LocalContext.current
 
@@ -205,13 +258,42 @@ fun ActiveWorkoutScreen(
                         )
                     }
 
-                    // Pulsante completa allenamento (più chiaro)
+                    // ICONA COMPLETAMENTO ALLENAMENTO LAMPEGGIANTE 🎉
                     if (!workoutCompleted) {
-                        IconButton(onClick = { showCompleteWorkoutDialog = true }) {
-                            Icon(
-                                imageVector = Icons.Default.Done,              // Icona "fatto" più chiara della V
-                                contentDescription = "Completa allenamento"
-                            )
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    if (isAllWorkoutCompleted)
+                                        Color(0xFF4CAF50).copy(alpha = 0.2f)
+                                    else
+                                        Color.Transparent
+                                ),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            IconButton(
+                                onClick = {
+                                    if (isAllWorkoutCompleted) {
+                                        showCompleteWorkoutDialog = true
+                                    } else {
+                                        showCompleteWorkoutDialog = true
+                                    }
+                                }
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Done,
+                                    contentDescription = if (isAllWorkoutCompleted) "Completa Allenamento - Tutti gli esercizi completati!" else "Completa allenamento",
+                                    tint = if (isAllWorkoutCompleted) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier
+                                        .size(24.dp)
+                                        .graphicsLayer(
+                                            alpha = checkIconAlpha,
+                                            scaleX = checkIconScale,
+                                            scaleY = checkIconScale
+                                        )
+                                )
+                            }
                         }
                     }
                 }
@@ -345,7 +427,16 @@ fun ActiveWorkoutScreen(
                                     onShowGroupPlateauDetails = { groupTitle, plateauList ->
                                         showGroupPlateauDialog = Pair(groupTitle, plateauList)
                                     },
-                                    onBack = { showExitConfirmDialog = true } // AGGIUNTO
+                                    onBack = { showExitConfirmDialog = true }, // AGGIUNTO
+                                    onNavigateToNext = {
+                                        // Callback per navigare al prossimo esercizio
+                                        Log.d("ActiveWorkout", "Navigating to next exercise")
+                                    },
+                                    onWorkoutComplete = {
+                                        // Callback quando l'allenamento è completato
+                                        Log.d("ActiveWorkout", "Workout completed via FullscreenWorkoutContent")
+                                        showCompleteWorkoutDialog = true
+                                    }
                                 )
                             }
 
