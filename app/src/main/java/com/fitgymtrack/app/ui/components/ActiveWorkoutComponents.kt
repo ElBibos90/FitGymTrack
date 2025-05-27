@@ -21,6 +21,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import com.fitgymtrack.app.utils.SoundManager
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * Timer di recupero dopo una serie
@@ -90,7 +91,7 @@ fun RecoveryTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val remainingSeconds = timeLeft % 60
-        String.format("%02d:%02d", minutes, remainingSeconds)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, remainingSeconds)
     }
 
     Surface(
@@ -250,7 +251,7 @@ fun IsometricTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val seconds = timeLeft % 60
-        String.format("%02d:%02d", minutes, seconds)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, seconds)
     }
 
     Surface(

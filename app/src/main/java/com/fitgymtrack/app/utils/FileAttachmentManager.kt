@@ -10,6 +10,7 @@ import com.fitgymtrack.app.models.LocalAttachment
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
+import java.util.Locale
 
 object FileAttachmentManager {
 
@@ -150,8 +151,8 @@ object FileAttachmentManager {
         val mb = kb / 1024.0
 
         return when {
-            mb >= 1 -> String.format("%.1f MB", mb)
-            kb >= 1 -> String.format("%.1f KB", kb)
+            mb >= 1 -> String.format(Locale.getDefault(),"%.1f MB", mb)
+            kb >= 1 -> String.format(Locale.getDefault(),"%.1f KB", kb)
             else -> "$bytes B"
         }
     }

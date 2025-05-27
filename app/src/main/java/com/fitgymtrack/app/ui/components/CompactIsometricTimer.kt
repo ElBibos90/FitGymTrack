@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 /**
  * Timer compatto per esercizi isometrici all'interno di superset e circuit
@@ -55,7 +56,7 @@ fun CompactIsometricTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val remainingSeconds = timeLeft % 60
-        String.format("%02d:%02d", minutes, remainingSeconds)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, remainingSeconds)
     }
 
     Surface(

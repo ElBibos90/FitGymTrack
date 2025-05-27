@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.models.UserStats
 import com.fitgymtrack.app.ui.theme.*
+import java.util.Locale
 
 /**
  * Card delle statistiche per utenti Premium nella Dashboard
@@ -170,7 +171,7 @@ fun DashboardStatsCard(
                         // Media settimanale
                         StatCard(
                             icon = Icons.AutoMirrored.Default.TrendingUp,
-                            value = "${String.format("%.1f", stats.weeklyAverage)}",
+                            value = "${String.format(Locale.getDefault(),"%.1f", stats.weeklyAverage)}",
                             label = "Media/sett.",
                             gradient = GradientUtils.purpleGradient,
                             modifier = Modifier.weight(1f)
@@ -324,7 +325,7 @@ fun WeightProgressIndicator(
                 color = if (isDarkTheme) Color.LightGray else Color.Gray
             )
             Text(
-                text = "+${String.format("%.1f", progress)}%",
+                text = "+${String.format(Locale.getDefault(),"%.1f", progress)}%",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = GreenPrimary

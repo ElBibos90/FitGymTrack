@@ -30,6 +30,7 @@ import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.utils.WeightFormatter
 import kotlinx.coroutines.delay
+import java.util.Locale
 
 /**
  * Componente che visualizza un gruppo di esercizi (superset o circuit)
@@ -922,7 +923,7 @@ fun ModernWorkoutGroupCard(
                                         // Timer display - sempre visualizzato anche se non attivo
                                         Text(
                                             // Formato mm:ss come nell'immagine
-                                            text = String.format("%02d:%02d", timeLeft / 60, timeLeft % 60),
+                                            text = String.format(Locale.getDefault(),"%02d:%02d", timeLeft / 60, timeLeft % 60),
                                             style = MaterialTheme.typography.titleLarge,
                                             fontWeight = FontWeight.Bold,
                                             color = Color.White

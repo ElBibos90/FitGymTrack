@@ -1,5 +1,7 @@
 package com.fitgymtrack.app.utils
 
+import java.util.Locale
+
 /**
  * Utility per formattare i pesi
  */
@@ -18,15 +20,15 @@ object WeightFormatter {
             }
             weight % 0.5f == 0f -> {
                 // Se è un multiplo di 0.5, mostra con un decimale
-                String.format("%.1f", weight)
+                String.format(Locale.getDefault(),"%.1f", weight)
             }
             weight % 0.25f == 0f -> {
                 // Se è un multiplo di 0.25, mostra con due decimali
-                String.format("%.2f", weight)
+                String.format(Locale.getDefault(),"%.2f", weight)
             }
             else -> {
                 // Per tutti gli altri casi, mostra con due decimali
-                String.format("%.2f", weight)
+                String.format(Locale.getDefault(),"%.2f", weight)
             }
         }
     }

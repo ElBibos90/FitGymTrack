@@ -46,7 +46,7 @@ data class WorkoutHistory(
                 val minutes = durataTotale % 60
 
                 if (hours > 0) {
-                    "$hours h ${String.format("%02d", minutes)} min"
+                    "$hours h ${String.format(Locale.getDefault(),"%02d", minutes)} min"
                 } else {
                     "$minutes min"
                 }

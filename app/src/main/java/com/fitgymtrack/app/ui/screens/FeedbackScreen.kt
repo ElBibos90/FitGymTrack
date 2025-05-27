@@ -241,7 +241,7 @@ fun FeedbackScreen(
                         .padding(bottom = 24.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FeedbackType.values().forEach { type ->
+                    FeedbackType.entries.forEach { type ->
                         FeedbackTypeCard(
                             type = type,
                             isSelected = feedbackType == type,
@@ -371,7 +371,7 @@ fun FeedbackScreen(
                             .padding(bottom = 24.dp),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        FeedbackSeverity.values().forEach { sev ->
+                        FeedbackSeverity.entries.forEach { sev ->
                             SeverityChip(
                                 severity = sev,
                                 isSelected = severity == sev,

@@ -56,7 +56,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import java.util.Locale
 
 
 /**
@@ -824,7 +824,7 @@ private fun SmallScreenIsometricTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val secs = timeLeft % 60
-        String.format("%02d:%02d", minutes, secs)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, secs)
     }
 
     Surface(
@@ -1049,7 +1049,7 @@ private fun SmallScreenRecoveryTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val secs = timeLeft % 60
-        String.format("%02d:%02d", minutes, secs)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, secs)
     }
 
     val (titleText, buttonText) = when {
@@ -1815,7 +1815,7 @@ private fun FullscreenIsometricTimerCompact(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val secs = timeLeft % 60
-        String.format("%02d:%02d", minutes, secs)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, secs)
     }
 
     Surface(
@@ -2113,7 +2113,7 @@ private fun FullscreenRecoveryTimer(
     val formattedTime = remember(timeLeft) {
         val minutes = timeLeft / 60
         val secs = timeLeft % 60
-        String.format("%02d:%02d", minutes, secs)
+        String.format(Locale.getDefault(),"%02d:%02d", minutes, secs)
     }
 
     // Messaggi dinamici basati sullo stato

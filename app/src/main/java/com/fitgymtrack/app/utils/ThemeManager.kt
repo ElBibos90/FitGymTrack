@@ -19,7 +19,7 @@ class ThemeManager(private val context: Context) {
         SYSTEM(2);
 
         companion object {
-            fun fromValue(value: Int) = values().firstOrNull { it.value == value } ?: SYSTEM
+            fun fromValue(value: Int) = ThemeMode.entries.firstOrNull { it.value == value } ?: SYSTEM
         }
     }
 

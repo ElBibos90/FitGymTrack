@@ -32,6 +32,7 @@ import com.fitgymtrack.app.ui.theme.*
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.StatsViewModel
 import kotlinx.coroutines.flow.first
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -193,7 +194,7 @@ fun StatsScreen(
 
                         ImprovedStatCard(
                             icon = Icons.AutoMirrored.Filled.TrendingUp,
-                            value = "${String.format("%.1f", stats.weeklyAverage)}",
+                            value = "${String.format(Locale.getDefault(),"%.1f", stats.weeklyAverage)}",
                             label = "Media settimanale",
                             gradient = GradientUtils.purpleGradient,
                             modifier = Modifier.weight(1f)
@@ -362,7 +363,7 @@ fun StatsHeaderCard(stats: UserStats) {
                     )
 
                     Text(
-                        text = "${String.format("%.1f", stats.consistencyScore)}%",
+                        text = "${String.format(Locale.getDefault(),"%.1f", stats.consistencyScore)}%",
                         color = Color.White,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold
@@ -411,7 +412,7 @@ fun DetailedStatsSection(stats: UserStats) {
 
             DetailStatRow(
                 label = "Media mensile",
-                value = "${String.format("%.1f", stats.monthlyAverage)} allenamenti"
+                value = "${String.format(Locale.getDefault(),"%.1f", stats.monthlyAverage)} allenamenti"
             )
 
             if (stats.averageWorkoutDuration > 0) {
@@ -546,7 +547,7 @@ fun WeightProgressSection(stats: UserStats) {
                 )
 
                 Text(
-                    text = "+${String.format("%.1f", stats.weightProgress)}%",
+                    text = "+${String.format(Locale.getDefault(),"%.1f", stats.weightProgress)}%",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = GreenPrimary

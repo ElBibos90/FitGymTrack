@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 
 class ActiveWorkoutViewModel : ViewModel() {
@@ -1243,7 +1244,7 @@ class ActiveWorkoutViewModel : ViewModel() {
         val minutes = totalSeconds / 60
         val seconds = totalSeconds % 60
 
-        return String.format("%02d:%02d", minutes, seconds)
+        return String.format(Locale.getDefault(),"%02d:%02d", minutes, seconds)
     }
 
     /**
