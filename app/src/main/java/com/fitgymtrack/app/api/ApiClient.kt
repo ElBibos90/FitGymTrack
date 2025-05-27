@@ -152,4 +152,9 @@ object ApiClient {
         retrofit.create(StatsApiService::class.java)
     }
 
+    // Aggiungiamo il servizio per il feedback
+    val feedbackApiService: FeedbackApiService by lazy {
+        retrofit.create(FeedbackApiService::class.java)
+    }
+
 }

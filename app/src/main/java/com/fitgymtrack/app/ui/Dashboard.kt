@@ -37,6 +37,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import com.fitgymtrack.app.FitGymTrackApplication
 import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.ui.payment.PaymentHelper
+import android.content.Context
+import androidx.compose.ui.platform.LocalConfiguration
 
 @Composable
 fun Dashboard(
@@ -46,7 +48,8 @@ fun Dashboard(
     onNavigateToUserExercises: () -> Unit,
     onNavigateToWorkouts: () -> Unit,
     onNavigateToSubscription: () -> Unit = {},
-    onNavigateToStats: () -> Unit = {}, // NUOVO: Navigazione alle statistiche
+    onNavigateToStats: () -> Unit = {},
+    onNavigateToFeedback: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = viewModel(),
     subscriptionViewModel: SubscriptionViewModel = viewModel(),
     statsViewModel: StatsViewModel = viewModel() // NUOVO: Aggiungiamo StatsViewModel condiviso
@@ -61,14 +64,13 @@ fun Dashboard(
 
     // Ottieni la modalità del tema
     val themeMode by themeManager.themeFlow.collectAsState(initial = ThemeManager.ThemeMode.SYSTEM)
-
+    val configuration = LocalConfiguration.current
     // Determina se è dark theme
     val isDarkTheme = when (themeMode) {
         ThemeManager.ThemeMode.LIGHT -> false
         ThemeManager.ThemeMode.DARK -> true
         ThemeManager.ThemeMode.SYSTEM -> {
-            (context.resources.configuration.uiMode and
-                    android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+            (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                     android.content.res.Configuration.UI_MODE_NIGHT_YES)
         }
     }
@@ -545,6 +547,13 @@ fun Dashboard(
                                         resultLauncher = paymentLauncher
                                     )
                                 }
+                            )
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            // NUOVO: Feedback Card
+                            FeedbackCard(
+                                onClick = onNavigateToFeedback
                             )
 
                             Spacer(modifier = Modifier.height(32.dp))

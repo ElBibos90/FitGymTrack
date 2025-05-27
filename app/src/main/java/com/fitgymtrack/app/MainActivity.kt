@@ -25,6 +25,7 @@ import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalConfiguration
 
 class MainActivity : ComponentActivity() {
 
@@ -52,15 +53,14 @@ class MainActivity : ComponentActivity() {
 
             // Stato per rilevare lo scroll
             var isScrolled by remember { mutableStateOf(false) }
-
+            val configuration = LocalConfiguration.current
             // Ottieni il tema corrente
             val themeMode by themeManager.themeFlow.collectAsState(initial = ThemeManager.ThemeMode.SYSTEM)
             val isDarkTheme = when (themeMode) {
                 ThemeManager.ThemeMode.LIGHT -> false
                 ThemeManager.ThemeMode.DARK -> true
                 ThemeManager.ThemeMode.SYSTEM -> {
-                    (context.resources.configuration.uiMode and
-                            android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
+                    (configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK ==
                             android.content.res.Configuration.UI_MODE_NIGHT_YES)
                 }
             }
@@ -78,7 +78,8 @@ class MainActivity : ComponentActivity() {
                         !currentRoute.toString().startsWith("edit_workout") &&
                         !currentRoute.toString().startsWith("user_exercises") &&
                         !currentRoute.toString().startsWith("active_workout") &&
-                        currentRoute != "stats"
+                        currentRoute != "stats" &&
+                        currentRoute != "feedback"
 
                 Scaffold(
                     topBar = {

@@ -52,7 +52,8 @@ fun AppNavigation(
             !currentRoute.toString().startsWith("edit_workout") &&
             !currentRoute.toString().startsWith("user_exercises") &&
             !currentRoute.toString().startsWith("active_workout") &&
-            currentRoute != "stats" // NUOVO: Aggiungiamo anche la rotta stats
+            currentRoute != "stats" && // NUOVO: Aggiungiamo anche la rotta stats
+            currentRoute != "feedback" // NUOVO: Aggiungiamo anche la rotta feedback
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -138,6 +139,10 @@ fun AppNavigation(
                     // NUOVO: Navigazione alle statistiche con ViewModel condiviso
                     navController.navigate("stats")
                 },
+                onNavigateToFeedback = {
+                    // NUOVO: Navigazione al feedback
+                    navController.navigate("feedback")
+                },
                 statsViewModel = sharedStatsViewModel // NUOVO: Passa il ViewModel condiviso
             )
         }
@@ -181,6 +186,15 @@ fun AppNavigation(
         // NUOVO: Schermata statistiche
         composable("stats") {
             StatsScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // NUOVO: Schermata feedback - ASSICURATI CHE SIA PRESENTE
+        composable("feedback") {
+            FeedbackScreen(
                 onBack = {
                     navController.popBackStack()
                 }

@@ -1,12 +1,7 @@
 package com.fitgymtrack.app.api
 
 import com.fitgymtrack.app.models.*
-import retrofit2.http.Body
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import com.fitgymtrack.app.models.Exercise
-import retrofit2.http.GET
-import retrofit2.http.Query
+import retrofit2.http.*
 import okhttp3.ResponseBody
 import retrofit2.Response
 
@@ -66,4 +61,34 @@ interface ApiService {
     suspend fun initializePayment(
         @Body paymentRequest: PaymentRequest
     ): PaymentResponse
+
+    /**
+     * Invia un feedback
+     */
+    @POST("feedback_api.php")
+    suspend fun submitFeedback(
+        @Body feedbackRequest: FeedbackRequest
+    ): FeedbackResponse
+
+    /**
+     * Recupera tutti i feedback (solo per admin)
+     */
+    @GET("feedback_api.php")
+    suspend fun getFeedbacks(): Map<String, Any>
+
+    /**
+     * Aggiorna lo stato di un feedback (solo per admin)
+     */
+    @POST("feedback_api.php")
+    suspend fun updateFeedbackStatus(
+        @Body request: Map<String, Any>
+    ): Map<String, Any>
+
+    /**
+     * Aggiorna le note admin di un feedback (solo per admin)
+     */
+    @POST("feedback_api.php")
+    suspend fun updateFeedbackNotes(
+        @Body request: Map<String, Any>
+    ): Map<String, Any>
 }
