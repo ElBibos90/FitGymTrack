@@ -32,7 +32,7 @@ fun ForgotPasswordScreen(
     navigateToResetPassword: (String) -> Unit,
     viewModel: PasswordResetViewModel = viewModel()
 ) {
-    val context = LocalContext.current
+    LocalContext.current
     var email by remember { mutableStateOf("") }
     val resetRequestState by viewModel.resetRequestState.collectAsState()
 

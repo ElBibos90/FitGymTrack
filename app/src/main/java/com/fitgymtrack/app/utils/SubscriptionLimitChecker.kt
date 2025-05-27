@@ -20,7 +20,7 @@ object SubscriptionLimitChecker {
 
             result.fold(
                 onSuccess = { response ->
-                    val limitReached = response["limit_reached"] as? Boolean ?: false
+                    val limitReached = response["limit_reached"] as? Boolean == true
                     val currentCount = response["current_count"] as? Int ?: 0
                     val maxAllowed = response["max_allowed"] as? Int
 
@@ -45,7 +45,7 @@ object SubscriptionLimitChecker {
 
             result.fold(
                 onSuccess = { response ->
-                    val limitReached = response["limit_reached"] as? Boolean ?: false
+                    val limitReached = response["limit_reached"] as? Boolean == true
                     val currentCount = response["current_count"] as? Int ?: 0
                     val maxAllowed = response["max_allowed"] as? Int
 

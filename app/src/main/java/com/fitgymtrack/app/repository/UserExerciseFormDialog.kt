@@ -35,7 +35,7 @@ fun UserExerciseFormDialog(
     var gruppoMuscolare by remember { mutableStateOf(exercise?.gruppoMuscolare ?: "") }
     var descrizione by remember { mutableStateOf(exercise?.descrizione ?: "") }
     var attrezzatura by remember { mutableStateOf(exercise?.attrezzatura ?: "") }
-    var isIsometric by remember { mutableStateOf(exercise?.isIsometric ?: false) }
+    var isIsometric by remember { mutableStateOf(exercise?.isIsometric == true) }
 
     // Raccogli gli stati delle operazioni
     val createState by viewModel.createState.collectAsState()

@@ -88,7 +88,7 @@ fun ActiveWorkoutScreen(
     val plateauInfo by viewModel.plateauInfo.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
+    rememberCoroutineScope()
 
     var showExitConfirmDialog by remember { mutableStateOf(false) }
     var showCompleteWorkoutDialog by remember { mutableStateOf(false) }
@@ -656,7 +656,7 @@ private fun ModernActiveWorkoutContent(
                         group.first()
                     }
 
-                    val isGroupExpanded = expandedGroups[index] ?: false
+                    val isGroupExpanded = expandedGroups[index] == true
                     val groupTitle = if (isSuperset) "Superset ${index + 1}" else "Circuit ${index + 1}"
                     val groupColor = if (isSuperset) BluePrimary else PurplePrimary
 

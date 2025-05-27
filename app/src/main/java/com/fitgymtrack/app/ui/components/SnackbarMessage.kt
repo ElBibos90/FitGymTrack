@@ -25,11 +25,12 @@ import kotlinx.coroutines.launch
 @Composable
 fun SnackbarMessage(
     message: String,
+    modifier: Modifier = Modifier,
     isSuccess: Boolean = true,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier
+    onDismiss: () -> Unit
+
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    rememberCoroutineScope()
     var isVisible by remember { mutableStateOf(false) }
 
     // Determine color based on success/error

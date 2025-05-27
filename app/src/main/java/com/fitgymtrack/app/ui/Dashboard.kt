@@ -77,12 +77,11 @@ fun Dashboard(
     }
 
     // Calcola se la schermata è stata scrollata
-    val isScrolled = scrollState.value > 10
+    scrollState.value > 10
 
     // Stati del DashboardViewModel
     val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val user by dashboardViewModel.user.collectAsState()
-    val userProfile by dashboardViewModel.userProfile.collectAsState()
 
     // Stati del SubscriptionViewModel
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsState()

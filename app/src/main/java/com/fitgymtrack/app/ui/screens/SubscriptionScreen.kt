@@ -66,7 +66,6 @@ fun SubscriptionScreen(
     // Stati del ViewModel
     val subscriptionState by viewModel.subscriptionState.collectAsState()
     val updatePlanState by viewModel.updatePlanState.collectAsState()
-    val paymentState by viewModel.paymentState.collectAsState()
 
     // Messaggio Snackbar
     var showSnackbar by remember { mutableStateOf(false) }

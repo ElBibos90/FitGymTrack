@@ -38,11 +38,11 @@ fun ExerciseProgressItem(
     exercise: WorkoutExercise,
     completedSeries: List<CompletedSeries>,
     isTimerRunning: Boolean,
+    modifier: Modifier = Modifier,
     onAddSeries: (Float, Int) -> Unit,
     isLastExercise: Boolean = false,
     isCompleted: Boolean = false,
     isInGroup: Boolean = false, // Parametro per indicare se l'esercizio è in un gruppo
-    modifier: Modifier = Modifier,
     initialWeight: Float? = null, // NUOVO: peso iniziale basato sullo storico
     initialReps: Int? = null // NUOVO: ripetizioni iniziali basate sullo storico
 ) {

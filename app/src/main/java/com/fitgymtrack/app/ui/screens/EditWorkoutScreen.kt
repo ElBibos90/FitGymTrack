@@ -42,7 +42,6 @@ fun EditWorkoutScreen(
     val workoutName by viewModel.workoutName.collectAsState()
     val workoutDescription by viewModel.workoutDescription.collectAsState()
     val selectedExercises by viewModel.selectedExercises.collectAsState()
-    val removedExercises by viewModel.removedExercises.collectAsState()
     val loadingState by viewModel.loadingState.collectAsState()
     val workoutLoadingState by viewModel.workoutLoadingState.collectAsState()
 

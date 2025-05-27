@@ -171,8 +171,7 @@ class FeedbackRepository(private val context: Context? = null) {
                 val response = apiService.getFeedbacks()
 
                 if (response["success"] as? Boolean == true) {
-                    @Suppress("UNCHECKED_CAST")
-                    val feedbacks = response["feedbacks"] as? List<Map<String, Any>> ?: emptyList()
+                    response["feedbacks"] as? List<Map<String, Any>> ?: emptyList()
 
                     // Qui dovresti convertire i Map in oggetti Feedback
                     // Per ora restituiamo lista vuota

@@ -28,9 +28,9 @@ import com.fitgymtrack.app.ui.theme.*
 @Composable
 fun DashboardStatsCard(
     stats: UserStats?,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
-    isDarkTheme: Boolean = false,
-    modifier: Modifier = Modifier
+    isDarkTheme: Boolean = false
 ) {
     Card(
         modifier = modifier

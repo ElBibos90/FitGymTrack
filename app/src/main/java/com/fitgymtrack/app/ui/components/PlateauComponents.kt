@@ -40,8 +40,9 @@ import com.fitgymtrack.app.utils.WeightFormatter
 @Composable
 fun PlateauIndicator(
     plateauInfo: PlateauInfo,
-    onDismiss: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onDismiss: () -> Unit = {}
+
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 

@@ -555,9 +555,9 @@ fun FeedbackTypeCard(
             }
         ),
         border = if (isSelected) {
-            androidx.compose.foundation.BorderStroke(2.dp, color)
+            BorderStroke(2.dp, color)
         } else {
-            androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+            BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         }
     ) {
         Column(

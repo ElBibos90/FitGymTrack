@@ -40,8 +40,9 @@ fun ExerciseGroupCard(
     completedSeries: Map<Int, List<CompletedSeries>>,
     isTimerRunning: Boolean,
     onAddSeries: (Int, Float, Int, Int) -> Unit,
-    isCompleted: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isCompleted: Boolean = false
+
 ) {
     val setType = exercises.firstOrNull()?.setType ?: "normal"
     // Inizializzato a false (compresso) invece di true
@@ -214,11 +215,11 @@ fun ManagedExerciseGroupCard(
     exercises: List<WorkoutExercise>,
     completedSeries: Map<Int, List<CompletedSeries>>,
     isTimerRunning: Boolean,
+    modifier: Modifier = Modifier,
     onAddSeries: (Int, Float, Int, Int) -> Unit,
     isCompleted: Boolean = false,
     isExpanded: Boolean = false,
-    onExpandToggle: () -> Unit,
-    modifier: Modifier = Modifier
+    onExpandToggle: () -> Unit
 ) {
     val setType = exercises.firstOrNull()?.setType ?: "normal"
 
@@ -500,14 +501,14 @@ fun ModernWorkoutGroupCard(
     subtitle: String,
     exercises: List<WorkoutExercise>,
     completedSeries: Map<Int, List<CompletedSeries>>,
+    modifier: Modifier = Modifier,
     isSuperset: Boolean = true,
     roundIndex: Int = 1,
     roundTotal: Int = 3,
     onExerciseSelected: (WorkoutExercise) -> Unit = {},
     onAddSeries: (Int, Float, Int, Int) -> Unit = { _, _, _, _ -> },
     groupIndex: Int = 0,
-    expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() },
-    modifier: Modifier = Modifier
+    expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() }
 ) {
     val backgroundColor = if (isSuperset) PurplePrimary else BluePrimary
     var selectedExerciseIndex by remember { mutableStateOf(0) }

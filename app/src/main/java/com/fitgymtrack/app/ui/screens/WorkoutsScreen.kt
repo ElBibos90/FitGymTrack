@@ -31,7 +31,7 @@ fun WorkoutsScreen(
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
-    val coroutineScope = rememberCoroutineScope()
+    rememberCoroutineScope()
 
     val workoutPlansState by viewModel.workoutPlansState.collectAsState()
     val workoutPlans by viewModel.workoutPlans.collectAsState()

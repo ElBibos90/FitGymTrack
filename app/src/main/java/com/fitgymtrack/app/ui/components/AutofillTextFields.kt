@@ -199,10 +199,10 @@ private fun AutofillEditText(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    LocalContext.current
 
     // Prendi i colori prima di entrare in AndroidView
-    val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
+    MaterialTheme.colorScheme.surface.toArgb()
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f).toArgb()
 
@@ -295,10 +295,10 @@ private fun AutofillPasswordEditText(
     enabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
+    LocalContext.current
 
     // Prendi i colori prima di entrare in AndroidView
-    val surfaceColor = MaterialTheme.colorScheme.surface.toArgb()
+    MaterialTheme.colorScheme.surface.toArgb()
     val onSurfaceColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val onSurfaceVariantColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f).toArgb()
 

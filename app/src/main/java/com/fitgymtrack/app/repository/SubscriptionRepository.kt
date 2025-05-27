@@ -94,7 +94,7 @@ class SubscriptionRepository {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "Aggiornamento al piano ID: $planId")
-                val request = mapOf("plan_id" to planId)
+                mapOf("plan_id" to planId)
                 val response = apiService.updatePlan(com.fitgymtrack.app.api.UpdatePlanRequest(planId))
 
                 if (response.success && response.data != null) {

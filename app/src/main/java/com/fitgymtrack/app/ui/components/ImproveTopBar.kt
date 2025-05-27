@@ -27,11 +27,11 @@ import com.fitgymtrack.app.ui.theme.Indigo600
 fun ImprovedTopBar(
     user: User?,
     isDarkTheme: Boolean,
+    modifier: Modifier = Modifier,
     onThemeToggle: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToNotifications: () -> Unit,
-    isScrolled: Boolean = false,
-    modifier: Modifier = Modifier
+    isScrolled: Boolean = false
 ) {
     val backgroundColor by animateColorAsState(
         targetValue = if (isScrolled) {

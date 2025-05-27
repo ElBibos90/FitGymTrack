@@ -29,10 +29,11 @@ import androidx.compose.material.icons.automirrored.filled.TrendingUp
 @Composable
 fun DashboardStatsPreview(
     stats: UserStats?,
+    modifier: Modifier = Modifier,
     isLoading: Boolean = false,
     isDarkTheme: Boolean = false,
-    onViewAllStats: () -> Unit,
-    modifier: Modifier = Modifier
+    onViewAllStats: () -> Unit
+
 ) {
     Card(
         modifier = modifier

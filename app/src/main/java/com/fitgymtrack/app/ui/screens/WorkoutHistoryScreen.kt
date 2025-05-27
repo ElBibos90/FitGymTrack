@@ -50,13 +50,11 @@ fun WorkoutHistoryScreen(
 
     // Stati del ViewModel
     val workoutHistoryState by viewModel.workoutHistoryState.collectAsState()
-    val workoutDetailState by viewModel.workoutDetailState.collectAsState()
     val updateState by viewModel.updateState.collectAsState()
     val selectedWorkout by viewModel.selectedWorkout.collectAsState()
     val workoutHistory by viewModel.workoutHistory.collectAsState()
     val seriesDetails by viewModel.seriesDetails.collectAsState()
     val deleteState by viewModel.deleteState.collectAsState()
-    val seriesDetailsState by viewModel.seriesDetailsState.collectAsState()
 
     // Stato locale
     var showDeleteDialog by remember { mutableStateOf(false) }

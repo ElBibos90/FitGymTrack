@@ -21,93 +21,95 @@ import com.fitgymtrack.app.ui.theme.BluePrimary
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.utils.WeightFormatter
 
-/**
- * Componente che visualizza una sequenza di circuito o superset
- */
-@Composable
-fun CircuitSequence(
-    exercises: List<WorkoutExercise>,
-    completedSeries: Map<Int, List<CompletedSeries>>,
-    modifier: Modifier = Modifier
-) {
-    val setType = exercises.firstOrNull()?.setType ?: "normal"
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        // Titolo
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = if (setType == "superset") Icons.Default.SwapHoriz else Icons.Default.Sync,
-                contentDescription = null,
-                tint = if (setType == "superset") PurplePrimary else BluePrimary,
-                modifier = Modifier.size(20.dp)
-            )
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Text(
-                text = if (setType == "superset") "Sequenza Superset" else "Sequenza Circuit",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.Medium,
-                color = if (setType == "superset") PurplePrimary else BluePrimary
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Sequenza orizzontale di esercizi
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy((-4).dp)
-        ) {
-            exercises.forEachIndexed { index, exercise ->
-                val completedExerciseSeries = completedSeries[exercise.id] ?: emptyList()
-                val isCompleted = completedExerciseSeries.size >= exercise.serie
-
-                // Se non è il primo, aggiungiamo una freccia connettiva
-                if (index > 0) {
-                    Box(
-                        modifier = Modifier
-                            .width(24.dp)
-                            .height(40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.SwapHoriz,
-                            contentDescription = null,
-                            tint = if (setType == "superset") PurplePrimary.copy(alpha = 0.7f) else BluePrimary.copy(alpha = 0.7f),
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                }
-
-                // Elemento dell'esercizio
-                SequenceExerciseItem(
-                    name = exercise.nome,
-                    completedSeries = completedExerciseSeries.size,
-                    totalSeries = exercise.serie,
-                    isCompleted = isCompleted,
-                    setType = setType
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Barra di progresso del circuito
-        CircuitProgressBar(
-            exercises = exercises,
-            completedSeries = completedSeries,
-            setType = setType
-        )
-    }
-}
+// --Commented out by Inspection START (27/05/2025 18:01):
+///**
+// * Componente che visualizza una sequenza di circuito o superset
+// */
+//@Composable
+//fun CircuitSequence(
+//    exercises: List<WorkoutExercise>,
+//    completedSeries: Map<Int, List<CompletedSeries>>,
+//    modifier: Modifier = Modifier
+//) {
+//    val setType = exercises.firstOrNull()?.setType ?: "normal"
+//
+//    Column(
+//        modifier = modifier
+//            .fillMaxWidth()
+//            .padding(vertical = 8.dp)
+//    ) {
+//        // Titolo
+//        Row(
+//            modifier = Modifier.fillMaxWidth(),
+//            verticalAlignment = Alignment.CenterVertically
+//        ) {
+//            Icon(
+//                imageVector = if (setType == "superset") Icons.Default.SwapHoriz else Icons.Default.Sync,
+//                contentDescription = null,
+//                tint = if (setType == "superset") PurplePrimary else BluePrimary,
+//                modifier = Modifier.size(20.dp)
+//            )
+//
+//            Spacer(modifier = Modifier.width(8.dp))
+//
+//            Text(
+//                text = if (setType == "superset") "Sequenza Superset" else "Sequenza Circuit",
+//                style = MaterialTheme.typography.titleSmall,
+//                fontWeight = FontWeight.Medium,
+//                color = if (setType == "superset") PurplePrimary else BluePrimary
+//            )
+//        }
+//
+//        Spacer(modifier = Modifier.height(12.dp))
+//
+//        // Sequenza orizzontale di esercizi
+//        Row(
+//            modifier = Modifier.fillMaxWidth(),
+//            horizontalArrangement = Arrangement.spacedBy((-4).dp)
+//        ) {
+//            exercises.forEachIndexed { index, exercise ->
+//                val completedExerciseSeries = completedSeries[exercise.id] ?: emptyList()
+//                val isCompleted = completedExerciseSeries.size >= exercise.serie
+//
+//                // Se non è il primo, aggiungiamo una freccia connettiva
+//                if (index > 0) {
+//                    Box(
+//                        modifier = Modifier
+//                            .width(24.dp)
+//                            .height(40.dp),
+//                        contentAlignment = Alignment.Center
+//                    ) {
+//                        Icon(
+//                            imageVector = Icons.Default.SwapHoriz,
+//                            contentDescription = null,
+//                            tint = if (setType == "superset") PurplePrimary.copy(alpha = 0.7f) else BluePrimary.copy(alpha = 0.7f),
+//                            modifier = Modifier.size(20.dp)
+//                        )
+//                    }
+//                }
+//
+//                // Elemento dell'esercizio
+//                SequenceExerciseItem(
+//                    name = exercise.nome,
+//                    completedSeries = completedExerciseSeries.size,
+//                    totalSeries = exercise.serie,
+//                    isCompleted = isCompleted,
+//                    setType = setType
+//                )
+//            }
+//        }
+//
+//        Spacer(modifier = Modifier.height(12.dp))
+//
+//        // Barra di progresso del circuito
+//        CircuitProgressBar(
+//            exercises = exercises,
+//            completedSeries = completedSeries,
+//            setType = setType
+//        )
+//    }
+//}
+// --Commented out by Inspection STOP (27/05/2025 18:01)
 
 /**
  * Visualizza un singolo elemento nella sequenza del circuito

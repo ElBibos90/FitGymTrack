@@ -42,7 +42,7 @@ fun AppNavigation(
 
     // Mostra la TopBar solo quando non siamo nella schermata di login o registrazione
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
-    val showTopBar = currentRoute != null &&
+    currentRoute != null &&
             currentRoute != "login" &&
             currentRoute != "register" &&
             currentRoute != "profile" &&
@@ -62,7 +62,7 @@ fun AppNavigation(
         ThemeManager.ThemeMode.SYSTEM
     }
 
-    val isDarkTheme = when (themeMode) {
+    when (themeMode) {
         ThemeManager.ThemeMode.LIGHT -> false
         ThemeManager.ThemeMode.DARK -> true
         ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
@@ -70,7 +70,6 @@ fun AppNavigation(
     }
 
     // Stato per lo scrolling
-    var isScrolled by remember { mutableStateOf(false) }
 
     NavHost(
         navController = navController,

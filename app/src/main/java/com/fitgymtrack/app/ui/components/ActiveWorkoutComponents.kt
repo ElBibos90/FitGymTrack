@@ -195,8 +195,9 @@ fun RecoveryTimer(
 fun IsometricTimer(
     seconds: Int,
     seriesNumber: Int,
-    onSeriesCompleted: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onSeriesCompleted: () -> Unit = {}
+
 ) {
     var timeLeft by remember { mutableStateOf(seconds) }
     var timerRunning by remember { mutableStateOf(false) }

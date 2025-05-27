@@ -35,7 +35,7 @@ fun WorkoutLimitChecker(
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsState()
     val limitsState by workoutViewModel.limitsState.collectAsState()
 
-    val subscription = remember(subscriptionState) {
+    remember(subscriptionState) {
         if (subscriptionState is SubscriptionViewModel.SubscriptionState.Success) {
             (subscriptionState as SubscriptionViewModel.SubscriptionState.Success).subscription
         } else null

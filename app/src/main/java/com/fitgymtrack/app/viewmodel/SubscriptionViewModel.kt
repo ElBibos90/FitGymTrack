@@ -62,7 +62,7 @@ class SubscriptionViewModel(
 
                 result.fold(
                     onSuccess = { response ->
-                        val limitReached = response["limit_reached"] as? Boolean ?: false
+                        val limitReached = response["limit_reached"] as? Boolean == true
                         val currentCount = response["current_count"] as? Int ?: 0
                         val maxAllowed = response["max_allowed"] as? Int
                         val remaining = response["remaining"] as? Int ?: 0
@@ -96,7 +96,7 @@ class SubscriptionViewModel(
 
                 result.fold(
                     onSuccess = { response ->
-                        val success = response["success"] as? Boolean ?: false
+                        val success = response["success"] as? Boolean == true
                         val message = response["message"] as? String ?: "Piano aggiornato con successo"
 
                         if (success) {

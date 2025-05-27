@@ -55,6 +55,9 @@ import com.fitgymtrack.app.utils.WeightFormatter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.abs
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+
 
 /**
  * Enum per le dimensioni dello schermo
@@ -204,7 +207,6 @@ private fun SmallScreenCompactControls(
 @Composable
 fun rememberScreenSize(): ScreenSize {
     val configuration = LocalConfiguration.current
-
     return remember(configuration.screenHeightDp) {
         when {
             configuration.screenHeightDp < 600 -> ScreenSize.Small
@@ -244,7 +246,6 @@ fun FullscreenWorkoutContent(
 
     // Log per debug
     val configuration = LocalConfiguration.current
-    Log.d("ResponsiveWorkout", "Screen: ${configuration.screenWidthDp}x${configuration.screenHeightDp}dp - Size: $screenSize")
 
     when (screenSize) {
         ScreenSize.Small -> SmallScreenWorkoutLayout(
@@ -1489,7 +1490,7 @@ private fun FullscreenExerciseContentNew(
 ) {
     val isInGroup = group.size > 1
     val isSuperset = exercise.setType == "superset"
-    val isCircuit = exercise.setType == "circuit"
+    exercise.setType == "circuit"
     val isIsometric = exercise.isIsometric
 
     Column(

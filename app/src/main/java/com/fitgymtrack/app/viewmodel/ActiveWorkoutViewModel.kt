@@ -348,7 +348,7 @@ class ActiveWorkoutViewModel : ViewModel() {
             return
         }
 
-        val exercises = currentState.workout.esercizi
+        currentState.workout.esercizi
         val currentValues = _exerciseValues.value
         val testPlateaus = mutableMapOf<Int, PlateauInfo>()
 
@@ -435,7 +435,7 @@ class ActiveWorkoutViewModel : ViewModel() {
                 Log.d("WorkoutHistory", "RISPOSTA API getWorkoutHistory: success=${allWorkoutsResponse["success"]}, " +
                         "count=${allWorkoutsResponse["count"]}")
 
-                val success = allWorkoutsResponse["success"] as? Boolean ?: false
+                val success = allWorkoutsResponse["success"] as? Boolean == true
                 @Suppress("UNCHECKED_CAST")
                 val allenamenti = allWorkoutsResponse["allenamenti"] as? List<Map<String, Any>> ?: emptyList()
 

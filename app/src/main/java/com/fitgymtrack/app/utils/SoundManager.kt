@@ -172,7 +172,7 @@ class SoundManager(private val context: Context) {
      */
     private fun playSystemNotificationSound() {
         try {
-            val mediaPlayer = MediaPlayer().apply {
+            MediaPlayer().apply {
                 setAudioAttributes(
                     android.media.AudioAttributes.Builder()
                         .setUsage(android.media.AudioAttributes.USAGE_MEDIA)

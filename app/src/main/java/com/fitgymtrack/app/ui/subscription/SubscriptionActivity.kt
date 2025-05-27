@@ -77,20 +77,20 @@ class SubscriptionActivity : ComponentActivity() {
         val paymentLauncher = rememberLauncherForActivityResult(
             contract = ActivityResultContracts.StartActivityForResult()
         ) { result ->
-            if (result.resultCode == Activity.RESULT_OK) {
+            if (result.resultCode == RESULT_OK) {
                 val data = result.data
-                val isSuccessful = data?.getBooleanExtra("payment_successful", false) ?: false
+                val isSuccessful = data?.getBooleanExtra("payment_successful", false) == true
                 if (isSuccessful) {
                     coroutineScope.launch {
                         snackbarHostState.showSnackbar("Pagamento completato con successo")
                         viewModel.loadSubscription()
                     }
                 }
-            } else if (result.resultCode == Activity.RESULT_CANCELED) {
+            } else if (result.resultCode == RESULT_CANCELED) {
                 val data = result.data
                 val errorMessage = data?.getStringExtra("error_message")
-                val cancelled = data?.getBooleanExtra("cancelled", false) ?: false
-                val timeout = data?.getBooleanExtra("timeout", false) ?: false
+                val cancelled = data?.getBooleanExtra("cancelled", false) == true
+                val timeout = data?.getBooleanExtra("timeout", false) == true
 
                 coroutineScope.launch {
                     when {
@@ -359,7 +359,7 @@ class SubscriptionActivity : ComponentActivity() {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 // Barra di progresso schede
-                val (currentCount, maxWorkouts) = usageCounts
+                val (currentCount, _) = usageCounts
                 val workoutsLimit = subscription.maxWorkouts ?: Int.MAX_VALUE
                 val workoutsProgress = if (workoutsLimit > 0)
                     (currentCount.toFloat() / workoutsLimit.toFloat()).coerceIn(0f, 1f)
