@@ -20,6 +20,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.models.UserStats
 import com.fitgymtrack.app.ui.theme.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 
 /**
  * Preview compatta delle statistiche per la Dashboard
@@ -157,7 +159,7 @@ fun DashboardStatsPreview(
                                     fontWeight = FontWeight.SemiBold
                                 )
                                 Icon(
-                                    imageVector = Icons.Default.ArrowForward,
+                                    imageVector = Icons.AutoMirrored.Default.ArrowForward,
                                     contentDescription = null,
                                     modifier = Modifier.size(14.dp)
                                 )
@@ -215,7 +217,7 @@ fun DashboardStatsPreview(
 
                         // Media settimanale
                         MiniStatCard(
-                            icon = Icons.Default.TrendingUp,
+                            icon = Icons.AutoMirrored.Default.TrendingUp,
                             value = "${String.format("%.1f", stats.weeklyAverage)}",
                             label = "Media/sett.",
                             color = PurplePrimary,

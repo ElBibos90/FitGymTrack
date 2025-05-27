@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -223,7 +224,7 @@ fun TestScreen(
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back"
                         )
                     }
@@ -245,7 +246,7 @@ fun TestScreen(
                 fontWeight = FontWeight.Bold
             )
 
-            Divider()
+            HorizontalDivider()
 
             // Test Repository Button
             TestButton(
@@ -278,7 +279,7 @@ fun TestScreen(
                 onClick = onViewModelTest
             )
 
-            Divider()
+            HorizontalDivider()
 
             Text(
                 text = "UI Component Examples",
@@ -408,9 +409,9 @@ fun ExampleSubscriptionCard(subscription: Subscription) {
                 }
 
                 LinearProgressIndicator(
-                    progress = if (subscription.maxWorkouts != null)
+                    progress = { if (subscription.maxWorkouts != null)
                         (subscription.currentCount.toFloat() / subscription.maxWorkouts).coerceIn(0f, 1f)
-                    else 0f,
+                    else 0f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)
@@ -427,9 +428,9 @@ fun ExampleSubscriptionCard(subscription: Subscription) {
                 }
 
                 LinearProgressIndicator(
-                    progress = if (subscription.maxCustomExercises != null)
-                        (subscription.currentCustomExercises.toFloat() / subscription.maxCustomExercises).coerceIn(0f, 1f)
-                    else 0f,
+                    progress = { if (subscription.maxWorkouts != null)
+                        (subscription.currentCount.toFloat() / subscription.maxWorkouts).coerceIn(0f, 1f)
+                    else 0f },
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(vertical = 4.dp)

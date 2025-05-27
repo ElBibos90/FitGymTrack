@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.automirrored.filled.NavigateNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -916,7 +918,7 @@ private fun SmallScreenPlateauBadge(
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.TrendingFlat,
+                imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
                 contentDescription = "Plateau",
                 tint = Color.White,
                 modifier = Modifier.size(16.dp)
@@ -1080,7 +1082,7 @@ private fun SmallScreenRecoveryTimer(
             ) {
                 Icon(
                     imageVector = when {
-                        isExerciseCompleted && hasMoreExercises -> Icons.Default.NavigateNext
+                        isExerciseCompleted && hasMoreExercises -> Icons.AutoMirrored.Filled.NavigateNext
                         isExerciseCompleted && !hasMoreExercises -> Icons.Default.Flag
                         else -> Icons.Default.Timer
                     },
@@ -1905,7 +1907,7 @@ private fun PlateauBadgeCompact(
             horizontalArrangement = Arrangement.Center
         ) {
             Icon(
-                imageVector = Icons.Default.TrendingFlat,
+                imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
                 contentDescription = "Plateau",
                 tint = Color.White,
                 modifier = Modifier.size(12.dp)
@@ -2145,7 +2147,7 @@ private fun FullscreenRecoveryTimer(
             ) {
                 Icon(
                     imageVector = when {
-                        isExerciseCompleted && hasMoreExercises -> Icons.Default.NavigateNext
+                        isExerciseCompleted && hasMoreExercises -> Icons.AutoMirrored.Filled.NavigateNext
                         isExerciseCompleted && !hasMoreExercises -> Icons.Default.Flag
                         else -> Icons.Default.Timer
                     },

@@ -23,6 +23,7 @@ class WorkoutHistoryRepository {
 
                 // Estraiamo i dati dalla risposta Map<String, Any>
                 val success = response["success"] as? Boolean ?: false
+                @Suppress("UNCHECKED_CAST")
                 val allenamenti = response["allenamenti"] as? List<Map<String, Any>> ?: emptyList()
                 val count = allenamenti.size
 

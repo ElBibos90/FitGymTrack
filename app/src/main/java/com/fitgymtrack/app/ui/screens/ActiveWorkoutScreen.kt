@@ -19,6 +19,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -249,7 +250,7 @@ fun ActiveWorkoutScreen(
                         Icon(
                             imageVector = when(viewMode) {
                                 ViewMode.MODERN -> Icons.Default.Fullscreen        // Icona schermo intero
-                                ViewMode.FULLSCREEN -> Icons.Default.ViewList     // Icona lista
+                                ViewMode.FULLSCREEN -> Icons.AutoMirrored.Filled.ViewList    // Icona lista
                             },
                             contentDescription = when(viewMode) {
                                 ViewMode.MODERN -> "Visualizzazione fullscreen"

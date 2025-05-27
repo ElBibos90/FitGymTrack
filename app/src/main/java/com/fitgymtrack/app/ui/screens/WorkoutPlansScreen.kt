@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.ui.theme.Indigo600
@@ -136,7 +137,7 @@ fun WorkoutPlansScreen(
                 title = { Text("Le tue schede") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Indietro")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Indietro")
                     }
                 },
                 actions = {
@@ -558,7 +559,7 @@ fun WorkoutPlanCard(
                                 )
                             }
 
-                            Divider(
+                            HorizontalDivider(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(vertical = 8.dp),

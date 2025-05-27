@@ -95,7 +95,7 @@ fun ExerciseSelectionDialog(
                                 showGroupFilterDialog = false
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
 
                     items(muscleGroups) { group ->
@@ -111,7 +111,7 @@ fun ExerciseSelectionDialog(
                                 showGroupFilterDialog = false
                             }
                         )
-                        Divider()
+                        HorizontalDivider()
                     }
                 }
             },

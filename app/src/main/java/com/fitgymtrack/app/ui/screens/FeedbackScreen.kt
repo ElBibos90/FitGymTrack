@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -178,7 +179,7 @@ fun FeedbackScreen(
                 ) {
                     IconButton(onClick = onBack) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Indietro"
                         )
                     }
@@ -446,7 +447,7 @@ fun FeedbackScreen(
                         Text("Invio in corso...")
                     } else {
                         Icon(
-                            imageVector = Icons.Default.Send,
+                            imageVector = Icons.AutoMirrored.Filled.Send,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
@@ -538,7 +539,7 @@ fun FeedbackTypeCard(
     val (icon, color) = when (type) {
         FeedbackType.BUG -> Icons.Default.BugReport to Color(0xFFE53E3E)
         FeedbackType.SUGGESTION -> Icons.Default.Lightbulb to Color(0xFFD69E2E)
-        FeedbackType.QUESTION -> Icons.Default.Help to Color(0xFF3182CE)
+        FeedbackType.QUESTION -> Icons.AutoMirrored.Filled.Help to Color(0xFF3182CE)
         FeedbackType.APPRECIATION -> Icons.Default.ThumbUp to Color(0xFF38A169)
     }
 

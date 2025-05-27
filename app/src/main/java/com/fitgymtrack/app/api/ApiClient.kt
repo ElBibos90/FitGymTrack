@@ -102,7 +102,7 @@ object ApiClient {
     private val retrofit by lazy {
         // Crea un Gson più permissivo
         val gson = GsonBuilder()
-            .setLenient()
+            .serializeNulls()
             .create()
 
         Retrofit.Builder()

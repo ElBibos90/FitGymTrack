@@ -15,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -380,7 +381,7 @@ fun PlateauBadge(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
-                imageVector = Icons.Default.TrendingFlat,
+                imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
                 contentDescription = "Plateau",
                 tint = Color.White,
                 modifier = Modifier.size(14.dp)
@@ -411,7 +412,7 @@ fun PlateauDetailDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                imageVector = Icons.Default.TrendingFlat,
+                imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
                 contentDescription = "Plateau",
                 tint = Color(0xFFFF5722)
             )
@@ -508,7 +509,7 @@ fun GroupPlateauDialog(
         onDismissRequest = onDismiss,
         icon = {
             Icon(
-                imageVector = Icons.Default.TrendingFlat,
+                imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
                 contentDescription = "Plateau Gruppo",
                 tint = Color(0xFFFF5722)
             )

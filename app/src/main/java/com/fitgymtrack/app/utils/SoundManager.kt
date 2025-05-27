@@ -173,7 +173,12 @@ class SoundManager(private val context: Context) {
     private fun playSystemNotificationSound() {
         try {
             val mediaPlayer = MediaPlayer().apply {
-                setAudioStreamType(AudioManager.STREAM_MUSIC)
+                setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .build()
+                )
                 setDataSource(context, android.provider.Settings.System.DEFAULT_NOTIFICATION_URI)
                 prepare()
                 start()

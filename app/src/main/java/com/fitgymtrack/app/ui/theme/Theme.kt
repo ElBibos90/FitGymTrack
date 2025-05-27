@@ -83,7 +83,7 @@ fun FitGymTrackTheme(
             val window = (view.context as Activity).window
 
             // Rendi la status bar trasparente
-            window.statusBarColor = android.graphics.Color.TRANSPARENT
+            WindowCompat.setDecorFitsSystemWindows(window, false)
 
             // Abilita il layout edge-to-edge
             WindowCompat.setDecorFitsSystemWindows(window, false)

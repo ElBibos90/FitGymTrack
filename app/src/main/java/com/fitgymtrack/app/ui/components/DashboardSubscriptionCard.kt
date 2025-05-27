@@ -167,7 +167,7 @@ fun UsageProgressBar(
 
         // Progress Bar
         LinearProgressIndicator(
-            progress = (current.toFloat() / max.toFloat()).coerceIn(0f, 1f),
+            progress = { (current.toFloat() / max.toFloat()).coerceIn(0f, 1f) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(4.dp)

@@ -275,7 +275,7 @@ fun CompletedSupersetCard(
                     val completedSeries = serieCompletate[exercise.id] ?: emptyList()
 
                     if (index > 0) {
-                        Divider(modifier = Modifier.padding(vertical = 8.dp))
+                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                     }
 
                     Row(

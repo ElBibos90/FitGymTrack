@@ -39,6 +39,7 @@ import com.fitgymtrack.app.utils.ThemeManager
 import com.fitgymtrack.app.ui.payment.PaymentHelper
 import android.content.Context
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 
 @Composable
 fun Dashboard(
@@ -389,7 +390,7 @@ fun Dashboard(
                                     }
 
                                     Icon(
-                                        imageVector = Icons.Default.ArrowForward,
+                                        imageVector = Icons.AutoMirrored.Default.ArrowForward,
                                         contentDescription = "Vai al profilo",
                                         tint = Indigo600
                                     )

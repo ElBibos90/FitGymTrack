@@ -8,6 +8,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,6 +24,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.fitgymtrack.app.models.UserProfile
 import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.viewmodel.UserProfileViewModel
+import androidx.compose.material3.MenuAnchorType
 
 @Composable
 fun UserProfileScreen(
@@ -124,7 +126,7 @@ fun UserProfileScreen(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Indietro",
                             modifier = Modifier.size(18.dp)
                         )
@@ -563,7 +565,7 @@ fun ExposedDropdownMenuBoxField(
             },
             modifier = Modifier
                 .fillMaxWidth()
-                .menuAnchor()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
         )
 
         ExposedDropdownMenu(

@@ -436,6 +436,7 @@ class ActiveWorkoutViewModel : ViewModel() {
                         "count=${allWorkoutsResponse["count"]}")
 
                 val success = allWorkoutsResponse["success"] as? Boolean ?: false
+                @Suppress("UNCHECKED_CAST")
                 val allenamenti = allWorkoutsResponse["allenamenti"] as? List<Map<String, Any>> ?: emptyList()
 
                 if (!success || allenamenti.isEmpty()) {

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -168,7 +169,7 @@ fun DashboardStatsCard(
 
                         // Media settimanale
                         StatCard(
-                            icon = Icons.Default.TrendingUp,
+                            icon = Icons.AutoMirrored.Default.TrendingUp,
                             value = "${String.format("%.1f", stats.weeklyAverage)}",
                             label = "Media/sett.",
                             gradient = GradientUtils.purpleGradient,
