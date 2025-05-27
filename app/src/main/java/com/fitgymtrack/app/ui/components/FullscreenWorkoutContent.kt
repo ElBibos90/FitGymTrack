@@ -1,62 +1,92 @@
 package com.fitgymtrack.app.ui.components
 
-import android.util.Log
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.NavigateNext
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.TrendingFlat
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ChevronLeft
+import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Flag
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.fitgymtrack.app.models.*
+import com.fitgymtrack.app.models.ActiveWorkout
+import com.fitgymtrack.app.models.CompletedSeries
+import com.fitgymtrack.app.models.CompletedSeriesState
+import com.fitgymtrack.app.models.WorkoutExercise
 import com.fitgymtrack.app.ui.theme.BluePrimary
-import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.ui.theme.PurplePrimary
 import com.fitgymtrack.app.utils.PlateauInfo
 import com.fitgymtrack.app.utils.SoundManager
 import com.fitgymtrack.app.utils.WeightFormatter
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlin.math.abs
-import androidx.compose.ui.platform.LocalWindowInfo
 import java.util.Locale
+import kotlin.math.abs
 
 
 /**
@@ -347,7 +377,7 @@ private fun SmallScreenWorkoutLayout(
 ) {
     // Setup base come il layout originale
     val exerciseGroups = groupExercisesByType(workout.esercizi)
-    var currentGroupIndex by remember { mutableStateOf(0) }
+    var currentGroupIndex by remember { mutableIntStateOf(0) }
 
     val currentGroup = exerciseGroups.getOrNull(currentGroupIndex) ?: return
     val currentExercise = if (currentGroup.size > 1) {
@@ -391,10 +421,10 @@ private fun SmallScreenWorkoutLayout(
     // Valori peso e ripetizioni
     val values = exerciseValues[currentExercise.id]
     var currentWeight by remember(values) {
-        mutableStateOf(values?.first ?: currentExercise.peso.toFloat())
+        mutableFloatStateOf(values?.first ?: currentExercise.peso.toFloat())
     }
     var currentReps by remember(values) {
-        mutableStateOf(values?.second ?: currentExercise.ripetizioni)
+        mutableIntStateOf(values?.second ?: currentExercise.ripetizioni)
     }
 
     // Dialog states
@@ -780,7 +810,7 @@ private fun SmallScreenIsometricTimer(
     onTimerComplete: () -> Unit,
     isEnabled: Boolean
 ) {
-    var timeLeft by remember(seconds, currentSeriesNumber) { mutableStateOf(seconds) }
+    var timeLeft by remember(seconds, currentSeriesNumber) { mutableIntStateOf(seconds) }
     var isRunning by remember(currentSeriesNumber) { mutableStateOf(false) }
     var isCompleted by remember(currentSeriesNumber) { mutableStateOf(false) }
 
@@ -1016,7 +1046,7 @@ private fun SmallScreenRecoveryTimer(
     hasMoreExercises: Boolean = true,
     onStop: () -> Unit
 ) {
-    var timeLeft by remember(seconds) { mutableStateOf(seconds) }
+    var timeLeft by remember(seconds) { mutableIntStateOf(seconds) }
     var timerActive by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
@@ -1205,7 +1235,7 @@ private fun LargeScreenWorkoutLayout(
 ) {
     // Setup base come il layout originale
     val exerciseGroups = groupExercisesByType(workout.esercizi)
-    var currentGroupIndex by remember { mutableStateOf(0) }
+    var currentGroupIndex by remember { mutableIntStateOf(0) }
 
     val currentGroup = exerciseGroups.getOrNull(currentGroupIndex) ?: return
     val currentExercise = if (currentGroup.size > 1) {
@@ -1225,10 +1255,10 @@ private fun LargeScreenWorkoutLayout(
     // Valori peso e ripetizioni
     val values = exerciseValues[currentExercise.id]
     var currentWeight by remember(values) {
-        mutableStateOf(values?.first ?: currentExercise.peso.toFloat())
+        mutableFloatStateOf(values?.first ?: currentExercise.peso.toFloat())
     }
     var currentReps by remember(values) {
-        mutableStateOf(values?.second ?: currentExercise.ripetizioni)
+        mutableIntStateOf(values?.second ?: currentExercise.ripetizioni)
     }
 
     // Dialog states
@@ -1770,7 +1800,7 @@ private fun FullscreenIsometricTimerCompact(
     isEnabled: Boolean,
     modifier: Modifier = Modifier
 ) {
-    var timeLeft by remember(seconds, currentSeriesNumber) { mutableStateOf(seconds) }
+    var timeLeft by remember(seconds, currentSeriesNumber) { mutableIntStateOf(seconds) }
     var isRunning by remember(currentSeriesNumber) { mutableStateOf(false) }
     var isCompleted by remember(currentSeriesNumber) { mutableStateOf(false) }
 
@@ -2079,7 +2109,7 @@ private fun FullscreenRecoveryTimer(
     hasMoreExercises: Boolean = true,
     onStop: () -> Unit
 ) {
-    var timeLeft by remember(seconds) { mutableStateOf(seconds) }
+    var timeLeft by remember(seconds) { mutableIntStateOf(seconds) }
     var timerActive by remember { mutableStateOf(true) }
 
     val context = LocalContext.current

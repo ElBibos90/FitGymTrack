@@ -1,5 +1,4 @@
 
-import java.util.*
 fun getGitCommitCount(): Int {
     return try {
         val output = "git rev-list --count HEAD".runCommand()
@@ -119,6 +118,6 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation(libs.androidx.compose.material3.adaptive)
+    implementation(libs.androidx.compose.material3.window.size)
 }
 

@@ -5,7 +5,13 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.fitgymtrack.app.api.ApiClient
-import com.fitgymtrack.app.models.*
+import com.fitgymtrack.app.models.DeviceInfo
+import com.fitgymtrack.app.models.Feedback
+import com.fitgymtrack.app.models.FeedbackRequest
+import com.fitgymtrack.app.models.FeedbackResponse
+import com.fitgymtrack.app.models.FeedbackSeverity
+import com.fitgymtrack.app.models.FeedbackType
+import com.fitgymtrack.app.models.LocalAttachment
 import com.fitgymtrack.app.utils.DeviceInfoUtils
 import com.fitgymtrack.app.utils.FileAttachmentManager
 import com.google.gson.Gson
@@ -165,6 +171,7 @@ class FeedbackRepository(private val context: Context? = null) {
     /**
      * Recupera tutti i feedback (solo per admin)
      */
+    @Suppress("UNCHECKED_CAST")
     suspend fun getFeedbacks(): Result<List<Feedback>> {
         return withContext(Dispatchers.IO) {
             try {

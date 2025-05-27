@@ -1,20 +1,56 @@
 package com.fitgymtrack.app.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,7 +58,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.fitgymtrack.app.models.CompletedSeries
 import com.fitgymtrack.app.models.WorkoutExercise
 import com.fitgymtrack.app.ui.theme.BluePrimary
@@ -512,7 +547,7 @@ fun ModernWorkoutGroupCard(
     expandedGroups: MutableMap<Int, Boolean> = remember { mutableStateMapOf() }
 ) {
     val backgroundColor = if (isSuperset) PurplePrimary else BluePrimary
-    var selectedExerciseIndex by remember { mutableStateOf(0) }
+    var selectedExerciseIndex by remember { mutableIntStateOf(0) }
 
     // Get or set initial expansion state
     val isExpanded = expandedGroups.getOrPut(groupIndex) { false }
@@ -716,9 +751,9 @@ fun ModernWorkoutGroupCard(
 
                     // Variabili per peso e ripetizioni - spostate a livello superiore
                     var showWeightPicker by remember { mutableStateOf(false) }
-                    var currentWeight by remember { mutableStateOf(selectedExercise.peso.toFloat()) }
+                    var currentWeight by remember { mutableFloatStateOf(selectedExercise.peso.toFloat()) }
                     var showRepsPicker by remember { mutableStateOf(false) }
-                    var currentReps by remember { mutableStateOf(selectedExercise.ripetizioni) }
+                    var currentReps by remember { mutableIntStateOf(selectedExercise.ripetizioni) }
 
                     // Funzione per passare all'esercizio successivo
                     val moveToNextExercise = {
@@ -838,7 +873,7 @@ fun ModernWorkoutGroupCard(
                         if (selectedExercise.isIsometric) {
                             var isTimerRunning by remember { mutableStateOf(false) }
                             var timerCompleted by remember { mutableStateOf(false) }
-                            var timeLeft by remember { mutableStateOf(currentReps) }
+                            var timeLeft by remember { mutableIntStateOf(currentReps) }
 
                             // Aggiorna timeLeft quando cambiano le ripetizioni/secondi
                             LaunchedEffect(currentReps) {
