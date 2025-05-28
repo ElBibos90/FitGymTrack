@@ -43,7 +43,7 @@ class SubscriptionRepository {
                         end_date = apiSubscription.end_date
                     )
 
-                    Log.d(TAG, "Abbonamento recuperato con successo")
+                    Log.d(TAG, "Abbonamento recuperato con successo: ${subscription.planName}")
                     Result.success(subscription)
                 } else {
                     Log.e(TAG, "Errore nel recupero dell'abbonamento: ${response.message}")
@@ -51,6 +51,40 @@ class SubscriptionRepository {
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Eccezione nel recupero dell'abbonamento: ${e.message}", e)
+                Result.failure(e)
+            }
+        }
+    }
+
+    /**
+     * NUOVO: Controlla le subscription scadute tramite API
+     */
+    suspend fun checkExpiredSubscriptions(): Result<Map<String, Any>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d(TAG, "Controllo subscription scadute")
+
+                // Chiamata al nuovo endpoint per controllare le scadenze
+                val response = apiService.checkExpiredSubscriptions()
+
+                if (response.success) {
+                    // Accesso sicuro ai dati dalla risposta
+                    val updatedCount = response.data?.updated_count ?: 0
+
+                    val resultData = mapOf(
+                        "success" to true,
+                        "message" to (response.message ?: "Controllo completato"),
+                        "updated_count" to updatedCount
+                    )
+
+                    Log.d(TAG, "Controllo scadenze completato: $updatedCount aggiornamenti")
+                    Result.success(resultData)
+                } else {
+                    Log.e(TAG, "Errore nel controllo scadenze: ${response.message}")
+                    Result.failure(Exception(response.message ?: "Errore nel controllo scadenze"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Eccezione nel controllo scadenze: ${e.message}", e)
                 Result.failure(e)
             }
         }
@@ -66,16 +100,29 @@ class SubscriptionRepository {
                 val response = apiService.checkResourceLimits(resourceType)
 
                 if (response.success && response.data != null) {
-                    // Converti l'oggetto ResourceLimits in una Map<String, Any>
-                    val limitData = mapOf(
-                        "limit_reached" to response.data.limit_reached,
-                        "current_count" to response.data.current_count,
-                        "max_allowed" to (response.data.max_allowed ?: Int.MAX_VALUE),
-                        "remaining" to (response.data.remaining ?: Int.MAX_VALUE)
-                    )
+                    // Costruzione della mappa in modo ultra-sicuro
+                    val limitData = mutableMapOf<String, Any>()
+
+                    limitData["limit_reached"] = response.data.limit_reached
+                    limitData["current_count"] = response.data.current_count
+                    limitData["max_allowed"] = response.data.max_allowed ?: Int.MAX_VALUE
+                    limitData["remaining"] = response.data.remaining ?: Int.MAX_VALUE
+
+                    // Gestione sicura dei campi nullable
+                    response.data.subscription_status?.let {
+                        limitData["subscription_status"] = it
+                    } ?: run {
+                        limitData["subscription_status"] = "unknown"
+                    }
+
+                    response.data.days_remaining?.let {
+                        limitData["days_remaining"] = it
+                    } ?: run {
+                        limitData["days_remaining"] = -1
+                    }
 
                     Log.d(TAG, "Limiti verificati: $limitData")
-                    Result.success(limitData)
+                    Result.success(limitData.toMap()) // Conversione esplicita a Map immutabile
                 } else {
                     Log.e(TAG, "Errore nella verifica dei limiti: ${response.message}")
                     Result.failure(Exception(response.message ?: "Errore sconosciuto"))
@@ -94,7 +141,6 @@ class SubscriptionRepository {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d(TAG, "Aggiornamento al piano ID: $planId")
-                mapOf("plan_id" to planId)
                 val response = apiService.updatePlan(com.fitgymtrack.app.api.UpdatePlanRequest(planId))
 
                 if (response.success && response.data != null) {

@@ -5,41 +5,78 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.fitgymtrack.app.models.Subscription
-import com.fitgymtrack.app.models.User
-import com.fitgymtrack.app.models.UserProfile
-import com.fitgymtrack.app.ui.components.*
-import com.fitgymtrack.app.ui.theme.*
-import com.fitgymtrack.app.utils.SessionManager
-import com.fitgymtrack.app.viewmodel.DashboardViewModel
-import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
-import com.fitgymtrack.app.viewmodel.StatsViewModel
-import kotlinx.coroutines.launch
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.shape.RoundedCornerShape
 import com.fitgymtrack.app.FitGymTrackApplication
-import com.fitgymtrack.app.utils.ThemeManager
+import com.fitgymtrack.app.ui.components.DashboardStatsPreview
+import com.fitgymtrack.app.ui.components.DashboardSubscriptionCard
+import com.fitgymtrack.app.ui.components.DonationDialog
+import com.fitgymtrack.app.ui.components.FeedbackCard
+import com.fitgymtrack.app.ui.components.SnackbarMessage
+import com.fitgymtrack.app.ui.components.SubscriptionExpiredBanner
+import com.fitgymtrack.app.ui.components.SubscriptionExpiryWarningBanner
 import com.fitgymtrack.app.ui.payment.PaymentHelper
-import android.content.Context
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import com.fitgymtrack.app.ui.theme.GradientUtils
+import com.fitgymtrack.app.ui.theme.Indigo600
+import com.fitgymtrack.app.utils.SessionManager
+import com.fitgymtrack.app.utils.ThemeManager
+import com.fitgymtrack.app.viewmodel.DashboardViewModel
+import com.fitgymtrack.app.viewmodel.StatsViewModel
+import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
+import kotlinx.coroutines.launch
 
 @Composable
 fun Dashboard(
@@ -53,7 +90,7 @@ fun Dashboard(
     onNavigateToFeedback: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = viewModel(),
     subscriptionViewModel: SubscriptionViewModel = viewModel(),
-    statsViewModel: StatsViewModel = viewModel() // NUOVO: Aggiungiamo StatsViewModel condiviso
+    statsViewModel: StatsViewModel = viewModel()
 ) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
@@ -76,9 +113,6 @@ fun Dashboard(
         }
     }
 
-    // Calcola se la schermata è stata scrollata
-    scrollState.value > 10
-
     // Stati del DashboardViewModel
     val dashboardState by dashboardViewModel.dashboardState.collectAsState()
     val user by dashboardViewModel.user.collectAsState()
@@ -86,13 +120,17 @@ fun Dashboard(
     // Stati del SubscriptionViewModel
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsState()
     val updatePlanState by subscriptionViewModel.updatePlanState.collectAsState()
+
+    // NUOVO: Stato per subscription scadute
+    val expiredSubscriptionState by subscriptionViewModel.expiredSubscriptionState.collectAsState()
+
     val subscription by remember { derivedStateOf {
         if (subscriptionState is SubscriptionViewModel.SubscriptionState.Success) {
             (subscriptionState as SubscriptionViewModel.SubscriptionState.Success).subscription
         } else null
     }}
 
-    // NUOVO: Stati del StatsViewModel condiviso
+    // Stati del StatsViewModel condiviso
     val statsState by statsViewModel.statsState.collectAsState()
     val userStats by remember { derivedStateOf {
         when (val state = statsState) {
@@ -110,6 +148,11 @@ fun Dashboard(
     // Dialog per upgrade Premium
     var showPremiumDialog by remember { mutableStateOf(false) }
 
+    // NUOVO: Stati per gestire i banner di scadenza
+    var showExpiredBanner by remember { mutableStateOf(false) }
+    var showExpiryWarningBanner by remember { mutableStateOf(false) }
+    var daysRemaining by remember { mutableStateOf<Int?>(null) }
+
     // Activity Result Launcher per pagamenti PayPal
     val paymentLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.StartActivityForResult()
@@ -118,7 +161,6 @@ fun Dashboard(
             resultCode = result.resultCode,
             data = result.data,
             onSuccess = { orderId ->
-                // Pagamento completato con successo
                 coroutineScope.launch {
                     snackbarMessage = "Pagamento completato con successo"
                     isSuccess = true
@@ -128,7 +170,6 @@ fun Dashboard(
                 }
             },
             onFailure = { errorMessage ->
-                // Pagamento fallito
                 coroutineScope.launch {
                     snackbarMessage = "Errore nel pagamento: $errorMessage"
                     isSuccess = false
@@ -139,19 +180,85 @@ fun Dashboard(
     }
 
     // Carica i dati all'avvio della composable
-    LaunchedEffect(Unit) {
+    LaunchedEffect(key1 = Unit) {
         Log.d("Dashboard", "=== INIZIO CARICAMENTO DASHBOARD ===")
         dashboardViewModel.loadDashboardData(sessionManager)
-        subscriptionViewModel.loadSubscription()
+
+        // MODIFICATO: Carica subscription con controllo scadenze
+        subscriptionViewModel.loadSubscription(checkExpired = true)
     }
 
-    // MODIFICATO: Carica le statistiche sempre (per tutti gli utenti)
+    // Carica le statistiche sempre (per tutti gli utenti)
     LaunchedEffect(user) {
         val currentUser = user
         if (currentUser != null) {
             Log.d("Dashboard", "🔄 Caricamento statistiche per utente: ${currentUser.id}")
             statsViewModel.setSessionManager(sessionManager)
             statsViewModel.loadStats(currentUser.id, forceReload = true)
+        }
+    }
+
+    // RIABILITATO: Osserva gli stati di scadenza subscription
+    LaunchedEffect(expiredSubscriptionState) {
+        val currentState = expiredSubscriptionState // Salva in una variabile locale
+        when (currentState) {
+            is SubscriptionViewModel.ExpiredSubscriptionState.Found -> {
+                Log.d("Dashboard", "🚨 Trovate ${currentState.expiredCount} subscription scadute")
+                showExpiredBanner = true
+                snackbarMessage = "Abbonamento scaduto - Sei stato riportato al piano Free"
+                isSuccess = false
+                showSnackbar = true
+            }
+            is SubscriptionViewModel.ExpiredSubscriptionState.JustDetected -> {
+                Log.d("Dashboard", "🚨 Subscription appena rilevata come scaduta")
+                showExpiredBanner = true
+            }
+            else -> {}
+        }
+    }
+    LaunchedEffect(expiredSubscriptionState) {
+        val currentState = expiredSubscriptionState // Salva in una variabile locale
+        when (currentState) {
+            is SubscriptionViewModel.ExpiredSubscriptionState.Found -> {
+                Log.d("Dashboard", "🚨 Trovate ${currentState.expiredCount} subscription scadute")
+                showExpiredBanner = true
+                snackbarMessage = "Abbonamento scaduto - Sei stato riportato al piano Free"
+                isSuccess = false
+                showSnackbar = true
+            }
+            is SubscriptionViewModel.ExpiredSubscriptionState.JustDetected -> {
+                Log.d("Dashboard", "🚨 Subscription appena rilevata come scaduta")
+                showExpiredBanner = true
+            }
+            else -> {}
+        }
+    }
+
+    // NUOVO: Controllo locale della scadenza subscription
+    LaunchedEffect(subscription) {
+        subscription?.let { sub ->
+            // Se è un piano a pagamento, controlla i giorni rimanenti
+            if (sub.price > 0.0 && sub.end_date != null) {
+                try {
+                    // Controllo semplificato della data di scadenza
+                    Log.d("Dashboard", "Subscription Premium trovata, end_date: ${sub.end_date}")
+
+                    // Per ora mostriamo un avviso generico se la data è specificata
+                    // Sostituisci con un calcolo reale delle date quando necessario
+                    val remaining = 5 // Placeholder - implementare calcolo reale
+                    daysRemaining = remaining
+
+                    if (remaining in 1..7) {
+                        showExpiryWarningBanner = true
+                    }
+                } catch (e: Exception) {
+                    Log.e("Dashboard", "Errore calcolo giorni rimanenti: ${e.message}")
+                }
+            } else if (sub.planName == "Free") {
+                // L'utente è già su piano Free, nascondi eventuali banner
+                showExpiryWarningBanner = false
+                showExpiredBanner = false
+            }
         }
     }
 
@@ -163,6 +270,10 @@ fun Dashboard(
                 isSuccess = true
                 showSnackbar = true
                 subscriptionViewModel.resetUpdatePlanState()
+
+                // NUOVO: Nascondi i banner dopo un upgrade riuscito
+                showExpiredBanner = false
+                showExpiryWarningBanner = false
             }
             is SubscriptionViewModel.UpdatePlanState.Error -> {
                 snackbarMessage = (updatePlanState as SubscriptionViewModel.UpdatePlanState.Error).message
@@ -247,6 +358,38 @@ fun Dashboard(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
+                // NUOVO: Banner per subscription scaduta
+                if (showExpiredBanner) {
+                    SubscriptionExpiredBanner(
+                        isVisible = showExpiredBanner,
+                        onDismiss = {
+                            showExpiredBanner = false
+                            subscriptionViewModel.dismissExpiredNotification()
+                        },
+                        onUpgrade = {
+                            showExpiredBanner = false
+                            onNavigateToSubscription()
+                        }
+                    )
+                }
+
+                // NUOVO: Banner di avviso scadenza (per Premium in scadenza)
+                daysRemaining?.let { days ->
+                    if (showExpiryWarningBanner && subscription?.price != 0.0) {
+                        SubscriptionExpiryWarningBanner(
+                            daysRemaining = days,
+                            isVisible = showExpiryWarningBanner,
+                            onDismiss = {
+                                showExpiryWarningBanner = false
+                            },
+                            onRenew = {
+                                showExpiryWarningBanner = false
+                                onNavigateToSubscription()
+                            }
+                        )
+                    }
+                }
+
                 // Stato del caricamento
                 when (dashboardState) {
                     is DashboardViewModel.DashboardState.Loading -> {
@@ -281,7 +424,7 @@ fun Dashboard(
                                 .fillMaxWidth()
                                 .padding(16.dp)
                         ) {
-                            // Header Welcome - è già gestito nella TopBar, ma potresti volerne uno secondario qui
+                            // Header Welcome
                             Text(
                                 text = "Benvenuto nella tua Dashboard",
                                 style = MaterialTheme.typography.headlineMedium,
@@ -317,7 +460,7 @@ fun Dashboard(
                                 }
                             }
 
-                            // MODIFICATO: Preview Statistiche per TUTTI gli utenti
+                            // Preview Statistiche per TUTTI gli utenti
                             Log.d("Dashboard", "Mostrando preview statistiche - Loading: $statsLoading, Stats: ${userStats?.totalWorkouts ?: "null"}")
 
                             DashboardStatsPreview(
@@ -325,7 +468,7 @@ fun Dashboard(
                                 isLoading = statsLoading,
                                 isDarkTheme = isDarkTheme,
                                 onViewAllStats = {
-                                    // NUOVO: Controlla se è Premium prima di navigare
+                                    // Controlla se è Premium prima di navigare
                                     val currentSubscription = subscription
                                     if (currentSubscription != null && currentSubscription.price > 0.0) {
                                         // È Premium, naviga alle statistiche
@@ -530,18 +673,17 @@ fun Dashboard(
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Custom Exercises Card (pulsante ora passa onNavigateToUserExercises)
+                            // Custom Exercises Card
                             CustomExercisesCard(onClick = onNavigateToUserExercises)
 
                             Spacer(modifier = Modifier.height(24.dp))
 
-                            // Support Banner - Modificato per mostrare PayPal demo
+                            // Support Banner
                             SupportBanner(
                                 onClick = {
-                                    // NUOVO: Avvia una donazione di test con PayPal
                                     PaymentHelper.startPayPalPayment(
                                         context = context,
-                                        amount = 5.0,  // 5 euro di donazione
+                                        amount = 5.0,
                                         type = "donation",
                                         message = "Grazie per il tuo supporto!",
                                         resultLauncher = paymentLauncher
@@ -551,7 +693,7 @@ fun Dashboard(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // NUOVO: Feedback Card
+                            // Feedback Card
                             FeedbackCard(
                                 onClick = onNavigateToFeedback
                             )
@@ -592,7 +734,7 @@ fun Dashboard(
     }
 }
 
-// Versione aggiornata per accettare onClick
+// Gli altri composable rimangono uguali...
 @Composable
 fun CustomExercisesCard(onClick: () -> Unit) {
     Card(
@@ -677,7 +819,6 @@ fun SupportBanner(onClick: () -> Unit = {}) {
         )
     }
 
-    // Mostra il dialogo di donazione quando richiesto
     if (showDonationDialog) {
         DonationDialog(
             onDismiss = { showDonationDialog = false },

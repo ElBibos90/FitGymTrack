@@ -28,6 +28,14 @@ interface SubscriptionApiService {
     ): ApiResponse<SubscriptionResponse>
 
     /**
+     * NUOVO: Controlla e aggiorna le subscription scadute
+     */
+    @GET("android_subscription_api.php")
+    suspend fun checkExpiredSubscriptions(
+        @Query("action") action: String = "check_expired"
+    ): ApiResponse<ExpiredCheckResponse>
+
+    /**
      * Verifica i limiti per un tipo di risorsa
      */
     @GET("android_resource_limits_api.php")
@@ -91,7 +99,18 @@ data class ApiSubscription(
     val cloud_backup: Int = 0,
     val no_ads: Int = 0,
     val start_date: String? = null,
-    val end_date: String? = null
+    val end_date: String? = null,
+    val days_remaining: Int? = null, // NUOVO
+    val computed_status: String? = null // NUOVO
+)
+
+/**
+ * NUOVO: Modello per la risposta del controllo scadenze
+ */
+data class ExpiredCheckResponse(
+    val success: Boolean,
+    val message: String,
+    val updated_count: Int
 )
 
 /**
