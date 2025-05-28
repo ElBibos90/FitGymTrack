@@ -173,9 +173,9 @@ fun SubscriptionExpiryWarningBanner(
     onDismiss: () -> Unit,
     onRenew: () -> Unit
 ) {
-    // CORRETTO: Rimuoviamo anche qui la logica locale che causava problemi
+    // CORRETTO: Cambiata la condizione per includere anche daysRemaining = 0 (oggi)
     AnimatedVisibility(
-        visible = isVisible && daysRemaining <= 7 && daysRemaining > 0,
+        visible = isVisible && daysRemaining <= 7 && daysRemaining >= 0, // CAMBIATO: >= 0 invece di > 0
         enter = expandVertically() + fadeIn(),
         exit = shrinkVertically() + fadeOut()
     ) {
@@ -208,8 +208,13 @@ fun SubscriptionExpiryWarningBanner(
 
                     Spacer(modifier = Modifier.width(8.dp))
 
+                    // CORRETTO: Gestisce il caso speciale quando daysRemaining = 0
                     Text(
-                        text = "Il tuo abbonamento scade tra $daysRemaining giorni",
+                        text = when (daysRemaining) {
+                            0 -> "Il tuo abbonamento scade oggi!"
+                            1 -> "Il tuo abbonamento scade domani"
+                            else -> "Il tuo abbonamento scade tra $daysRemaining giorni"
+                        },
                         color = Color(0xFF92400E),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium

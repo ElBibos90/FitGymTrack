@@ -77,6 +77,10 @@ import com.fitgymtrack.app.viewmodel.DashboardViewModel
 import com.fitgymtrack.app.viewmodel.StatsViewModel
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.TimeUnit
 
 @Composable
 fun Dashboard(
@@ -216,48 +220,80 @@ fun Dashboard(
             else -> {}
         }
     }
-    LaunchedEffect(expiredSubscriptionState) {
-        val currentState = expiredSubscriptionState // Salva in una variabile locale
-        when (currentState) {
-            is SubscriptionViewModel.ExpiredSubscriptionState.Found -> {
-                Log.d("Dashboard", "🚨 Trovate ${currentState.expiredCount} subscription scadute")
-                showExpiredBanner = true
-                snackbarMessage = "Abbonamento scaduto - Sei stato riportato al piano Free"
-                isSuccess = false
-                showSnackbar = true
-            }
-            is SubscriptionViewModel.ExpiredSubscriptionState.JustDetected -> {
-                Log.d("Dashboard", "🚨 Subscription appena rilevata come scaduta")
-                showExpiredBanner = true
-            }
-            else -> {}
-        }
-    }
 
-    // NUOVO: Controllo locale della scadenza subscription
+    // CORRETTO: Controllo reale della scadenza subscription con calcolo giorni
     LaunchedEffect(subscription) {
         subscription?.let { sub ->
             // Se è un piano a pagamento, controlla i giorni rimanenti
             if (sub.price > 0.0 && sub.end_date != null) {
                 try {
-                    // Controllo semplificato della data di scadenza
-                    Log.d("Dashboard", "Subscription Premium trovata, end_date: ${sub.end_date}")
+                    Log.d("Dashboard", "🔍 Analisi scadenza - Piano: ${sub.planName}, End_date: ${sub.end_date}")
 
-                    // Per ora mostriamo un avviso generico se la data è specificata
-                    // Sostituisci con un calcolo reale delle date quando necessario
-                    val remaining = 5 // Placeholder - implementare calcolo reale
-                    daysRemaining = remaining
+                    // Parser per la data nel formato del database: "2025-06-28 23:59:59"
+                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                    val endDate = dateFormat.parse(sub.end_date)
+                    val currentDate = Date()
 
-                    if (remaining in 1..7) {
-                        showExpiryWarningBanner = true
+                    if (endDate != null) {
+                        // Calcola la differenza in millisecondi
+                        val diffInMillis = endDate.time - currentDate.time
+                        // Converti in giorni (round up per essere conservativi)
+                        val daysDifference = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt()
+
+                        Log.d("Dashboard", "📅 Giorni di differenza calcolati: $daysDifference")
+                        Log.d("Dashboard", "📅 Data corrente: $currentDate")
+                        Log.d("Dashboard", "📅 Data scadenza: $endDate")
+
+                        when {
+                            daysDifference < 0 -> {
+                                // Abbonamento SCADUTO
+                                Log.d("Dashboard", "🚨 ABBONAMENTO SCADUTO ($daysDifference giorni fa)")
+                                showExpiredBanner = true
+                                showExpiryWarningBanner = false
+                                daysRemaining = null
+                            }
+                            daysDifference == 0 -> {
+                                // Abbonamento scade OGGI - SOLO AVVISO
+                                Log.d("Dashboard", "⚠️ ABBONAMENTO SCADE OGGI")
+                                showExpiredBanner = false
+                                showExpiryWarningBanner = true
+                                daysRemaining = 0
+                            }
+                            daysDifference in 1..5 -> {
+                                // Abbonamento scade tra 1-5 giorni - AVVISO
+                                Log.d("Dashboard", "⚠️ ABBONAMENTO SCADE TRA $daysDifference GIORNI")
+                                showExpiredBanner = false
+                                showExpiryWarningBanner = true
+                                daysRemaining = daysDifference
+                            }
+                            else -> {
+                                // Abbonamento scade tra più di 5 giorni - NESSUN AVVISO
+                                Log.d("Dashboard", "✅ ABBONAMENTO VALIDO ($daysDifference giorni rimanenti) - Nessun avviso")
+                                showExpiredBanner = false
+                                showExpiryWarningBanner = false
+                                daysRemaining = null
+                            }
+                        }
+                    } else {
+                        Log.e("Dashboard", "❌ Errore parsing data: ${sub.end_date}")
+                        // In caso di errore parsing, non mostrare avvisi
+                        showExpiredBanner = false
+                        showExpiryWarningBanner = false
+                        daysRemaining = null
                     }
                 } catch (e: Exception) {
-                    Log.e("Dashboard", "Errore calcolo giorni rimanenti: ${e.message}")
+                    Log.e("Dashboard", "❌ Errore calcolo giorni rimanenti: ${e.message}")
+                    // In caso di errore, non mostrare avvisi
+                    showExpiredBanner = false
+                    showExpiryWarningBanner = false
+                    daysRemaining = null
                 }
             } else if (sub.planName == "Free") {
                 // L'utente è già su piano Free, nascondi eventuali banner
+                Log.d("Dashboard", "ℹ️ Utente su piano Free - Nessun controllo scadenza")
                 showExpiryWarningBanner = false
                 showExpiredBanner = false
+                daysRemaining = null
             }
         }
     }
@@ -373,7 +409,7 @@ fun Dashboard(
                     )
                 }
 
-                // NUOVO: Banner di avviso scadenza (per Premium in scadenza)
+                // CORRETTO: Banner di avviso scadenza solo se ci sono giorni rimanenti definiti
                 daysRemaining?.let { days ->
                     if (showExpiryWarningBanner && subscription?.price != 0.0) {
                         SubscriptionExpiryWarningBanner(
