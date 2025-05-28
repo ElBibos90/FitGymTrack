@@ -1,4 +1,5 @@
-package com.fitgymtrack.app.ui.screens
+
+package com.fitgymtrack.app.ui
 
 import android.util.Log
 import android.widget.Toast
@@ -59,15 +60,16 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.BuildConfig
 import com.fitgymtrack.app.FitGymTrackApplication
+import com.fitgymtrack.app.services.NotificationIntegrationService
 import com.fitgymtrack.app.ui.components.DashboardStatsPreview
 import com.fitgymtrack.app.ui.components.DashboardSubscriptionCard
 import com.fitgymtrack.app.ui.components.DonationDialog
 import com.fitgymtrack.app.ui.components.FeedbackCard
 import com.fitgymtrack.app.ui.components.SnackbarMessage
-import com.fitgymtrack.app.ui.components.SubscriptionExpiredBanner
-import com.fitgymtrack.app.ui.components.SubscriptionExpiryWarningBanner
 import com.fitgymtrack.app.ui.payment.PaymentHelper
 import com.fitgymtrack.app.ui.theme.GradientUtils
 import com.fitgymtrack.app.ui.theme.Indigo600
@@ -77,10 +79,6 @@ import com.fitgymtrack.app.viewmodel.DashboardViewModel
 import com.fitgymtrack.app.viewmodel.StatsViewModel
 import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
 import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.concurrent.TimeUnit
 
 @Composable
 fun Dashboard(
@@ -92,6 +90,9 @@ fun Dashboard(
     onNavigateToSubscription: () -> Unit = {},
     onNavigateToStats: () -> Unit = {},
     onNavigateToFeedback: () -> Unit = {},
+    // NUOVO: Parametri per testing (temporanei) - con tipi espliciti
+    onNavigateToNotificationTest: () -> Unit = {},
+    onNavigateToStep3Test: () -> Unit = {},
     dashboardViewModel: DashboardViewModel = viewModel(),
     subscriptionViewModel: SubscriptionViewModel = viewModel(),
     statsViewModel: StatsViewModel = viewModel()
@@ -100,6 +101,9 @@ fun Dashboard(
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
     val scrollState = rememberScrollState()
+
+    // NUOVO: Servizio di integrazione notifiche
+    val notificationService = remember { NotificationIntegrationService.getInstance(context) }
 
     // Ottieni il tema direttamente dall'app
     val themeManager = (context.applicationContext as FitGymTrackApplication).themeManager
@@ -125,9 +129,6 @@ fun Dashboard(
     val subscriptionState by subscriptionViewModel.subscriptionState.collectAsState()
     val updatePlanState by subscriptionViewModel.updatePlanState.collectAsState()
 
-    // NUOVO: Stato per subscription scadute
-    val expiredSubscriptionState by subscriptionViewModel.expiredSubscriptionState.collectAsState()
-
     val subscription by remember { derivedStateOf {
         if (subscriptionState is SubscriptionViewModel.SubscriptionState.Success) {
             (subscriptionState as SubscriptionViewModel.SubscriptionState.Success).subscription
@@ -151,11 +152,6 @@ fun Dashboard(
 
     // Dialog per upgrade Premium
     var showPremiumDialog by remember { mutableStateOf(false) }
-
-    // NUOVO: Stati per gestire i banner di scadenza
-    var showExpiredBanner by remember { mutableStateOf(false) }
-    var showExpiryWarningBanner by remember { mutableStateOf(false) }
-    var daysRemaining by remember { mutableStateOf<Int?>(null) }
 
     // Activity Result Launcher per pagamenti PayPal
     val paymentLauncher = rememberLauncherForActivityResult(
@@ -188,8 +184,11 @@ fun Dashboard(
         Log.d("Dashboard", "=== INIZIO CARICAMENTO DASHBOARD ===")
         dashboardViewModel.loadDashboardData(sessionManager)
 
-        // MODIFICATO: Carica subscription con controllo scadenze
+        // Carica subscription
         subscriptionViewModel.loadSubscription(checkExpired = true)
+
+        // NUOVO: Inizializza servizio notifiche
+        notificationService.initialize()
     }
 
     // Carica le statistiche sempre (per tutti gli utenti)
@@ -199,102 +198,19 @@ fun Dashboard(
             Log.d("Dashboard", "🔄 Caricamento statistiche per utente: ${currentUser.id}")
             statsViewModel.setSessionManager(sessionManager)
             statsViewModel.loadStats(currentUser.id, forceReload = true)
+
+            // NUOVO: Notifica di benvenuto per nuovi utenti (solo la prima volta)
+            // notificationService.notifyWelcomeMessage(currentUser)
         }
     }
 
-    // RIABILITATO: Osserva gli stati di scadenza subscription
-    LaunchedEffect(expiredSubscriptionState) {
-        val currentState = expiredSubscriptionState // Salva in una variabile locale
-        when (currentState) {
-            is SubscriptionViewModel.ExpiredSubscriptionState.Found -> {
-                Log.d("Dashboard", "🚨 Trovate ${currentState.expiredCount} subscription scadute")
-                showExpiredBanner = true
-                snackbarMessage = "Abbonamento scaduto - Sei stato riportato al piano Free"
-                isSuccess = false
-                showSnackbar = true
-            }
-            is SubscriptionViewModel.ExpiredSubscriptionState.JustDetected -> {
-                Log.d("Dashboard", "🚨 Subscription appena rilevata come scaduta")
-                showExpiredBanner = true
-            }
-            else -> {}
-        }
-    }
-
-    // CORRETTO: Controllo reale della scadenza subscription con calcolo giorni
+    // NUOVO: Integrazione automatica con subscription
     LaunchedEffect(subscription) {
         subscription?.let { sub ->
-            // Se è un piano a pagamento, controlla i giorni rimanenti
-            if (sub.price > 0.0 && sub.end_date != null) {
-                try {
-                    Log.d("Dashboard", "🔍 Analisi scadenza - Piano: ${sub.planName}, End_date: ${sub.end_date}")
+            Log.d("Dashboard", "🔔 Controllo subscription per notifiche: ${sub.planName}")
 
-                    // Parser per la data nel formato del database: "2025-06-28 23:59:59"
-                    val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
-                    val endDate = dateFormat.parse(sub.end_date)
-                    val currentDate = Date()
-
-                    if (endDate != null) {
-                        // Calcola la differenza in millisecondi
-                        val diffInMillis = endDate.time - currentDate.time
-                        // Converti in giorni (round up per essere conservativi)
-                        val daysDifference = TimeUnit.MILLISECONDS.toDays(diffInMillis).toInt()
-
-                        Log.d("Dashboard", "📅 Giorni di differenza calcolati: $daysDifference")
-                        Log.d("Dashboard", "📅 Data corrente: $currentDate")
-                        Log.d("Dashboard", "📅 Data scadenza: $endDate")
-
-                        when {
-                            daysDifference < 0 -> {
-                                // Abbonamento SCADUTO
-                                Log.d("Dashboard", "🚨 ABBONAMENTO SCADUTO ($daysDifference giorni fa)")
-                                showExpiredBanner = true
-                                showExpiryWarningBanner = false
-                                daysRemaining = null
-                            }
-                            daysDifference == 0 -> {
-                                // Abbonamento scade OGGI - SOLO AVVISO
-                                Log.d("Dashboard", "⚠️ ABBONAMENTO SCADE OGGI")
-                                showExpiredBanner = false
-                                showExpiryWarningBanner = true
-                                daysRemaining = 0
-                            }
-                            daysDifference in 1..5 -> {
-                                // Abbonamento scade tra 1-5 giorni - AVVISO
-                                Log.d("Dashboard", "⚠️ ABBONAMENTO SCADE TRA $daysDifference GIORNI")
-                                showExpiredBanner = false
-                                showExpiryWarningBanner = true
-                                daysRemaining = daysDifference
-                            }
-                            else -> {
-                                // Abbonamento scade tra più di 5 giorni - NESSUN AVVISO
-                                Log.d("Dashboard", "✅ ABBONAMENTO VALIDO ($daysDifference giorni rimanenti) - Nessun avviso")
-                                showExpiredBanner = false
-                                showExpiryWarningBanner = false
-                                daysRemaining = null
-                            }
-                        }
-                    } else {
-                        Log.e("Dashboard", "❌ Errore parsing data: ${sub.end_date}")
-                        // In caso di errore parsing, non mostrare avvisi
-                        showExpiredBanner = false
-                        showExpiryWarningBanner = false
-                        daysRemaining = null
-                    }
-                } catch (e: Exception) {
-                    Log.e("Dashboard", "❌ Errore calcolo giorni rimanenti: ${e.message}")
-                    // In caso di errore, non mostrare avvisi
-                    showExpiredBanner = false
-                    showExpiryWarningBanner = false
-                    daysRemaining = null
-                }
-            } else if (sub.planName == "Free") {
-                // L'utente è già su piano Free, nascondi eventuali banner
-                Log.d("Dashboard", "ℹ️ Utente su piano Free - Nessun controllo scadenza")
-                showExpiryWarningBanner = false
-                showExpiredBanner = false
-                daysRemaining = null
-            }
+            // Invece di mostrare banner, crea notifiche automaticamente
+            notificationService.checkSubscriptionStatus(sub)
         }
     }
 
@@ -306,10 +222,6 @@ fun Dashboard(
                 isSuccess = true
                 showSnackbar = true
                 subscriptionViewModel.resetUpdatePlanState()
-
-                // NUOVO: Nascondi i banner dopo un upgrade riuscito
-                showExpiredBanner = false
-                showExpiryWarningBanner = false
             }
             is SubscriptionViewModel.UpdatePlanState.Error -> {
                 snackbarMessage = (updatePlanState as SubscriptionViewModel.UpdatePlanState.Error).message
@@ -394,37 +306,8 @@ fun Dashboard(
                     .fillMaxSize()
                     .verticalScroll(scrollState)
             ) {
-                // NUOVO: Banner per subscription scaduta
-                if (showExpiredBanner) {
-                    SubscriptionExpiredBanner(
-                        isVisible = showExpiredBanner,
-                        onDismiss = {
-                            showExpiredBanner = false
-                            subscriptionViewModel.dismissExpiredNotification()
-                        },
-                        onUpgrade = {
-                            showExpiredBanner = false
-                            onNavigateToSubscription()
-                        }
-                    )
-                }
-
-                // CORRETTO: Banner di avviso scadenza solo se ci sono giorni rimanenti definiti
-                daysRemaining?.let { days ->
-                    if (showExpiryWarningBanner && subscription?.price != 0.0) {
-                        SubscriptionExpiryWarningBanner(
-                            daysRemaining = days,
-                            isVisible = showExpiryWarningBanner,
-                            onDismiss = {
-                                showExpiryWarningBanner = false
-                            },
-                            onRenew = {
-                                showExpiryWarningBanner = false
-                                onNavigateToSubscription()
-                            }
-                        )
-                    }
-                }
+                // RIMOSSO: Banner di subscription (sostituiti con notifiche)
+                // Non più showExpiredBanner, showExpiryWarningBanner, ecc.
 
                 // Stato del caricamento
                 when (dashboardState) {
@@ -735,6 +618,52 @@ fun Dashboard(
                             )
 
                             Spacer(modifier = Modifier.height(32.dp))
+
+                            // TEMPORANEO: Bottoni di test per sviluppo
+                            if (BuildConfig.DEBUG) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    // Test Notifiche Base
+                                    Button(
+                                        onClick = onNavigateToNotificationTest,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(50.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color.Red
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "🧪 Test Base",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+
+                                    // Test Step 3
+                                    Button(
+                                        onClick = onNavigateToStep3Test,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(50.dp),
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = Color(0xFF9C27B0)
+                                        )
+                                    ) {
+                                        Text(
+                                            text = "🚀 Step 3",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
+
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
 
                             // Logout Button
                             Button(

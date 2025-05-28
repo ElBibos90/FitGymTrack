@@ -1,9 +1,14 @@
 package com.fitgymtrack.app.ui
 
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -14,7 +19,24 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.fitgymtrack.app.models.User
-import com.fitgymtrack.app.ui.screens.*
+import com.fitgymtrack.app.ui.screens.ActiveWorkoutScreen
+import com.fitgymtrack.app.ui.screens.CreateWorkoutScreen
+import com.fitgymtrack.app.ui.screens.EditWorkoutScreen
+import com.fitgymtrack.app.ui.screens.FeedbackScreen
+import com.fitgymtrack.app.ui.screens.ForgotPasswordScreen
+import com.fitgymtrack.app.ui.screens.LoginScreen
+import com.fitgymtrack.app.ui.screens.NotificationScreen
+import com.fitgymtrack.app.ui.screens.NotificationTestScreen
+import com.fitgymtrack.app.ui.screens.RegisterScreen
+import com.fitgymtrack.app.ui.screens.SimpleResetPasswordScreen
+import com.fitgymtrack.app.ui.screens.StatsScreen
+import com.fitgymtrack.app.ui.screens.Step3TestingScreen // AGGIUNTO: Import Step3TestingScreen
+import com.fitgymtrack.app.ui.screens.SubscriptionScreen
+import com.fitgymtrack.app.ui.screens.UserExerciseScreen
+import com.fitgymtrack.app.ui.screens.UserProfileScreen
+import com.fitgymtrack.app.ui.screens.WorkoutHistoryScreen
+import com.fitgymtrack.app.ui.screens.WorkoutPlansScreen
+import com.fitgymtrack.app.ui.screens.WorkoutsScreen
 import com.fitgymtrack.app.ui.theme.FitGymTrackTheme
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.utils.ThemeManager
@@ -52,8 +74,8 @@ fun AppNavigation(
             !currentRoute.toString().startsWith("edit_workout") &&
             !currentRoute.toString().startsWith("user_exercises") &&
             !currentRoute.toString().startsWith("active_workout") &&
-            currentRoute != "stats" && // NUOVO: Aggiungiamo anche la rotta stats
-            currentRoute != "feedback" // NUOVO: Aggiungiamo anche la rotta feedback
+            currentRoute != "stats" &&
+            currentRoute != "feedback"
 
     // Ottieni il tema corrente
     val themeMode = if (themeManager != null) {
@@ -68,8 +90,6 @@ fun AppNavigation(
         ThemeManager.ThemeMode.SYSTEM -> isSystemInDarkTheme()
         else -> isSystemInDarkTheme()
     }
-
-    // Stato per lo scrolling
 
     NavHost(
         navController = navController,
@@ -135,14 +155,20 @@ fun AppNavigation(
                     navController.navigate("subscription")
                 },
                 onNavigateToStats = {
-                    // NUOVO: Navigazione alle statistiche con ViewModel condiviso
                     navController.navigate("stats")
                 },
                 onNavigateToFeedback = {
-                    // NUOVO: Navigazione al feedback
                     navController.navigate("feedback")
                 },
-                statsViewModel = sharedStatsViewModel // NUOVO: Passa il ViewModel condiviso
+                // FIX: Aggiunto callback mancante per notification test
+                onNavigateToNotificationTest = {
+                    navController.navigate("notification_test")
+                },
+                // FIX: Aggiunto callback mancante per step 3 test
+                onNavigateToStep3Test = {
+                    navController.navigate("step3_test")
+                },
+                statsViewModel = sharedStatsViewModel
             )
         }
 
@@ -166,10 +192,20 @@ fun AppNavigation(
         }
 
         composable("notifications") {
-            // Implementare la schermata delle notifiche
-            Box(modifier = Modifier) {
-                // Placeholder per la schermata di notifiche
-            }
+            NotificationScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToSubscription = {
+                    navController.navigate("subscription")
+                },
+                onNavigateToWorkouts = {
+                    navController.navigate("workouts")
+                },
+                onNavigateToStats = {
+                    navController.navigate("stats")
+                }
+            )
         }
 
         // Schermata abbonamento
@@ -182,7 +218,7 @@ fun AppNavigation(
             )
         }
 
-        // NUOVO: Schermata statistiche
+        // Schermata statistiche
         composable("stats") {
             StatsScreen(
                 onBack = {
@@ -191,9 +227,27 @@ fun AppNavigation(
             )
         }
 
-        // NUOVO: Schermata feedback - ASSICURATI CHE SIA PRESENTE
+        // Schermata feedback
         composable("feedback") {
             FeedbackScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // FIX: Test notifiche base (Step 1)
+        composable("notification_test") {
+            NotificationTestScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        // FIX: Test Step 3 - AGGIUNTO
+        composable("step3_test") {
+            Step3TestingScreen(
                 onBack = {
                     navController.popBackStack()
                 }
@@ -219,7 +273,6 @@ fun AppNavigation(
         composable("workout_plans") {
             WorkoutPlansScreen(
                 onBack = {
-                    // MODIFICATO: Assicurarsi che torni alla dashboard
                     navController.navigate("dashboard") {
                         popUpTo("workout_plans") { inclusive = true }
                     }
@@ -231,7 +284,6 @@ fun AppNavigation(
                     navController.navigate("edit_workout/$schedaId")
                 },
                 onStartWorkout = { schedaId ->
-                    // Navigazione verso la nuova schermata di allenamento attivo
                     currentUser?.let { user ->
                         navController.navigate("active_workout/${schedaId}/${user.id}")
                     }
@@ -243,14 +295,10 @@ fun AppNavigation(
         composable("create_workout") {
             CreateWorkoutScreen(
                 onBack = {
-                    // Torna alla lista delle schede
                     navController.popBackStack()
                 },
                 onWorkoutCreated = {
-                    // MODIFICATO: Naviga alla lista delle schede dopo la creazione
-                    // rimuovendo create_workout dal backstack
                     navController.navigate("workout_plans") {
-                        // Rimuove tutte le destinazioni fino a workout_plans (esclusa)
                         popUpTo("workout_plans") { inclusive = false }
                     }
                 }
@@ -263,23 +311,19 @@ fun AppNavigation(
             arguments = listOf(navArgument("schedaId") { type = NavType.IntType })
         ) { backStackEntry ->
             val schedaId = backStackEntry.arguments?.getInt("schedaId") ?: 0
-            // Implementazione della schermata di modifica scheda
             EditWorkoutScreen(
                 schedaId = schedaId,
                 onBack = {
-                    // Torna alla lista delle schede
                     navController.popBackStack()
                 },
                 onWorkoutUpdated = {
-                    // MODIFICATO: Naviga alla lista delle schede dopo l'aggiornamento
-                    // rimuovendo edit_workout dal backstack
                     navController.navigate("workout_plans") {
-                        // Rimuove tutte le destinazioni fino a workout_plans (esclusa)
                         popUpTo("workout_plans") { inclusive = false }
                     }
                 }
             )
         }
+
         composable("workouts") {
             WorkoutsScreen(
                 onBack = {
@@ -288,7 +332,6 @@ fun AppNavigation(
                     }
                 },
                 onStartWorkout = { schedaId ->
-                    // Navigazione verso la schermata di allenamento attivo
                     currentUser?.let { user ->
                         navController.navigate("active_workout/${schedaId}/${user.id}")
                     }
@@ -299,7 +342,7 @@ fun AppNavigation(
             )
         }
 
-        // Aggiungiamo anche la rotta per lo storico degli allenamenti
+        // Storico degli allenamenti
         composable("workout_history") {
             WorkoutHistoryScreen(
                 onBack = {
@@ -307,6 +350,7 @@ fun AppNavigation(
                 }
             )
         }
+
         // Rotta per l'allenamento attivo
         composable(
             route = "active_workout/{schedaId}/{userId}",
@@ -322,13 +366,11 @@ fun AppNavigation(
                 schedaId = schedaId,
                 userId = userId,
                 onNavigateBack = {
-                    // Torna alla lista delle schede
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = false }
                     }
                 },
                 onWorkoutCompleted = {
-                    // Naviga alla dashboard dopo il completamento dell'allenamento
                     navController.navigate("dashboard") {
                         popUpTo("dashboard") { inclusive = false }
                     }
@@ -336,11 +378,10 @@ fun AppNavigation(
             )
         }
 
-        // Nuova rotta per gli esercizi personalizzati
+        // Rotta per gli esercizi personalizzati
         composable("user_exercises") {
             UserExerciseScreen(
                 onBack = {
-                    // Torna alla dashboard
                     navController.navigate("dashboard") {
                         popUpTo("user_exercises") { inclusive = true }
                     }

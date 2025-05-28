@@ -1,40 +1,74 @@
 package com.fitgymtrack.app.ui.screens
 
-import androidx.compose.foundation.layout.*
+// NUOVO: Import per controllo limiti
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ElevatedButton
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.extensions.WorkoutNotificationExtensions
 import com.fitgymtrack.app.models.WorkoutPlan
 import com.fitgymtrack.app.ui.components.SnackbarMessage
+import com.fitgymtrack.app.ui.theme.Indigo600
 import com.fitgymtrack.app.utils.SessionManager
 import com.fitgymtrack.app.viewmodel.WorkoutViewModel
-import androidx.compose.foundation.background
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
-import java.text.ParseException
 import java.text.SimpleDateFormat
-import java.util.*
-import android.util.Log
-import androidx.activity.compose.BackHandler
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
-import com.fitgymtrack.app.ui.theme.Indigo600
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -141,7 +175,27 @@ fun WorkoutPlansScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onCreateWorkout) {
+                    // MODIFICATO: Controllo limiti prima di creare scheda
+                    IconButton(
+                        onClick = {
+                            // Controlla limiti solo quando user clicca per creare
+                            WorkoutNotificationExtensions.checkLimitsBeforeCreation(
+                                context = context,
+                                resourceType = "workouts",
+                                onLimitReached = {
+                                    // La notifica è già stata creata automaticamente
+                                    // Mostra anche snackbar per feedback immediato
+                                    snackbarMessage = "Hai raggiunto il limite di schede per il tuo piano"
+                                    isSnackbarSuccess = false
+                                    showSnackbar = true
+                                },
+                                onCanProceed = {
+                                    // Limite OK, procedi con la creazione
+                                    onCreateWorkout()
+                                }
+                            )
+                        }
+                    ) {
                         Icon(Icons.Default.Add, contentDescription = "Crea scheda")
                     }
                 }
@@ -219,8 +273,24 @@ fun WorkoutPlansScreen(
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Spacer(modifier = Modifier.height(16.dp))
+
+                                // MODIFICATO: Anche qui controllo limiti
                                 Button(
-                                    onClick = onCreateWorkout
+                                    onClick = {
+                                        WorkoutNotificationExtensions.checkLimitsBeforeCreation(
+                                            context = context,
+                                            resourceType = "workouts",
+                                            onLimitReached = {
+                                                // Notifica + snackbar
+                                                snackbarMessage = "Hai raggiunto il limite di schede per il tuo piano"
+                                                isSnackbarSuccess = false
+                                                showSnackbar = true
+                                            },
+                                            onCanProceed = {
+                                                onCreateWorkout()
+                                            }
+                                        )
+                                    }
                                 ) {
                                     Icon(
                                         Icons.Default.Add,

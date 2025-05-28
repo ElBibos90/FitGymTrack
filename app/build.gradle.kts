@@ -47,12 +47,18 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "VERSION_NAME", "\"${defaultConfig.versionName}\"")
+            buildConfigField("int", "VERSION_CODE", "${defaultConfig.versionCode}")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            buildConfigField("String", "VERSION_NAME", "\"${defaultConfig.versionName}\"")
+            buildConfigField("int", "VERSION_CODE", "${defaultConfig.versionCode}")
         }
     }
     compileOptions {
@@ -64,6 +70,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

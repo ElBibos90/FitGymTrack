@@ -1,6 +1,9 @@
 package com.fitgymtrack.app.api
 
 import com.fitgymtrack.app.utils.SessionManager
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonSyntaxException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
@@ -12,9 +15,6 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonSyntaxException
-import com.google.gson.Gson
 
 object ApiClient {
 
@@ -155,6 +155,11 @@ object ApiClient {
     // Aggiungiamo il servizio per il feedback
     val feedbackApiService: FeedbackApiService by lazy {
         retrofit.create(FeedbackApiService::class.java)
+    }
+
+    // NUOVO: Servizio per le notifiche
+    val notificationApiService: NotificationApiService by lazy {
+        retrofit.create(NotificationApiService::class.java)
     }
 
 }

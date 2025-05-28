@@ -21,8 +21,6 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -31,72 +29,59 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
+import com.fitgymtrack.app.extensions.WorkoutNotificationExtensions
 import com.fitgymtrack.app.ui.theme.Indigo600
-import com.fitgymtrack.app.viewmodel.SubscriptionViewModel
-import com.fitgymtrack.app.viewmodel.WorkoutViewModel
 
 /**
- * Componente helper per verificare se il piano attuale consente di creare altre schede,
- * e mostrare un messaggio appropriato.
- *
- * Da usare nella schermata WorkoutPlansScreen.
+ * Componente helper per verificare se il piano attuale consente di creare altre schede.
+ * AGGIORNATO: Usa il sistema di notifiche invece dei banner.
  */
 @Composable
 fun WorkoutLimitChecker(
     onCreateWorkout: () -> Unit,
     onUpgradePlan: () -> Unit,
-    modifier: Modifier = Modifier,
-    subscriptionViewModel: SubscriptionViewModel = viewModel(),
-    workoutViewModel: WorkoutViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
-    val subscriptionState by subscriptionViewModel.subscriptionState.collectAsState()
-    val limitsState by workoutViewModel.limitsState.collectAsState()
+    val context = LocalContext.current
 
-    remember(subscriptionState) {
-        if (subscriptionState is SubscriptionViewModel.SubscriptionState.Success) {
-            (subscriptionState as SubscriptionViewModel.SubscriptionState.Success).subscription
-        } else null
-    }
-
-    LaunchedEffect(Unit) {
-        // Controlla se l'utente può creare una nuova scheda
-        workoutViewModel.checkLimitsBeforeCreate()
-    }
-
-    // Stato per mostrare il banner di limite
-    var showLimitBanner by remember { mutableStateOf(false) }
+    // Stato per il fallback banner (solo per casi critici)
+    var showFallbackBanner by remember { mutableStateOf(false) }
     var maxAllowed by remember { mutableIntStateOf(0) }
     var currentCount by remember { mutableIntStateOf(0) }
 
-    // Monitora limitsState
-    LaunchedEffect(limitsState) {
-        when (limitsState) {
-            is WorkoutViewModel.LimitsState.LimitReached -> {
-                val state = limitsState as WorkoutViewModel.LimitsState.LimitReached
-                showLimitBanner = true
-                maxAllowed = state.maxAllowed ?: 0
-                currentCount = state.currentCount
-            }
-            is WorkoutViewModel.LimitsState.CanProceed -> {
-                // L'utente può procedere, nascondi il banner
-                showLimitBanner = false
-                onCreateWorkout()  // Vai direttamente alla creazione
-            }
-            else -> { /* Non fare nulla per altri stati */ }
-        }
-    }
+    // NUOVO: Usa il sistema di notifiche invece dei banner
+    WorkoutNotificationExtensions.checkLimitsBeforeCreation(
+        context = context,
+        resourceType = "workouts",
+        onLimitReached = {
+            // OPZIONE 1: Solo notifica (raccomandato)
+            // La notifica è già stata creata da WorkoutNotificationExtensions
+            // L'utente la vedrà nell'icona campana
 
-    // Mostra il banner di limite se necessario
-    if (showLimitBanner) {
+            // OPZIONE 2: Notifica + fallback banner per UX immediata
+            // Decommentare se vuoi anche il banner come fallback
+            /*
+            showFallbackBanner = true
+            maxAllowed = 3 // Valore di default per piano Free
+            currentCount = 3
+            */
+        },
+        onCanProceed = {
+            // L'utente può creare la scheda, procedi
+            onCreateWorkout()
+        }
+    )
+
+    // Fallback banner (opzionale, solo se decommentato sopra)
+    if (showFallbackBanner) {
         WorkoutLimitBanner(
             currentCount = currentCount,
             maxAllowed = maxAllowed,
             onDismiss = {
-                showLimitBanner = false
-                workoutViewModel.resetLimitsState()
+                showFallbackBanner = false
             },
             onUpgrade = onUpgradePlan,
             modifier = modifier
@@ -104,6 +89,10 @@ fun WorkoutLimitChecker(
     }
 }
 
+/**
+ * Banner di fallback per casi critici (mantenuto per compatibilità)
+ * Normalmente non verrà mostrato se usi solo le notifiche
+ */
 @Composable
 fun WorkoutLimitBanner(
     currentCount: Int,
@@ -172,7 +161,7 @@ fun WorkoutLimitBanner(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
-                        text = "Passa al piano Premium per creare schede illimitate.",
+                        text = "Controlla le notifiche per maggiori dettagli. Passa al piano Premium per creare schede illimitate.",
                         color = Color(0xFF92400E)
                     )
                 }
@@ -207,4 +196,18 @@ fun WorkoutLimitBanner(
             }
         }
     }
+}
+
+/**
+ * Versione semplificata per testing rapido
+ */
+@Composable
+fun SimpleWorkoutLimitChecker(
+    onCreateWorkout: () -> Unit,
+    onUpgradePlan: () -> Unit = {}
+) {
+    WorkoutLimitChecker(
+        onCreateWorkout = onCreateWorkout,
+        onUpgradePlan = onUpgradePlan
+    )
 }
